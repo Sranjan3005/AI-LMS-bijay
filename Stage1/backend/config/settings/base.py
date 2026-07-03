@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'regression.apps.RegressionConfig',
     'classification.apps.ClassificationConfig',
     'neural_network.apps.NeuralNetworkConfig',
+    'computer_vision.apps.ComputerVisionConfig',
     'agentic_flow.apps.AgenticFlowConfig',
 ]
 

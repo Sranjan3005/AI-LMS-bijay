@@ -39,12 +39,24 @@ const LESSONS = {
       icon: <Wrench size={32} color="var(--accent-purple)" />,
       text: "Images are huge! Before feeding an image to our AI, we preprocess it: we resize it down to a small grid (like 8x8 pixels) to save time, convert it to Grayscale (black and white), and 'Normalize' the pixels so their brightness is always a number between 0 and 1."
     }
+  },
+  COMPUTER_VISION: {
+    step1: {
+      title: "The Blueprint: Visual Features",
+      icon: <Search size={32} color="var(--accent-cyan)" />,
+      text: "We are building a Computer Vision model. Instead of numbers in a spreadsheet, the AI looks at pixels! It needs to learn variations. If you want it to recognize handwritten digits, you can't just give it one perfect '5'. You need sloppy 5s, tiny 5s, and tilted 5s so it learns the 'concept' of the shape."
+    },
+    step2: {
+      title: "The Cleanup Crew: Image Processing",
+      icon: <Wrench size={32} color="var(--accent-purple)" />,
+      text: "Images must be processed before training. We often convert them to grayscale, resize them to a standard grid (like 28x28), and binarize them (pure black and white) to remove background noise. This helps the AI focus purely on the structure."
+    }
   }
 };
 
 const DataLabCanvas = ({ scenario }) => {
   const [step, setStep] = useState(1); // 1 = Blueprint, 2 = Cleanup, 3 = Upload
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]); // Support multiple files
   const [variantName, setVariantName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -58,23 +70,32 @@ const DataLabCanvas = ({ scenario }) => {
   const lesson = LESSONS[scenario.model_type] || LESSONS.REGRESSION;
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
       
-      // 1. Size check (Max 5MB)
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        setError("File is too large! Maximum allowed size is 5MB.");
-        return;
-      }
-
-      // 2. Neural Network format check
-      if (scenario.model_type === 'NEURAL_NETWORK') {
-        if (!selectedFile.type.startsWith('image/')) {
-          setError("Neural Networks for this scenario expect Image files (PNG/JPG).");
+      // 1. Size check (Max 5MB per file)
+      for (const f of selectedFiles) {
+        if (f.size > 5 * 1024 * 1024) {
+          setError(`File ${f.name} is too large! Maximum allowed size is 5MB per file.`);
           return;
         }
+      }
+
+      // 2. Neural Network / CV format check
+      if (scenario.model_type === 'NEURAL_NETWORK' || scenario.model_type === 'COMPUTER_VISION') {
+        for (const f of selectedFiles) {
+          if (!f.type.startsWith('image/')) {
+            setError("Computer Vision and Neural Networks expect Image files (PNG/JPG).");
+            return;
+          }
+        }
+        setFiles(selectedFiles);
+        setError(null);
+        setUploadSuccess(false);
+        return;
       } else {
-        // 3. Regression / Classification check
+        // 3. Regression / Classification check (single file expected)
+        const selectedFile = selectedFiles[0];
         if (selectedFile.name.endsWith('.csv') || selectedFile.type === 'text/csv') {
           // Pre-check the CSV format and data types
           const reader = new FileReader();
@@ -100,7 +121,7 @@ const DataLabCanvas = ({ scenario }) => {
             }
 
             // All good for CSV
-            setFile(selectedFile);
+            setFiles([selectedFile]);
             setError(null);
             setUploadSuccess(false);
           };
@@ -110,16 +131,16 @@ const DataLabCanvas = ({ scenario }) => {
            setError("Unsupported file format. Please upload a CSV, Image, PDF, or Text document.");
            return;
         }
+        setFiles([selectedFile]);
       }
 
-      setFile(selectedFile);
       setError(null);
       setUploadSuccess(false);
     }
   };
 
   const handleUpload = async () => {
-    if (!file) {
+    if (files.length === 0) {
       setError("Please select a file first.");
       return;
     }
@@ -128,9 +149,10 @@ const DataLabCanvas = ({ scenario }) => {
     setError(null);
 
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach(f => formData.append('file', f));
     formData.append('scenario_id', scenario.id);
-    formData.append('label', variantName || `Custom ${file.name}`);
+    const defaultName = files.length > 1 ? `Custom ${files.length} images` : `Custom ${files[0].name}`;
+    formData.append('label', variantName || defaultName);
 
     try {
       const response = await api.post('/scenarios/upload/', formData, {
@@ -138,7 +160,7 @@ const DataLabCanvas = ({ scenario }) => {
       });
       setUploadSuccess(true);
       setUploadedVariant(response.data);
-      setFile(null);
+      setFiles([]);
       setVariantName('');
     } catch (err) {
       console.error(err);
@@ -246,21 +268,26 @@ const DataLabCanvas = ({ scenario }) => {
                 type="file" 
                 id="file-upload" 
                 onChange={handleFileChange} 
+                multiple={scenario.model_type === 'COMPUTER_VISION' || scenario.model_type === 'NEURAL_NETWORK'}
                 style={{ display: 'none' }}
               />
               <label htmlFor="file-upload" className="btn-secondary" style={{ cursor: 'pointer', display: 'inline-block' }}>
                 Browse Files
               </label>
 
-              {file && (
-                <div style={{ marginTop: '20px', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                  <FileText size={18} color="var(--accent-cyan)" />
-                  <span>{file.name}</span>
+              {files.length > 0 && (
+                <div style={{ marginTop: '20px', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {files.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.3)', padding: '5px 10px', borderRadius: '4px' }}>
+                      <FileImage size={16} color="var(--accent-cyan)" />
+                      <span style={{ fontSize: '0.9rem' }}>{f.name}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {file && (
+            {files.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', maxWidth: '300px' }}>
                   <Type size={18} color="var(--text-secondary)" />
@@ -306,7 +333,7 @@ const DataLabCanvas = ({ scenario }) => {
                   <CheckCircle size={24} /> Data Added to Collection!
                 </h3>
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                  Successfully processed <b>{file?.name || "your file"}</b> into structured data.
+                  Successfully processed <b>{files.length === 1 ? files[0].name : `${files.length} files`}</b> into structured data.
                 </p>
                 <p style={{ margin: '10px 0 0 0', color: 'var(--text-primary)' }}>
                   Head over to the <b>Prediction Engine</b> to test your new <b>"{uploadedVariant.variant_name}"</b> dataset!

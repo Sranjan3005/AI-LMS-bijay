@@ -14,9 +14,10 @@ from django.db import models
 class Scenario(models.Model):
 
     MODEL_TYPE_CHOICES = [
-        ('REGRESSION',     'Linear Regression'),
-        ('CLASSIFICATION', 'Classification'),
-        ('NEURAL_NETWORK', 'Neural Network'),
+        ('REGRESSION',      'Linear Regression'),
+        ('CLASSIFICATION',  'Classification'),
+        ('NEURAL_NETWORK',  'Neural Network'),
+        ('COMPUTER_VISION', 'Computer Vision'),
     ]
 
     id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

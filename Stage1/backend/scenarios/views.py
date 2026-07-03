@@ -51,13 +51,13 @@ class CustomDataUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        file_obj = request.FILES.get('file')
+        files = request.FILES.getlist('file')
         scenario_id = request.data.get('scenario_id')
         import time
         name = request.data.get('name', f'custom_{request.user.id}_{int(time.time())}')
         label = request.data.get('label', 'My Custom Data')
 
-        if not file_obj or not scenario_id:
+        if not files or not scenario_id:
             return Response({'error': 'file and scenario_id are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -65,17 +65,22 @@ class CustomDataUploadView(APIView):
         except Scenario.DoesNotExist:
             return Response({'error': 'Scenario not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        file_type = file_obj.content_type
-        file_bytes = file_obj.read()
-        
         try:
-            if scenario.model_type == 'NEURAL_NETWORK' and file_type.startswith('image/'):
-                payload = base64.b64encode(file_bytes).decode('utf-8')
-            elif file_type == 'text/csv' or file_obj.name.endswith('.csv'):
-                payload = file_bytes.decode('utf-8', errors='ignore')
+            if scenario.model_type in ['NEURAL_NETWORK', 'COMPUTER_VISION'] and all(f.content_type.startswith('image/') for f in files):
+                if len(files) == 1:
+                    payload = base64.b64encode(files[0].read()).decode('utf-8')
+                else:
+                    import json
+                    payload = json.dumps([base64.b64encode(f.read()).decode('utf-8') for f in files])
             else:
-                b64_content = base64.b64encode(file_bytes).decode('utf-8')
-                payload = extract_csv_from_unstructured_data(scenario.title, file_type, b64_content)
+                file_obj = files[0]
+                file_type = file_obj.content_type
+                file_bytes = file_obj.read()
+                if file_type == 'text/csv' or file_obj.name.endswith('.csv'):
+                    payload = file_bytes.decode('utf-8', errors='ignore')
+                else:
+                    b64_content = base64.b64encode(file_bytes).decode('utf-8')
+                    payload = extract_csv_from_unstructured_data(scenario.title, file_type, b64_content)
         except Exception as e:
             return Response({'error': f'Failed to process file: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

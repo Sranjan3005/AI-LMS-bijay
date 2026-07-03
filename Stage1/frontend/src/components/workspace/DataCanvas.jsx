@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Plot from 'react-plotly.js';
 import api from '../../api';
 import trainingVideo from '../../assets/training_video.mp4';
+import DrawingCanvas from './DrawingCanvas';
 
 const PREDICTION_PROMPTS = {
   'The Social Media Trend': "Give me the number of likes, I'll try to guess the comments!",
@@ -29,6 +30,7 @@ const PREDICTION_PROMPTS = {
 const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, loading, onRunModel, isTraining, experimentResult, experimentError, onRefreshScenarios }) => {
   const [interpretData, setInterpretData] = useState(null);
   const [allPreviews, setAllPreviews] = useState({});
+  const [cvInputImage, setCvInputImage] = useState(null);
   
   // Animation states: 'selection', 'data_review', 'feeding_training', 'trained', 'robot_predict', 'error'
   const [animationStep, setAnimationStep] = useState('selection');
@@ -97,15 +99,19 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
   useEffect(() => {
     if (animationStep === 'feeding_training' && !isTraining) {
       if (experimentResult) {
-        setAnimationStep('trained');
-        setTimeout(() => {
-          setAnimationStep('robot_predict');
-        }, 2000);
+        if (scenario?.model_type === 'COMPUTER_VISION') {
+          setAnimationStep('data_review');
+        } else {
+          setAnimationStep('trained');
+          setTimeout(() => {
+            setAnimationStep('robot_predict');
+          }, 2000);
+        }
       } else if (experimentError) {
         setAnimationStep('error');
       }
     }
-  }, [isTraining, experimentResult, experimentError, animationStep]);
+  }, [isTraining, experimentResult, experimentError, animationStep, scenario]);
 
   if (!scenario) {
     return (
@@ -180,7 +186,17 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
 
   const handleNextToTrain = () => {
     setAnimationStep('feeding_training');
-    onRunModel();
+    if (scenario?.model_type === 'COMPUTER_VISION') {
+      // Simulate training for CV since backend trains lazily on prediction
+      setTimeout(() => {
+        setAnimationStep('trained');
+        setTimeout(() => {
+          setAnimationStep('robot_predict');
+        }, 2000);
+      }, 3000);
+    } else {
+      onRunModel();
+    }
   };
 
   const featureCols = previewData?.columns ? previewData.columns.slice(0, -1) : [];
@@ -303,7 +319,16 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                   )}
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                     {allPreviews[variant.name] ? (
-                      allPreviews[variant.name].columns.length === 3 && scenario.model_type.toLowerCase() === 'regression' ? (
+                      allPreviews[variant.name].input_type === 'canvas' ? (
+                        <div style={{ padding: '10px' }}>
+                          {allPreviews[variant.name].sample_image ? (
+                            <img src={`data:image/png;base64,${allPreviews[variant.name].sample_image}`} alt="Sample" style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', objectFit: 'contain' }} />
+                          ) : (
+                            <div style={{ color: 'var(--text-secondary)' }}>Draw directly on the canvas!</div>
+                          )}
+                        </div>
+                      ) : (
+                      allPreviews[variant.name].columns?.length === 3 && scenario.model_type.toLowerCase() === 'regression' ? (
                         <Plot
                           data={[
                             {
@@ -359,6 +384,7 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                           </ScatterChart>
                         </ResponsiveContainer>
                       )
+                      )
                     ) : (
                       <div style={{ color: 'var(--text-secondary)' }}>Loading...</div>
                     )}
@@ -410,74 +436,86 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
               {previewData && !loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   
-                  {/* Graph Area */}
-                  <div style={{ height: '350px', marginBottom: '30px' }}>
-                    {featureCols.length === 2 && !isClassification ? (
-                      <Plot
-                        data={[
-                          {
-                            x: chartData.map(r => r[featureCols[0]]),
-                            y: chartData.map(r => r[featureCols[1]]),
-                            z: chartData.map(r => r[yCol]),
-                            type: 'scatter3d',
-                            mode: 'markers',
-                            marker: { color: '#00f0ff', size: 5, opacity: 0.8 },
-                            name: 'Data Points'
-                          }
-                        ]}
-                        layout={{
-                          autosize: true,
-                          paper_bgcolor: 'transparent',
-                          plot_bgcolor: 'transparent',
-                          scene: {
-                            xaxis: { title: featureCols[0], backgroundcolor: 'transparent', gridcolor: '#333' },
-                            yaxis: { title: featureCols[1], backgroundcolor: 'transparent', gridcolor: '#333' },
-                            zaxis: { title: yCol, backgroundcolor: 'transparent', gridcolor: '#333' },
-                            camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
-                          },
-                          margin: { l: 0, r: 0, b: 0, t: 0 },
-                          font: { color: '#fff' }
-                        }}
-                        useResizeHandler={true}
-                        style={{ width: '100%', height: '100%' }}
-                        config={{ displayModeBar: false }}
-                      />
+                  {/* Graph Area / Drawing Area */}
+                  <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
+                    {scenario?.model_type === 'COMPUTER_VISION' ? (
+                      <div style={{ padding: '20px', textAlign: 'center' }}>
+                        {allPreviews[selectedVariant]?.sample_image ? (
+                          <img src={`data:image/png;base64,${allPreviews[selectedVariant].sample_image}`} alt="Sample" style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '12px', border: '2px solid var(--glass-border)', objectFit: 'contain' }} />
+                        ) : (
+                          <div style={{ color: 'var(--text-secondary)' }}>Dataset sample image</div>
+                        )}
+                      </div>
                     ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 20, right: 30, bottom: 25, left: 10 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                          <XAxis 
-                            dataKey={featureCols[0]} 
-                            name={featureCols[0]} 
-                            type="number" 
-                            stroke="var(--text-secondary)" 
-                            tick={{fontSize: 12}} 
-                            label={{ value: featureCols[0], position: 'bottom', offset: 5, fill: 'var(--text-secondary)', fontSize: 13, fontWeight: 'bold' }}
+                      <div style={{ height: '350px', width: '100%' }}>
+                        {featureCols.length === 2 && !isClassification ? (
+                          <Plot
+                            data={[
+                              {
+                                x: chartData.map(r => r[featureCols[0]]),
+                                y: chartData.map(r => r[featureCols[1]]),
+                                z: chartData.map(r => r[yCol]),
+                                type: 'scatter3d',
+                                mode: 'markers',
+                                marker: { color: '#00f0ff', size: 5, opacity: 0.8 },
+                                name: 'Data Points'
+                              }
+                            ]}
+                            layout={{
+                              autosize: true,
+                              paper_bgcolor: 'transparent',
+                              plot_bgcolor: 'transparent',
+                              scene: {
+                                xaxis: { title: featureCols[0], backgroundcolor: 'transparent', gridcolor: '#333' },
+                                yaxis: { title: featureCols[1], backgroundcolor: 'transparent', gridcolor: '#333' },
+                                zaxis: { title: yCol, backgroundcolor: 'transparent', gridcolor: '#333' },
+                                camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
+                              },
+                              margin: { l: 0, r: 0, b: 0, t: 0 },
+                              font: { color: '#fff' }
+                            }}
+                            useResizeHandler={true}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: false }}
                           />
-                          <YAxis 
-                            dataKey={isClassification && featureCols.length > 1 ? featureCols[1] : yCol} 
-                            name={isClassification && featureCols.length > 1 ? featureCols[1] : yCol} 
-                            type={isClassification && featureCols.length === 1 ? 'category' : 'number'} 
-                            stroke="var(--text-secondary)" 
-                            tick={{fontSize: 12}} 
-                            label={{ value: isClassification && featureCols.length > 1 ? featureCols[1] : yCol, angle: -90, position: 'insideLeft', offset: -5, fill: 'var(--text-secondary)', fontSize: 13, fontWeight: 'bold' }}
-                          />
-                          <Tooltip cursor={{strokeDasharray: '3 3'}} content={<CustomTooltip />} />
-                          
-                          {isClassification ? (
-                            Object.keys(groupedData).map((label, i) => (
-                              <Scatter 
-                                key={label} 
-                                name={String(label)} 
-                                data={groupedData[label]} 
-                                fill={COLORS[i % COLORS.length]} 
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <ScatterChart margin={{ top: 20, right: 30, bottom: 25, left: 10 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                              <XAxis 
+                                dataKey={featureCols[0]} 
+                                name={featureCols[0]} 
+                                type="number" 
+                                stroke="var(--text-secondary)" 
+                                tick={{fontSize: 12}} 
+                                label={{ value: featureCols[0], position: 'bottom', offset: 5, fill: 'var(--text-secondary)', fontSize: 13, fontWeight: 'bold' }}
                               />
-                            ))
-                          ) : (
-                            <Scatter name="Data Points" data={chartData} fill="var(--accent-cyan)" />
-                          )}
-                        </ScatterChart>
-                      </ResponsiveContainer>
+                              <YAxis 
+                                dataKey={isClassification && featureCols.length > 1 ? featureCols[1] : yCol} 
+                                name={isClassification && featureCols.length > 1 ? featureCols[1] : yCol} 
+                                type={isClassification && featureCols.length === 1 ? 'category' : 'number'} 
+                                stroke="var(--text-secondary)" 
+                                tick={{fontSize: 12}} 
+                                label={{ value: isClassification && featureCols.length > 1 ? featureCols[1] : yCol, angle: -90, position: 'insideLeft', offset: -5, fill: 'var(--text-secondary)', fontSize: 13, fontWeight: 'bold' }}
+                              />
+                              <Tooltip cursor={{strokeDasharray: '3 3'}} content={<CustomTooltip />} />
+                              
+                              {isClassification ? (
+                                Object.keys(groupedData).map((label, i) => (
+                                  <Scatter 
+                                    key={label} 
+                                    name={String(label)} 
+                                    data={groupedData[label]} 
+                                    fill={COLORS[i % COLORS.length]} 
+                                  />
+                                ))
+                              ) : (
+                                <Scatter name="Data Points" data={chartData} fill="var(--accent-cyan)" />
+                              )}
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -490,60 +528,62 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                   </div>
 
                   {/* Deep Analysis Section */}
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '25px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <h3 style={{ fontSize: '1.8rem', color: 'var(--accent-purple)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Activity size={28} /> Deep Analysis
-                    </h3>
-                    
-                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                      {/* Total Count */}
-                      <div style={{ flex: '1 1 200px', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-                          <Hash size={20} /> <span style={{ fontSize: '1.2rem' }}>Total Data Points</span>
-                        </div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{chartData.length}</div>
-                      </div>
+                  {scenario?.model_type !== 'COMPUTER_VISION' && (
+                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '25px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <h3 style={{ fontSize: '1.8rem', color: 'var(--accent-purple)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Activity size={28} /> Deep Analysis
+                      </h3>
                       
-                      {/* Feature Stats */}
-                      {Object.keys(deepStats).map(colName => (
-                        <div key={colName} style={{ flex: '1 1 250px', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px' }}>
-                          <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', marginBottom: '15px', fontSize: '1.4rem' }}>{colName}</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '1.2rem' }}>
-                            <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}><Minimize2 size={16}/> Min</span>
-                            <span>{deepStats[colName].min}</span>
+                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                        {/* Total Count */}
+                        <div style={{ flex: '1 1 200px', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                            <Hash size={20} /> <span style={{ fontSize: '1.2rem' }}>Total Data Points</span>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '1.2rem' }}>
-                            <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}><Maximize2 size={16}/> Max</span>
-                            <span>{deepStats[colName].max}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem' }}>
-                            <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}><Activity size={16}/> Avg</span>
-                            <span>{deepStats[colName].avg}</span>
-                          </div>
+                          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{chartData.length}</div>
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Interpretation Data (Bias/Descriptions) */}
-                    {interpretData && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
-                        <div>
-                          <h4 style={{ marginBottom: '15px', color: 'var(--text-secondary)', fontSize: '1.2rem' }}>Dataset Context</h4>
-                          {interpretData.column_descriptions.slice(0, 2).map(col => (
-                            <div key={col.name} style={{ marginBottom: '12px' }}>
-                              <strong style={{ fontSize: '1.1rem' }}>{col.name}: </strong>
-                              <span style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>{col.description}</span>
+                        
+                        {/* Feature Stats */}
+                        {Object.keys(deepStats).map(colName => (
+                          <div key={colName} style={{ flex: '1 1 250px', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '8px' }}>
+                            <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', marginBottom: '15px', fontSize: '1.4rem' }}>{colName}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '1.2rem' }}>
+                              <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}><Minimize2 size={16}/> Min</span>
+                              <span>{deepStats[colName].min}</span>
                             </div>
-                          ))}
-                        </div>
-                        <div style={{ borderLeft: interpretData.bias_analysis.severity !== 'None' ? '3px solid var(--accent-red)' : '3px solid var(--accent-green)', paddingLeft: '20px' }}>
-                          <h4 style={{ marginBottom: '15px', color: interpretData.bias_analysis.severity !== 'None' ? 'var(--accent-red)' : 'var(--accent-green)', fontSize: '1.2rem' }}>AI Bias Check</h4>
-                          <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '5px' }}>{interpretData.bias_analysis.bias_type}</strong>
-                          <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', margin: 0 }}>{interpretData.bias_analysis.description}</p>
-                        </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '1.2rem' }}>
+                              <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}><Maximize2 size={16}/> Max</span>
+                              <span>{deepStats[colName].max}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem' }}>
+                              <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}><Activity size={16}/> Avg</span>
+                              <span>{deepStats[colName].avg}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
+
+                      {/* Interpretation Data (Bias/Descriptions) */}
+                      {interpretData && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
+                          <div>
+                            <h4 style={{ marginBottom: '15px', color: 'var(--text-secondary)', fontSize: '1.2rem' }}>Dataset Context</h4>
+                            {interpretData.column_descriptions.slice(0, 2).map(col => (
+                              <div key={col.name} style={{ marginBottom: '12px' }}>
+                                <strong style={{ fontSize: '1.1rem' }}>{col.name}: </strong>
+                                <span style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>{col.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ borderLeft: interpretData.bias_analysis.severity !== 'None' ? '3px solid var(--accent-red)' : '3px solid var(--accent-green)', paddingLeft: '20px' }}>
+                            <h4 style={{ marginBottom: '15px', color: interpretData.bias_analysis.severity !== 'None' ? 'var(--accent-red)' : 'var(--accent-green)', fontSize: '1.2rem' }}>AI Bias Check</h4>
+                            <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '5px' }}>{interpretData.bias_analysis.bias_type}</strong>
+                            <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', margin: 0 }}>{interpretData.bias_analysis.description}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </motion.div>
@@ -667,48 +707,77 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                     <h4 style={{ color: 'var(--accent-green)', marginBottom: '15px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem' }}>
                       {PREDICTION_PROMPTS[scenario.title] || "Ask a Question"}
                     </h4>
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {featureCols.map(col => (
-                        <input 
-                          key={col}
-                          type="number" 
-                          placeholder={`Enter ${col}...`}
-                          id={`predict-input-${col}`}
-                          style={{ padding: '12px 15px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#FFF', flex: 1, minWidth: '130px', fontSize: '1rem' }}
-                        />
-                      ))}
-                      <button 
-                        className="btn-primary"
-                        onClick={async () => {
-                          const features = {};
-                          for (const col of featureCols) {
-                            const val = document.getElementById(`predict-input-${col}`).value;
-                            if (!val) {
-                              alert(`Please enter a value for ${col}`);
-                              return;
-                            }
-                            features[col] = Number(val);
-                          }
+                    
+                    {scenario?.model_type === 'COMPUTER_VISION' ? (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                          <DrawingCanvas 
+                            scenario={scenario}
+                            onImageReady={setCvInputImage}
+                            width={280}
+                            height={280}
+                          />
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <button 
+                            className="btn-primary"
+                            onClick={() => {
+                              if (!cvInputImage) { alert("Please draw something!"); return; }
+                              onRunModel({ input_image: cvInputImage.split(',')[1] });
+                            }}
+                            disabled={loading}
+                            style={{ padding: '12px 30px', fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                          >
+                            {loading ? 'Processing Pipeline...' : 'Predict'} <Zap size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {featureCols.map(col => (
+                            <input 
+                              key={col}
+                              type="number" 
+                              placeholder={`Enter ${col}...`}
+                              id={`predict-input-${col}`}
+                              style={{ padding: '12px 15px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#FFF', flex: 1, minWidth: '130px', fontSize: '1rem' }}
+                            />
+                          ))}
+                          <button 
+                            className="btn-primary"
+                            onClick={async () => {
+                              const features = {};
+                              for (const col of featureCols) {
+                                const val = document.getElementById(`predict-input-${col}`).value;
+                                if (!val) {
+                                  alert(`Please enter a value for ${col}`);
+                                  return;
+                                }
+                                features[col] = Number(val);
+                              }
 
-                          try {
-                            document.getElementById('predict-result').innerText = 'Thinking...';
-                            const res = await api.post(`/${scenario.model_type.toLowerCase()}/predict/`, {
-                              experiment_id: experimentResult.experiment_id,
-                              features: features
-                            });
-                            document.getElementById('predict-result').innerText = `Prediction for ${yCol}: ${res.data.prediction.toFixed ? res.data.prediction.toFixed(2) : res.data.prediction}`;
-                          } catch (e) {
-                            document.getElementById('predict-result').innerText = `Error: ${e.response?.data?.error || e.message}`;
-                          }
-                        }}
-                        style={{ padding: '12px 25px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}
-                      >
-                        Predict <Zap size={18} />
-                      </button>
-                    </div>
-                    <div style={{ marginTop: '20px', minHeight: '30px' }}>
-                      <strong id="predict-result" style={{ fontSize: '1.4rem', color: 'var(--accent-green)' }}></strong>
-                    </div>
+                              try {
+                                document.getElementById('predict-result').innerText = 'Thinking...';
+                                const res = await api.post(`/${scenario.model_type.toLowerCase()}/predict/`, {
+                                  experiment_id: experimentResult.experiment_id,
+                                  features: features
+                                });
+                                document.getElementById('predict-result').innerText = `Prediction for ${yCol}: ${res.data.prediction.toFixed ? res.data.prediction.toFixed(2) : res.data.prediction}`;
+                              } catch (e) {
+                                document.getElementById('predict-result').innerText = `Error: ${e.response?.data?.error || e.message}`;
+                              }
+                            }}
+                            style={{ padding: '12px 25px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+                          >
+                            Predict <Zap size={18} />
+                          </button>
+                        </div>
+                        <div style={{ marginTop: '20px', minHeight: '30px' }}>
+                          <strong id="predict-result" style={{ fontSize: '1.4rem', color: 'var(--accent-green)' }}></strong>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div style={{ marginTop: '25px', textAlign: 'right' }}>

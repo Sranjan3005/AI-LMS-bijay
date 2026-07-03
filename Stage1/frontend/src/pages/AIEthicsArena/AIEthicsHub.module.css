@@ -1,12 +1,14 @@
 /* AIEthicsHub.module.css — Mission Control Hub */
 
 .hubPage {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   background: linear-gradient(160deg, #0B0D17 0%, #0f1128 40%, #0d1225 100%);
   color: #f4f1ea;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* ── Scan-line overlay ── */
@@ -26,8 +28,7 @@
 
 /* ── Top Navigation ── */
 .topNav {
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 100;
   display: flex;
   justify-content: space-between;
@@ -36,6 +37,12 @@
   background: rgba(11, 13, 23, 0.82);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid rgba(255, 51, 102, 0.1);
+}
+
+.scrollableContent {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
 }
 
 .backBtn {

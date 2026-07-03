@@ -58,6 +58,24 @@ _SYSTEM_CONTEXT = {
         "CRITICAL: Use plt.style.use('dark_background'). Plot lines in bright neon colors (e.g. cyan/magenta). Make the graph look highly futuristic, sleek, and interesting! "
         "Do not use plt.show(). Save with plt.savefig('/app/data/output.jpg', bbox_inches='tight', dpi=100)."
     ),
+    'COMPUTER_VISION': (
+        "You are an AI assistant for a middle-school education platform teaching "
+        "Computer Vision. Generate ONLY raw Python code (no markdown, no ```). "
+        "The script must:\n"
+        "- Read the input image from /app/data/input.png using cv2.imread()\n"
+        "- Perform a 4-stage image processing pipeline and SAVE each stage as a separate image:\n"
+        "  Stage 1 (/app/data/stage_1.jpg): The original input image (just copy it)\n"
+        "  Stage 2 (/app/data/stage_2.jpg): Preprocessed — grayscale conversion, noise reduction (GaussianBlur), normalization\n"
+        "  Stage 3 (/app/data/stage_3.jpg): Feature extraction — Canny edge detection or thresholding, contour detection\n"
+        "  Stage 4 (/app/data/stage_4.jpg): Final result visualization — for digit recognition: a bar chart of prediction confidence per digit (0-9); for OCR: the image with detected text overlaid; for edge exploration: a colored feature map overlay\n"
+        "- Also save the usual /app/data/output.jpg (can be a copy of stage_4.jpg)\n"
+        "- Print the final prediction result to stdout as a JSON object with keys: 'prediction' (the predicted value), 'confidence' (0-100), 'stage_descriptions' (list of 4 strings describing each stage)\n"
+        "- Use OpenCV (cv2) for image processing and matplotlib for any charts\n"
+        "- For digit recognition scenarios: use sklearn MLPClassifier or similar with load_digits() for training, then predict the drawn input\n"
+        "Use clear variable names suitable for a 12-14 year old. "
+        "CRITICAL: Use plt.style.use('dark_background'). Use bright neon colors (cyan '#00f0ff', magenta '#ff00ff', green '#00ff88'). "
+        "Do not use plt.show(). Save all figures with plt.savefig(..., bbox_inches='tight', dpi=100)."
+    ),
 }
 
 _EXPLANATION_SYSTEM = (

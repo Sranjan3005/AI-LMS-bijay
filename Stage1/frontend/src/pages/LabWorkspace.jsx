@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DataCanvas from '../components/workspace/DataCanvas';
 import ResultsOverlay from '../components/workspace/ResultsOverlay';
+import CVPipelineOverlay from '../components/workspace/CVPipelineOverlay';
 import api from '../api';
 import { ArrowLeft, Beaker } from 'lucide-react';
 
@@ -72,7 +73,7 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory }) => {
     }
   };
 
-  const handleRunModel = async () => {
+  const handleRunModel = async (extraPayload = {}) => {
     setIsTraining(true);
     setShowResults(false);
     setExperimentResult(null);
@@ -81,7 +82,8 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory }) => {
       let response = await api.post(`/${selectedScenario.model_type.toLowerCase()}/run/`, {
         scenario_id: selectedScenario.id,
         variant_name: selectedVariant,
-        student_prompt: ''
+        student_prompt: '',
+        ...extraPayload
       });
 
       if (response.data.task_id) {
@@ -113,7 +115,7 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory }) => {
 
   if (!selectedScenario) {
     const allCategories = [...new Set(scenarios.map(s => s.model_type))];
-    const preferredOrder = ['REGRESSION', 'CLASSIFICATION', 'NEURAL_NETWORK'];
+    const preferredOrder = ['REGRESSION', 'CLASSIFICATION', 'NEURAL_NETWORK', 'COMPUTER_VISION'];
     const uniqueCategories = allCategories.sort((a, b) => {
       const indexA = preferredOrder.indexOf(a);
       const indexB = preferredOrder.indexOf(b);
@@ -259,10 +261,17 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory }) => {
 
         {/* OVERLAY: Results frosted glass card */}
         {showResults && experimentResult && (
-          <ResultsOverlay 
-            result={experimentResult} 
-            onClose={() => setShowResults(false)} 
-          />
+          selectedScenario?.model_type === 'COMPUTER_VISION' ? (
+            <CVPipelineOverlay 
+              result={experimentResult} 
+              onClose={() => setShowResults(false)} 
+            />
+          ) : (
+            <ResultsOverlay 
+              result={experimentResult} 
+              onClose={() => setShowResults(false)} 
+            />
+          )
         )}
       </div>
 

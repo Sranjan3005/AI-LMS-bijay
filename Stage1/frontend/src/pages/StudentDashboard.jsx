@@ -1,8 +1,8 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
-import { BookOpen, BarChart2, BrainCircuit, ShieldAlert, LogOut, Network } from 'lucide-react';
+import { BookOpen, BarChart2, BrainCircuit, ShieldAlert, LogOut, Network, ClipboardList } from 'lucide-react';
 
-const StudentDashboard = ({ onNavigateToLab, onNavigateToDataLab, onNavigateToAgentic, onNavigateToFoundations, onNavigateToEthics }) => {
+const StudentDashboard = ({ onNavigateToLab, onNavigateToDataLab, onNavigateToAgentic, onNavigateToFoundations, onNavigateToEthics, onNavigateToAssignments }) => {
   const { user, logout } = useContext(AuthContext);
 
   const modules = [
@@ -55,6 +55,16 @@ const StudentDashboard = ({ onNavigateToLab, onNavigateToDataLab, onNavigateToAg
       color: 'var(--accent-orange, #f97316)',
       active: true,
       onClick: onNavigateToAgentic
+    },
+    {
+      id: 'assignments',
+      title: 'Assignments & Grading',
+      subtitle: 'Course Work',
+      description: 'View your pending assignments, submit projects, and check your grades.',
+      icon: ClipboardList,
+      color: '#4f46e5',
+      active: true,
+      onClick: onNavigateToAssignments
     }
   ];
 

@@ -98,6 +98,15 @@ def run_in_sandbox(
         if model_path.exists():
             model_pkl_b64 = base64.b64encode(model_path.read_bytes()).decode('utf-8')
 
+        # Collect pipeline stage images (for Computer Vision scenarios)
+        stage_images = []
+        for i in range(1, 5):
+            stage_path = run_dir / f'stage_{i}.jpg'
+            if stage_path.exists():
+                stage_images.append(
+                    base64.b64encode(stage_path.read_bytes()).decode('utf-8')
+                )
+
         success = result.returncode == 0
 
         if not success:
@@ -108,6 +117,7 @@ def run_in_sandbox(
             'stderr': result.stderr,
             'output_image': output_image_b64,
             'model_b64': model_pkl_b64,
+            'stage_images': stage_images,
             'success': success,
         }
 

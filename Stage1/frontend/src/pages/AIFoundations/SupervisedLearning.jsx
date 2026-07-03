@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ChevronRight, TrendingUp, GitBranch, Network, Eye, Layers } from 'lucide-react';
 import styles from './SupervisedLearning.module.css';
 
-const SupervisedLearning = ({ onBackToDashboard, onNavigateToLinearRegression }) => {
+const SupervisedLearning = ({ onBackToDashboard, onNavigateToLinearRegression, onNavigateToComputerVision }) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   return (
@@ -126,11 +126,10 @@ const SupervisedLearning = ({ onBackToDashboard, onNavigateToLinearRegression })
                 </div>
               </div>
 
-              {/* Computer Vision - INACTIVE */}
-              <div className={`${styles.modelCard} ${styles.modelCardDisabled}`}>
-                <div className={styles.comingSoonBadge}>Coming Soon</div>
+              {/* Computer Vision - ACTIVE */}
+              <div className={styles.modelCard} onClick={onNavigateToComputerVision} style={{ borderColor: 'rgba(255, 153, 51, 0.4)', background: 'rgba(255, 153, 51, 0.05)' }}>
                 <div className={styles.cardHeader}>
-                  <div className={styles.iconWrapper} style={{ background: 'rgba(255, 153, 51, 0.1)' }}>
+                  <div className={styles.iconWrapper} style={{ background: 'rgba(255, 153, 51, 0.15)' }}>
                     <Eye color="#FF9933" />
                   </div>
                   Computer Vision

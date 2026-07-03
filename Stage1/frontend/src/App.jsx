@@ -13,6 +13,7 @@ import MathsForAI from './pages/AIFoundations/MathsForAI';
 import DataAnalysis from './pages/AIFoundations/DataAnalysis';
 import SupervisedLearning from './pages/AIFoundations/SupervisedLearning';
 import LinearRegressionLesson from './pages/AIFoundations/LinearRegressionLesson';
+import ComputerVisionLesson from './pages/AIFoundations/ComputerVisionLesson';
 import AIEthicsHub from './pages/AIEthicsArena/AIEthicsHub';
 import Level1EmotionDetector from './pages/AIEthicsArena/Level1EmotionDetector';
 import Level2ScholarshipAI from './pages/AIEthicsArena/Level2ScholarshipAI';
@@ -20,6 +21,8 @@ import Level3HallucinationHunter from './pages/AIEthicsArena/Level3Hallucination
 import Level4DeepfakeDetective from './pages/AIEthicsArena/Level4DeepfakeDetective';
 import Level5PrivacyEscapeRoom from './pages/AIEthicsArena/Level5PrivacyEscapeRoom';
 import Level6VoiceClone from './pages/AIEthicsArena/Level6VoiceClone';
+import AssignmentsList from './pages/Assignments/AssignmentsList';
+import AssignmentDetail from './pages/Assignments/AssignmentDetail';
 import './index.css';
 
 const AppContent = () => {
@@ -52,6 +55,7 @@ const AppContent = () => {
              onNavigateToAgentic={() => setCurrentView('agentic')} 
              onNavigateToFoundations={() => setCurrentView('foundations')}
              onNavigateToEthics={() => setCurrentView('ethics_hub')}
+             onNavigateToAssignments={() => setCurrentView('assignments_list')}
            />;
   }
 
@@ -107,12 +111,25 @@ const AppContent = () => {
     return <SupervisedLearning 
              onBackToDashboard={() => setCurrentView('foundations')} 
              onNavigateToLinearRegression={() => setCurrentView('linear_regression_lesson')}
+             onNavigateToComputerVision={() => setCurrentView('computer_vision_lesson')}
            />;
   }
 
   if (currentView === 'linear_regression_lesson') {
     return (
       <LinearRegressionLesson 
+        onBackToSupervised={() => setCurrentView('supervised_lesson')} 
+        onNavigateToPredictionEngine={(category) => {
+          setInitialLabCategory(category);
+          setCurrentView('lab');
+        }}
+      />
+    );
+  }
+
+  if (currentView === 'computer_vision_lesson') {
+    return (
+      <ComputerVisionLesson 
         onBackToSupervised={() => setCurrentView('supervised_lesson')} 
         onNavigateToPredictionEngine={(category) => {
           setInitialLabCategory(category);
@@ -157,6 +174,15 @@ const AppContent = () => {
 
   if (currentView === 'ethics_level_6') {
     return <Level6VoiceClone onBackToHub={() => setCurrentView('ethics_hub')} />;
+  }
+
+  // ── Assignments Routes ──
+  if (currentView === 'assignments_list') {
+    return <AssignmentsList onNavigate={(route) => setCurrentView(route)} />;
+  }
+
+  if (currentView === 'assignment_detail') {
+    return <AssignmentDetail onNavigate={(route) => setCurrentView(route)} />;
   }
 };
 

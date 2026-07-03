@@ -105,7 +105,9 @@ const AIEthicsHub = ({
         </div>
       </nav>
 
-      {/* ── Hero ── */}
+      {/* ── Scrollable Content ── */}
+      <div className={styles.scrollableContent}>
+        {/* ── Hero ── */}
       <div className={styles.hero}>
         <div className={styles.heroIcon}>🛡️</div>
         <h1 className={styles.heroTitle}>AI Ethics Arena</h1>
@@ -183,6 +185,7 @@ const AIEthicsHub = ({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

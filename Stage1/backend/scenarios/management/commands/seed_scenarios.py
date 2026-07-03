@@ -261,6 +261,51 @@ SCENARIOS_DATA = [
             {'name': 'oneperson',   'label': 'The "Same Person" Set', 'order': 3, 'description': '1,000 pictures of the exact same person making different faces — classic overfitting.'},
         ],
     },
+
+    # ═══════════════════════════════════════════════════════
+    # PART 4 — COMPUTER VISION (3 scenarios)
+    # ═══════════════════════════════════════════════════════
+    {
+        'title':      'The Digit Detective',
+        'model_type': 'COMPUTER_VISION',
+        'icon':       '🔢',
+        'order':      1,
+        'challenge':  'Draw any digit (0-9) on the canvas and watch the AI decode it step-by-step through a 4-stage visual pipeline!',
+        'takeaway':   'CNNs recognize patterns in pixel grids just like your brain recognizes shapes. The 4-stage pipeline shows exactly how the AI "sees" your handwriting.',
+        'try_it_out': 'Draw the same digit 5 different ways — messy, tiny, huge, rotated — and see how the AI\'s confidence changes each time.',
+        'variants': [
+            {'name': 'clean', 'label': 'Clean Digits',   'order': 1, 'description': 'Well-formed, carefully drawn digits with clear strokes — the AI\'s easiest challenge.'},
+            {'name': 'messy', 'label': 'Messy Scribbles', 'order': 2, 'description': 'Quick, rough handwriting with overlapping strokes — can the AI still read it?'},
+            {'name': 'noisy', 'label': 'Noisy Input',     'order': 3, 'description': 'Digits drawn on a "dirty" background with random noise — testing the AI\'s preprocessing.'},
+        ],
+    },
+    {
+        'title':      'The Handwriting Decoder',
+        'model_type': 'COMPUTER_VISION',
+        'icon':       '✍️',
+        'order':      2,
+        'challenge':  'Write anything on the canvas and watch the AI convert your handwriting to typed text through image processing stages!',
+        'takeaway':   'OCR (Optical Character Recognition) is one of the most common CV applications. It works by binarizing, segmenting, and then recognizing individual characters.',
+        'try_it_out': 'Write your name in different styles — print, cursive, block letters — and see which style the AI reads best.',
+        'variants': [
+            {'name': 'print',   'label': 'Print Writing', 'order': 1, 'description': 'Clean, separated print letters — the easiest for OCR to decode.'},
+            {'name': 'cursive', 'label': 'Cursive Flow',  'order': 2, 'description': 'Connected cursive writing — a tough challenge since characters overlap.'},
+        ],
+    },
+    {
+        'title':      'The Edge Explorer',
+        'model_type': 'COMPUTER_VISION',
+        'icon':       '🖼️',
+        'order':      3,
+        'challenge':  'See how AI breaks down any image into edges, textures, and features — revealing what a CNN "sees" under the hood!',
+        'takeaway':   'Computer Vision models don\'t see images like humans do. They detect edges and gradients first, then build up to complex shapes and objects layer by layer.',
+        'try_it_out': 'Draw a simple shape (circle, square, star) and see how the edge detector responds. Then try something complex!',
+        'variants': [
+            {'name': 'shapes',   'label': 'Simple Shapes',   'order': 1, 'description': 'Basic geometric shapes — circles, squares, triangles — to see clean edge detection.'},
+            {'name': 'complex',  'label': 'Complex Scenes',  'order': 2, 'description': 'Detailed drawings with many overlapping features — watch the edge detector go wild!'},
+            {'name': 'gradient', 'label': 'Gradient Art',    'order': 3, 'description': 'Smooth gradients and color transitions — testing how edges are detected in subtle changes.'},
+        ],
+    },
 ]
 
 
