@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:cbseacademic.nic.in)",
+      "Bash(curl -sL -o \"C:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic/417-AI-X.pdf\" \"https://cbseacademic.nic.in/web_material/Curriculum25/sec/417-AI-X.pdf\")"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 import os
-from openai import AsyncOpenAI
+from openai import AsyncAzureOpenAI
 from django.conf import settings
 from langgraph.graph import StateGraph, START, END
 from typing import TypedDict, Annotated
@@ -16,10 +16,20 @@ def update_outputs(base: dict, new: dict) -> dict:
     base.update(new)
     return base
 
+def merge_display(base: str, new: str) -> str:
+    # Multiple output nodes (display/chart) or parallel branches can write
+    # final_display in the same superstep. A reducer lets LangGraph merge those
+    # concurrent updates instead of raising INVALID_CONCURRENT_GRAPH_UPDATE.
+    if not new:
+        return base
+    if not base:
+        return new
+    return f"{base}\n{new}"
+
 class AgentState(TypedDict):
     # Maps node_id -> output payload
     outputs: Annotated[dict, update_outputs]
-    final_display: str
+    final_display: Annotated[str, merge_display]
 
 # Helper to fetch combined input from incoming edges
 def get_combined_input(state: AgentState, incoming_edges: list) -> str:
@@ -66,13 +76,10 @@ def make_node_vision_scanner(node_id, node_data):
 
             if file_type.startswith('image/'):
                 # Send to LLM for image analysis
-                client = AsyncOpenAI(
-                    base_url="https://openrouter.ai/api/v1",
-                    api_key=os.environ.get("OPENROUTER_API_KEY", "")
-                )
+                client = _azure_client()
                 
                 response = await client.chat.completions.create(
-                    model="openai/gpt-4o-mini",
+                    model=_CHAT_DEPLOYMENT,
                     messages=[
                         {
                             "role": "user",
@@ -82,7 +89,7 @@ def make_node_vision_scanner(node_id, node_data):
                             ]
                         }
                     ],
-                    max_tokens=500
+                    max_completion_tokens=500
                 )
                 result = response.choices[0].message.content.strip()
                 return {"outputs": {node_id: f"[Image Scan Result]\n{result}"}}
@@ -120,10 +127,7 @@ def make_node_customizer(node_id, node_data, incoming_edges):
         system_prompt = node_data.get('prompt', 'You are a helpful AI.')
         
         try:
-            client = AsyncOpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=os.environ.get("OPENROUTER_API_KEY", "")
-            )
+            client = _azure_client()
             
             strict_prompt = textwrap.dedent(f"""\
             Instruction: {system_prompt}
@@ -134,9 +138,9 @@ def make_node_customizer(node_id, node_data, incoming_edges):
             """)
             
             response = await client.chat.completions.create(
-                model="openai/gpt-4o-mini",
+                model=_CHAT_DEPLOYMENT,
                 messages=[{"role": "user", "content": strict_prompt}],
-                max_tokens=1000
+                max_completion_tokens=1000
             )
             raw_text = response.choices[0].message.content.strip()
             
@@ -158,6 +162,132 @@ def make_node_customizer(node_id, node_data, incoming_edges):
         return {"outputs": {node_id: processed_text}}
     return node_customizer
 
+# Shared Azure OpenAI client for all LLM-backed nodes.
+# Set AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_API_KEY / AZURE_OPENAI_DEPLOYMENT in env.
+AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
+_CHAT_DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+
+def _azure_client():
+    return AsyncAzureOpenAI(
+        azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT", ""),
+        api_key=os.environ.get("AZURE_OPENAI_API_KEY", ""),
+        api_version=AZURE_OPENAI_API_VERSION,
+    )
+
+async def _llm_complete(prompt, max_tokens=600, model=None):
+    """Single-shot completion helper so node factories stay tiny."""
+    client = _azure_client()
+    response = await client.chat.completions.create(
+        model=model or _CHAT_DEPLOYMENT,
+        messages=[{"role": "user", "content": prompt}],
+        max_completion_tokens=max_tokens,
+    )
+    return response.choices[0].message.content.strip()
+
+# Node Factory: Summarizer
+def make_node_summarizer(node_id, node_data, incoming_edges):
+    async def node_summarizer(state: AgentState):
+        print(f"--- 📝 Executing Summarizer Node ({node_id}) ---")
+        current_text = get_combined_input(state, incoming_edges)
+        if not current_text.strip():
+            return {"outputs": {node_id: "[Summarizer received no input]"}}
+        try:
+            prompt = textwrap.dedent(f"""\
+            Summarize the following text for a school student in 2-3 clear sentences.
+            Keep it simple and factual. Do not add opinions.
+
+            Text:
+            {current_text}
+            """)
+            result = await _llm_complete(prompt, max_tokens=400)
+            return {"outputs": {node_id: f"[Summary]\n{result}"}}
+        except Exception as e:
+            return {"outputs": {node_id: f"[Summarizer error: {str(e)}]"}}
+    return node_summarizer
+
+# Node Factory: Sentiment Radar
+def make_node_sentiment_radar(node_id, node_data, incoming_edges):
+    async def node_sentiment_radar(state: AgentState):
+        print(f"--- 😊 Executing Sentiment Radar Node ({node_id}) ---")
+        current_text = get_combined_input(state, incoming_edges)
+        if not current_text.strip():
+            return {"outputs": {node_id: "[Sentiment Radar received no input]"}}
+        try:
+            prompt = textwrap.dedent(f"""\
+            Analyze the sentiment of the text below.
+            Reply with ONLY a JSON object, no markdown, in this exact format:
+            {{"sentiment": "Positive" | "Negative" | "Neutral", "confidence": 0-100, "reason": "one short sentence"}}
+
+            Text:
+            {current_text}
+            """)
+            raw = await _llm_complete(prompt, max_tokens=200)
+            start_idx, end_idx = raw.find('{'), raw.rfind('}')
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                data = json.loads(raw[start_idx:end_idx + 1])
+                summary = f"[Sentiment: {data.get('sentiment', 'Unknown')} " \
+                          f"({data.get('confidence', 0)}%)]\n{data.get('reason', '')}"
+                return {"outputs": {node_id: summary}}
+            return {"outputs": {node_id: f"[Sentiment]\n{raw}"}}
+        except Exception as e:
+            return {"outputs": {node_id: f"[Sentiment Radar error: {str(e)}]"}}
+    return node_sentiment_radar
+
+# Node Factory: Safe Web Search
+# NOTE: For student safety the sandbox has no live internet. This node answers
+# from the model's own knowledge and labels the result clearly. To enable real
+# search later, swap _llm_complete() for a Tavily/Bing API call here.
+def make_node_web_search(node_id, node_data, incoming_edges):
+    async def node_web_search(state: AgentState):
+        print(f"--- 🌐 Executing Safe Web Search Node ({node_id}) ---")
+        query = get_combined_input(state, incoming_edges) or node_data.get('query', '')
+        if not query.strip():
+            return {"outputs": {node_id: "[Web Search received no query]"}}
+        try:
+            prompt = textwrap.dedent(f"""\
+            A student asked: "{query}"
+            Answer factually and concisely in 3-4 sentences, suitable for a school student.
+            If you are unsure, say so rather than guessing.
+            """)
+            result = await _llm_complete(prompt, max_tokens=400)
+            return {"outputs": {node_id: f"[Safe Web Search Result]\n{result}"}}
+        except Exception as e:
+            return {"outputs": {node_id: f"[Web Search error: {str(e)}]"}}
+    return node_web_search
+
+# Node Factory: The Decider (LLM router)
+# Educational simplification: the Decider evaluates its condition and labels the
+# outcome (TRUE/FALSE) in its output so students can see the routing decision.
+# Both branches still execute downstream (the graph uses standard edges); full
+# conditional pruning via add_conditional_edges is a future enhancement.
+def make_node_decider(node_id, node_data, incoming_edges):
+    async def node_decider(state: AgentState):
+        print(f"--- 🔀 Executing Decider Node ({node_id}) ---")
+        current_text = get_combined_input(state, incoming_edges)
+        condition = node_data.get('condition') or node_data.get('prompt') \
+            or "Is the input positive or does it meet the goal?"
+        try:
+            prompt = textwrap.dedent(f"""\
+            You are a routing gate. Evaluate this condition against the input.
+            Condition: {condition}
+            Input: {current_text}
+
+            Reply with ONLY raw JSON, no markdown:
+            {{"decision": "TRUE" | "FALSE", "reason": "one short sentence"}}
+            """)
+            raw = await _llm_complete(prompt, max_tokens=150)
+            start_idx, end_idx = raw.find('{'), raw.rfind('}')
+            decision, reason = "TRUE", ""
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                data = json.loads(raw[start_idx:end_idx + 1])
+                decision = str(data.get("decision", "TRUE")).upper()
+                reason = data.get("reason", "")
+            payload = f"[Decision: {decision}] {reason}\n---\n{current_text}"
+            return {"outputs": {node_id: payload}}
+        except Exception as e:
+            return {"outputs": {node_id: f"[Decider error: {str(e)}]\n{current_text}"}}
+    return node_decider
+
 # Node Factory: Chart Generator
 def make_node_chart_generator(node_id, node_data, incoming_edges):
     async def node_chart_generator(state: AgentState):
@@ -165,10 +295,7 @@ def make_node_chart_generator(node_id, node_data, incoming_edges):
         current_text = get_combined_input(state, incoming_edges)
         
         try:
-            client = AsyncOpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=os.environ.get("OPENROUTER_API_KEY", "")
-            )
+            client = _azure_client()
             
             prompt = textwrap.dedent(f"""\
             Take the following data and format it into a JSON structure for charting.
@@ -190,9 +317,9 @@ def make_node_chart_generator(node_id, node_data, incoming_edges):
             """)
             
             response = await client.chat.completions.create(
-                model="openai/gpt-4o-mini",
+                model=_CHAT_DEPLOYMENT,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=1000
+                max_completion_tokens=1000
             )
             raw_text = response.choices[0].message.content.strip()
             
@@ -260,8 +387,16 @@ class ReactFlowCompiler:
                 self.graph.add_node(node_id, make_node_text_input(node_id, node_data))
             elif node_type == 'visionScanner':
                 self.graph.add_node(node_id, make_node_vision_scanner(node_id, node_data))
-            elif node_type == 'customizer':
+            elif node_type in ['customizer', 'llm']:
                 self.graph.add_node(node_id, make_node_customizer(node_id, node_data, sources))
+            elif node_type == 'summarizer':
+                self.graph.add_node(node_id, make_node_summarizer(node_id, node_data, sources))
+            elif node_type == 'sentimentRadar':
+                self.graph.add_node(node_id, make_node_sentiment_radar(node_id, node_data, sources))
+            elif node_type == 'webSearch':
+                self.graph.add_node(node_id, make_node_web_search(node_id, node_data, sources))
+            elif node_type == 'decider':
+                self.graph.add_node(node_id, make_node_decider(node_id, node_data, sources))
             elif node_type == 'chartGenerator':
                 self.graph.add_node(node_id, make_node_chart_generator(node_id, node_data, sources))
             elif node_type == 'display':

@@ -10,6 +10,7 @@ Two functions:
 """
 
 import logging
+import os
 import openai
 import hashlib
 from django.conf import settings
@@ -93,11 +94,15 @@ _EXPLANATION_SYSTEM = (
 )
 
 
-def _get_client() -> openai.OpenAI:
-    """Return a configured OpenAI client instance pointing to OpenRouter."""
-    return openai.OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=settings.OPENROUTER_API_KEY,
+_DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+
+
+def _get_client() -> openai.AzureOpenAI:
+    """Return an Azure OpenAI client configured from environment variables."""
+    return openai.AzureOpenAI(
+        azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT", ""),
+        api_key=os.environ.get("AZURE_OPENAI_API_KEY", ""),
+        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview"),
     )
 
 
@@ -136,7 +141,7 @@ def generate_code(
         logger.info(f"⏳ CACHE MISS: Generating code via LLM for '{scenario_title}'...")
         client = _get_client()
         response = client.chat.completions.create(
-            model='openai/gpt-4o-mini',
+            model=_DEPLOYMENT,
             messages=[
                 {"role": "system", "content": system_ctx},
                 {"role": "user", "content": user_message}
@@ -191,7 +196,7 @@ def generate_explanation(
         logger.info(f"⏳ CACHE MISS: Generating explanation via LLM for '{scenario_title}'...")
         client = _get_client()
         response = client.chat.completions.create(
-            model='openai/gpt-4o-mini',
+            model=_DEPLOYMENT,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": _EXPLANATION_SYSTEM},
@@ -232,7 +237,7 @@ def extract_csv_from_unstructured_data(scenario_title: str, file_type: str, base
             content = "Please extract the CSV data."
             
         response = client.chat.completions.create(
-            model='openai/gpt-4o-mini',
+            model=_DEPLOYMENT,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": content}

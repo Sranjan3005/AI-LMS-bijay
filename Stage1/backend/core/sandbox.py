@@ -1,30 +1,134 @@
 """
 core/sandbox.py
 
-Shared Docker execution engine used by all three model apps:
+Shared execution engine used by all four model apps:
   - regression
   - classification
   - neural_network
+  - computer_vision
 
-Each app's executor.py calls run_in_sandbox() and never touches Docker directly.
-This makes it trivial in Stage 3 to swap Docker for a Celery task without
-touching app-level code.
+Backend: **Azure Container Apps Dynamic Sessions** — a managed, Hyper-V-isolated
+serverless sandbox. This replaces the old local `docker run` engine so the app can
+run on any Azure compute (VM, Container Apps) without a Docker daemon or host-path
+volume mounts.
+
+The public function `run_in_sandbox()` keeps the exact same signature and return
+shape as before, so the four app executors need no changes.
+
+────────────────────────────────────────────────────────────────────────────────
+Environment variables
+  AZURE_SESSION_POOL_ENDPOINT
+      Pool-management endpoint of your Dynamic Sessions pool, e.g.
+      https://<region>.dynamicsessions.io/subscriptions/<sub>/resourceGroups/<rg>/sessionPools/<pool>
+  AZURE_SESSION_POOL_ENDPOINT__<IMAGE>   (optional, per-image override)
+      Lets you route a specific sandbox_image (e.g. 'cv-sandbox') to a dedicated
+      custom-container pool, while everything else uses the default code-interpreter
+      pool. '<IMAGE>' is the image name upper-cased with '-' -> '_'.
+      e.g. AZURE_SESSION_POOL_ENDPOINT__CV_SANDBOX=https://...
+
+Authentication
+  Uses azure-identity DefaultAzureCredential:
+    · In Azure  -> the Container App / VM managed identity (assign it the
+      "Azure ContainerApps Session Executor" role on the pool).
+    · Locally   -> `az login`, or AZURE_CLIENT_ID / AZURE_CLIENT_SECRET / AZURE_TENANT_ID.
+
+Dependencies (add to requirements.txt):  azure-identity   (requests is already present)
+
+NOTE: The Dynamic Sessions REST surface is still in preview. The API version and
+paths below are centralised as constants — verify them against the current Azure
+docs if a call 404s, and adjust in one place.
+────────────────────────────────────────────────────────────────────────────────
 """
 
 import os
 import uuid
 import base64
-import shutil
-import subprocess
-import tempfile
 import logging
-from pathlib import Path
+
+import requests
+from azure.identity import DefaultAzureCredential
 
 logger = logging.getLogger(__name__)
 
-# Where temp run directories are created on the host machine.
-# Each run gets its own uuid-named subdirectory, cleaned up after execution.
-RUNS_BASE_DIR = Path(__file__).resolve().parent.parent / 'runs'
+# ─── Dynamic Sessions configuration ──────────────────────────────────────────
+API_VERSION = "2024-02-02-preview"
+TOKEN_SCOPE = "https://dynamicsessions.io/.default"
+DEFAULT_POOL_ENDPOINT = os.environ.get("AZURE_SESSION_POOL_ENDPOINT", "").rstrip("/")
+
+# Output files the generated scripts may write into the session working dir.
+# We fetch each one back (if present) and return it base64-encoded.
+_OUTPUT_IMAGE = "output.jpg"
+_MODEL_FILE = "model.pkl"
+_STAGE_FILES = [f"stage_{i}.jpg" for i in range(1, 5)]
+
+# Session working directory inside a Dynamic Session (code interpreter mounts here).
+_SESSION_DIR = "/mnt/data"
+
+# Cached credential — token fetch is cheap after the first call.
+_credential = None
+
+
+def _get_token() -> str:
+    global _credential
+    if _credential is None:
+        _credential = DefaultAzureCredential()
+    return _credential.get_token(TOKEN_SCOPE).token
+
+
+def _auth_headers() -> dict:
+    return {"Authorization": f"Bearer {_get_token()}"}
+
+
+def _pool_endpoint(sandbox_image: str) -> str:
+    """
+    Pick the pool endpoint for a given image. A per-image override lets Computer
+    Vision (OpenCV/YOLO) use a dedicated custom-container pool while regression /
+    classification / neural_network share the default code-interpreter pool.
+    """
+    key = "AZURE_SESSION_POOL_ENDPOINT__" + sandbox_image.upper().replace("-", "_")
+    return (os.environ.get(key) or DEFAULT_POOL_ENDPOINT).rstrip("/")
+
+
+def _upload_file(endpoint: str, session_id: str, filename: str, content: bytes) -> None:
+    url = f"{endpoint}/files/upload?api-version={API_VERSION}&identifier={session_id}"
+    resp = requests.post(
+        url,
+        headers=_auth_headers(),
+        files={"file": (filename, content)},
+        timeout=30,
+    )
+    resp.raise_for_status()
+
+
+def _execute_code(endpoint: str, session_id: str, code: str, timeout: int) -> dict:
+    """Run code synchronously in the session. Returns parsed stdout/stderr/status."""
+    url = f"{endpoint}/code/execute?api-version={API_VERSION}&identifier={session_id}"
+    body = {
+        "properties": {
+            "codeInputType": "inline",
+            "executionType": "synchronous",
+            "code": code,
+        }
+    }
+    resp = requests.post(url, headers=_auth_headers(), json=body, timeout=timeout + 15)
+    resp.raise_for_status()
+    # Response shape has evolved across preview versions; read defensively.
+    data = resp.json()
+    props = data.get("properties", data)
+    return {
+        "stdout": props.get("stdout") or props.get("result") or "",
+        "stderr": props.get("stderr") or "",
+        "status": (props.get("status") or "").lower(),
+    }
+
+
+def _download_file(endpoint: str, session_id: str, filename: str) -> bytes | None:
+    """Fetch an output file from the session, or None if it wasn't produced."""
+    url = f"{endpoint}/files/content/{filename}?api-version={API_VERSION}&identifier={session_id}"
+    resp = requests.get(url, headers=_auth_headers(), timeout=30)
+    if resp.status_code == 200:
+        return resp.content
+    return None
 
 
 def run_in_sandbox(
@@ -34,109 +138,84 @@ def run_in_sandbox(
     timeout: int = 45,
 ) -> dict:
     """
-    Execute a Python script inside an isolated Docker container.
+    Execute a Python script inside an isolated Azure Dynamic Session.
 
     Args:
-        sandbox_image:  Docker image name (e.g. 'regression-sandbox').
-        script_code:    The Python source code to execute.
-        input_files:    Dict of {filename: bytes} to place in /app/data/ inside
-                        the container. e.g. {'input.csv': b'day,rides\\n1,10\\n'}
-        timeout:        Max seconds before the container is killed.
+        sandbox_image:  Logical image/pool selector (e.g. 'regression-sandbox').
+                        Routes to a per-image pool if configured, else the default.
+        script_code:    The Python source to execute.
+        input_files:    {filename: bytes} placed in the session working dir
+                        (e.g. {'input.csv': b'day,rides\\n1,10\\n'}).
+        timeout:        Soft max seconds for the execution call.
 
-    Returns:
+    Returns (unchanged shape):
         {
-            'stdout':       str,
-            'stderr':       str,
-            'output_image': str | None,   # base64-encoded output.jpg if present
-            'success':      bool,
+            'stdout':        str,
+            'stderr':        str,
+            'output_image':  str | None,   # base64 output.jpg if written
+            'model_b64':     str | None,   # base64 model.pkl if written
+            'stage_images':  list[str],    # base64 stage_1..4.jpg for CV pipelines
+            'success':       bool,
         }
     """
-    RUNS_BASE_DIR.mkdir(parents=True, exist_ok=True)
-    run_id = str(uuid.uuid4())
-    run_dir = RUNS_BASE_DIR / run_id
-    run_dir.mkdir(parents=True)
+    endpoint = _pool_endpoint(sandbox_image)
+    if not endpoint:
+        msg = "AZURE_SESSION_POOL_ENDPOINT is not configured."
+        logger.error(f"[sandbox] {msg}")
+        return {"stdout": "", "stderr": msg, "output_image": None,
+                "model_b64": None, "stage_images": [], "success": False}
+
+    session_id = str(uuid.uuid4())
+    logger.info(f"[sandbox] Dynamic Session {session_id} | image={sandbox_image}")
+
+    # Generated scripts historically used the old '/app/data' mount path; Dynamic
+    # Sessions mount at /mnt/data. Rewrite so existing executors work unchanged.
+    code = script_code.replace("/app/data", _SESSION_DIR)
 
     try:
-        # Write the generated Python script
-        script_path = run_dir / 'script.py'
-        script_path.write_text(script_code, encoding='utf-8')
-
-        # Write all input files (CSV, images, etc.)
+        # 1. Upload all input files into the session working dir.
         for filename, content in input_files.items():
-            (run_dir / filename).write_bytes(content)
+            _upload_file(endpoint, session_id, filename, content)
 
-        docker_cmd = [
-            'docker', 'run', '--rm',
-            '--cpus', '1.0',
-            '--memory', '512m',
-            '--network', 'none',          # No internet access inside sandbox
-            '--read-only',                # Filesystem is read-only except /app/data
-            '--tmpfs', '/tmp',            # Allow /tmp writes
-            '-v', f'{run_dir.as_posix()}:/app/data',
-            sandbox_image,
-            'python', '/app/data/script.py',
-        ]
+        # 2. Run the student's script (cwd is the session working dir).
+        result = _execute_code(endpoint, session_id, code, timeout)
+        success = result["status"] in ("success", "succeeded", "") and not result["stderr"]
 
-        logger.info(f'[sandbox] Running {sandbox_image} | run_id={run_id}')
-
-        result = subprocess.run(
-            docker_cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-
-        # Read output image if the script saved one
+        # 3. Collect any output artifacts the script wrote.
         output_image_b64 = None
-        output_path = run_dir / 'output.jpg'
-        if output_path.exists():
-            output_image_b64 = base64.b64encode(output_path.read_bytes()).decode('utf-8')
+        img = _download_file(endpoint, session_id, _OUTPUT_IMAGE)
+        if img:
+            output_image_b64 = base64.b64encode(img).decode("utf-8")
 
-        # Read model.pkl if the script saved one
         model_pkl_b64 = None
-        model_path = run_dir / 'model.pkl'
-        if model_path.exists():
-            model_pkl_b64 = base64.b64encode(model_path.read_bytes()).decode('utf-8')
+        pkl = _download_file(endpoint, session_id, _MODEL_FILE)
+        if pkl:
+            model_pkl_b64 = base64.b64encode(pkl).decode("utf-8")
 
-        # Collect pipeline stage images (for Computer Vision scenarios)
         stage_images = []
-        for i in range(1, 5):
-            stage_path = run_dir / f'stage_{i}.jpg'
-            if stage_path.exists():
-                stage_images.append(
-                    base64.b64encode(stage_path.read_bytes()).decode('utf-8')
-                )
-
-        success = result.returncode == 0
+        for stage_name in _STAGE_FILES:
+            stage = _download_file(endpoint, session_id, stage_name)
+            if stage:
+                stage_images.append(base64.b64encode(stage).decode("utf-8"))
 
         if not success:
-            logger.warning(f'[sandbox] Container exited with code {result.returncode}\n{result.stderr[:500]}')
+            logger.warning(f"[sandbox] Session {session_id} reported failure\n{result['stderr'][:500]}")
 
         return {
-            'stdout': result.stdout,
-            'stderr': result.stderr,
-            'output_image': output_image_b64,
-            'model_b64': model_pkl_b64,
-            'stage_images': stage_images,
-            'success': success,
+            "stdout": result["stdout"],
+            "stderr": result["stderr"],
+            "output_image": output_image_b64,
+            "model_b64": model_pkl_b64,
+            "stage_images": stage_images,
+            "success": success,
         }
 
-    except subprocess.TimeoutExpired:
-        logger.error(f'[sandbox] Timeout after {timeout}s | run_id={run_id}')
-        return {
-            'stdout': '',
-            'stderr': f'Execution timed out after {timeout} seconds.',
-            'output_image': None,
-            'success': False,
-        }
+    except requests.HTTPError as e:
+        detail = e.response.text[:500] if e.response is not None else str(e)
+        logger.error(f"[sandbox] HTTP error | session={session_id} | {detail}")
+        return {"stdout": "", "stderr": f"Sandbox API error: {detail}",
+                "output_image": None, "model_b64": None, "stage_images": [], "success": False}
     except Exception as e:
-        logger.exception(f'[sandbox] Unexpected error | run_id={run_id}')
-        return {
-            'stdout': '',
-            'stderr': str(e),
-            'output_image': None,
-            'success': False,
-        }
-    finally:
-        # Always clean up the temp directory
-        shutil.rmtree(run_dir, ignore_errors=True)
+        logger.exception(f"[sandbox] Unexpected error | session={session_id}")
+        return {"stdout": "", "stderr": str(e),
+                "output_image": None, "model_b64": None, "stage_images": [], "success": False}

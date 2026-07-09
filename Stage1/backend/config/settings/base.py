@@ -131,6 +131,13 @@ CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', default='redis://127.0.0.1:6
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
+# Azure Managed Redis runs in cluster mode. Celery's broker uses multi-key
+# transactions across its queue keys (celery, celery3, ...), which fail with
+# CROSSSLOT on a cluster unless every key hashes to the same slot. Wrapping the
+# key prefix in a {hash tag} forces all broker keys onto one slot, so the
+# non-cluster-aware client works correctly against clustered Redis.
+CELERY_BROKER_TRANSPORT_OPTIONS = {"global_keyprefix": "{ailab}"}
+
 # Upstash secure redis (rediss://) requires SSL configuration
 import ssl
 if CELERY_BROKER_URL.startswith('rediss://'):
@@ -145,6 +152,9 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [os.environ.get('REDIS_URL', default='redis://127.0.0.1:6379/1')],
+            # Same clustered-Redis fix: the {ailab} hash tag keeps every
+            # channel-layer key on one slot so group operations don't hit CROSSSLOT.
+            "prefix": "{ailab}:asgi:",
         },
     },
 }

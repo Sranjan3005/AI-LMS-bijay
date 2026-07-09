@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// Base URL comes from the environment so the same build works locally and on
+// Azure. Set VITE_API_URL (e.g. https://<your-app>.azurecontainerapps.io/api/v1)
+// in the frontend .env; falls back to the local dev backend.
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8001/api/v1',
+  baseURL: API_BASE_URL,
 });
 
 // Interceptor to attach the JWT token to every request
@@ -29,8 +34,8 @@ api.interceptors.response.use(
       if (refreshToken) {
         try {
           // Use axios directly so we don't get caught in the interceptor loop
-          const res = await axios.post('http://localhost:8001/api/v1/auth/token/refresh/', { 
-            refresh: refreshToken 
+          const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+            refresh: refreshToken
           });
           
           localStorage.setItem('access_token', res.data.access);

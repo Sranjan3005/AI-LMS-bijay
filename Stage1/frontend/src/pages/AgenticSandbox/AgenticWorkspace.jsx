@@ -12,8 +12,14 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Play, Save, ArrowLeft, Trash2, Terminal, X, Bot } from 'lucide-react';
-import api from '../../api';
+import api, { API_BASE_URL } from '../../api';
 import './AgenticFlow.css';
+
+// Derive the WebSocket origin from the API base URL so it works on Azure
+// (https -> wss) and locally (http -> ws) without code changes.
+const WS_ORIGIN = API_BASE_URL
+  .replace(/^http/, 'ws')      // http->ws, https->wss
+  .replace(/\/api\/v1\/?$/, ''); // strip the REST path, keep scheme+host
 
 import Sidebar from './Sidebar';
 
@@ -149,8 +155,8 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode }) {
     setLogs([]); // Clear previous logs
     
     try {
-      // Connect to WebSocket using the Django Channels endpoint we will create
-      const wsUrl = `ws://localhost:8001/ws/agentic/${workflowId}/`;
+      // Connect to WebSocket using the Django Channels endpoint (env-derived origin)
+      const wsUrl = `${WS_ORIGIN}/ws/agentic/${workflowId}/`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 

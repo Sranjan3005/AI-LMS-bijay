@@ -1,0 +1,17 @@
+# Keep the build context small and clean — never ship these into the image
+venv/
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+runs/
+media/
+staticfiles/
+# Sandbox image build contexts are not part of the web app
+sandboxes/
+docker/
+# Local secrets / env — provided via Container App secrets instead
+.env
+*.env
+.git/
+.gitignore

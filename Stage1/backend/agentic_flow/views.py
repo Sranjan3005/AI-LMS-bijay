@@ -106,19 +106,20 @@ Do not include markdown blocks outside the JSON. Return only the raw JSON string
 """
 
         import os, json
-        from openai import OpenAI
+        from openai import AzureOpenAI
         try:
-            client = OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=os.environ.get("OPENROUTER_API_KEY", "")
+            client = AzureOpenAI(
+                azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT", ""),
+                api_key=os.environ.get("AZURE_OPENAI_API_KEY", ""),
+                api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview"),
             )
             response = client.chat.completions.create(
-                model="google/gemini-2.5-flash",
+                model=os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini"),
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Build a pipeline for: {prompt}"}
                 ],
-                max_tokens=2000
+                max_completion_tokens=2000
             )
             raw_text = response.choices[0].message.content.strip()
             
