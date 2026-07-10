@@ -46,9 +46,18 @@ class Student(AbstractBaseUser, PermissionsMixin):
         (10, 'Class 10'),
     ]
 
+    ROLE_CHOICES = [
+        ('student', 'Student'),
+        ('school_admin', 'School Admin'),
+    ]
+
     name       = models.CharField(max_length=100)
     email      = models.EmailField(unique=True)
     grade      = models.IntegerField(choices=GRADE_CHOICES)
+    role       = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student', db_index=True)
+    school     = models.ForeignKey(
+        'schools.School', on_delete=models.SET_NULL, null=True, blank=True, related_name='members'
+    )
     is_active  = models.BooleanField(default=True)
     is_staff   = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -16,6 +16,13 @@ class IsStudentOwner(BasePermission):
         return obj.student == request.user
 
 
+class IsSchoolAdmin(BasePermission):
+    """Only a logged-in user whose role is 'school_admin'."""
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(u and u.is_authenticated and getattr(u, 'role', '') == 'school_admin')
+
+
 class IsAuthenticatedOrReadOnly(BasePermission):
     """
     Allow unauthenticated users to GET (e.g., browse scenarios),

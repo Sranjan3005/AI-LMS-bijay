@@ -212,6 +212,55 @@ def generate_explanation(
         return '{"chefs_choice": "Error generating explanation", "healthy_snacks": "", "guessing_game": "", "tricky_test": "", "fix_it_mode": ""}'
 
 
+_GRADING_SYSTEM = (
+    "You are a kind but fair teacher grading a Class 6-8 student's AI assignment. "
+    "Return ONLY a JSON object with two keys: \"score\" (an integer) and \"feedback\" "
+    "(a warm, specific 2-3 sentence note). Grade strictly against the rubric, never "
+    "exceed the maximum score, reward genuine effort and clear thinking, and gently "
+    "point out one thing to improve. Keep the language simple for a 12-14 year old."
+)
+
+
+def grade_submission(*, title: str, question: str, rubric: str, max_points: int,
+                     student_answer: str, module_key: str = '') -> tuple:
+    """
+    LLM-grade a free-text task/submission. Returns (score:int|None, feedback:str).
+    Returns (None, '') on failure so the caller can leave it for manual grading.
+    """
+    if not (student_answer or '').strip():
+        return 0, "Nothing was submitted yet — write your answer and submit again."
+
+    rubric_text = rubric or "Reward correctness, a clear explanation in the student's own words, and age-appropriate effort."
+    user_message = (
+        f"Assignment: {title}\n"
+        f"Module: {module_key}\n"
+        f"Task / question: {question}\n"
+        f"Rubric: {rubric_text}\n"
+        f"Maximum score: {max_points}\n\n"
+        f"Student's answer:\n{(student_answer or '')[:4000]}\n\n"
+        f"Grade this from 0 to {max_points} and give feedback."
+    )
+    try:
+        import json
+        client = _get_client()
+        response = client.chat.completions.create(
+            model=_DEPLOYMENT,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": _GRADING_SYSTEM},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        data = json.loads(response.choices[0].message.content)
+        score = int(round(float(data.get("score", 0))))
+        score = max(0, min(int(max_points), score))
+        feedback = str(data.get("feedback", "")).strip()
+        return score, feedback
+    except Exception as e:
+        logger.exception(f'[llm] grade_submission failed: {e}')
+        return None, ""
+
+
 def extract_csv_from_unstructured_data(scenario_title: str, file_type: str, base64_content: str) -> str:
     """
     Uses the Vision/Language LLM to extract a structured CSV from an uploaded Image/Doc/PDF.

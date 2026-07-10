@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     'neural_network.apps.NeuralNetworkConfig',
     'computer_vision.apps.ComputerVisionConfig',
     'agentic_flow.apps.AgenticFlowConfig',
+    'schools.apps.SchoolsConfig',
+    'assignments.apps.AssignmentsConfig',
 ]
 
 MIDDLEWARE = [

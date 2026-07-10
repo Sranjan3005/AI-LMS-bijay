@@ -12,4 +12,6 @@ urlpatterns = [
     path('api/v1/neural_network/', include('neural_network.urls')),
     path('api/v1/computer_vision/', include('computer_vision.urls')),
     path('api/v1/agentic/', include('agentic_flow.urls')),
+    path('api/v1/assignments/', include('assignments.urls')),
+    path('api/v1/schools/', include('schools.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
