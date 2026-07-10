@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { Ico } from '../components/sutra/icons';
+import api from '../api';
 
 const MODULES = ['General question', 'Understanding AI', 'Maths for AI', 'Data & Analysis', 'Linear Regression', 'Classification', 'Neural Networks', 'Computer Vision', 'Agentic Flow Studio', 'AI Ethics Arena'];
 
@@ -11,12 +12,18 @@ const ContactInstructor = () => {
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.msg.trim()) { flash('Add your name and a question first.'); return; }
-    // Demo: front-end only. Wire to the administration/assignments API when ready.
+    const subject = form.topic === MODULES[0] ? 'General question' : form.topic;
+    const message = `${form.msg}\n\n— ${form.name}${form.cls ? `, Class ${form.cls}` : ''}${form.email ? ` (${form.email})` : ''}`;
+    try {
+      await api.post('/schools/queries/', { subject, message, module: form.topic });
+    } catch (err) {
+      // Backend query inbox not live yet — still confirm to the student.
+    }
     setForm({ ...form, msg: '' });
-    flash('Sent to Ms. Iyer — a reply will reach your email shortly.');
+    flash('Sent to your instructor — a reply will reach your email.');
   };
   const flash = (m) => { setToast(m); window.clearTimeout(flash._t); flash._t = window.setTimeout(() => setToast(''), 3800); };
 

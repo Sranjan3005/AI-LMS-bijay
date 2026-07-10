@@ -7,6 +7,9 @@ import StudentHome from './pages/StudentHome';
 import CBSECurriculum from './pages/CBSECurriculum';
 import ContactInstructor from './pages/ContactInstructor';
 import ProfilePage from './pages/ProfilePage';
+import ExplainerPage from './pages/ExplainerPage';
+import AssignmentsView from './pages/AssignmentsView';
+import { EXPLAINERS } from './content/explainers';
 import LabWorkspace from './pages/LabWorkspace';
 import DataLabWorkspace from './pages/DataLabWorkspace';
 import AgenticLanding from './pages/AgenticSandbox/AgenticLanding';
@@ -33,6 +36,8 @@ const AppContent = () => {
   const { user, loading } = useContext(AuthContext);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' | 'lab'
   const [initialLabCategory, setInitialLabCategory] = useState(null);
+  const [explainerData, setExplainerData] = useState(null);
+  const [assignFilter, setAssignFilter] = useState(null);
 
   if (loading) {
     return (
@@ -63,15 +68,26 @@ const AppContent = () => {
     else if (labCats[key]) { setInitialLabCategory(labCats[key]); setCurrentView('lab'); }
   };
 
+  // Open a submodule (theory explainer / lesson / workspace / assignments).
+  const openSub = (target) => {
+    if (!target) return;
+    if (target.view) return setCurrentView(target.view);
+    if (target.open) return openModule(target.open);
+    if (target.content) { setExplainerData(EXPLAINERS[target.content]); return setCurrentView('explainer'); }
+    if (target.assignments) { setAssignFilter(target.assignments); return setCurrentView('assignments'); }
+  };
+
   // Student-facing pages that share the Sutra shell (nav + background + footer).
-  const shellViews = ['dashboard', 'cbse', 'contact', 'profile'];
+  const shellViews = ['dashboard', 'cbse', 'contact', 'profile', 'explainer', 'assignments'];
   if (shellViews.includes(currentView)) {
     return (
       <SutraShell currentView={currentView} onNavigate={setCurrentView} user={user}>
-        {currentView === 'dashboard' && <StudentHome onOpenModule={openModule} onNavigate={setCurrentView} />}
+        {currentView === 'dashboard' && <StudentHome onOpenModule={openModule} onOpenSub={openSub} onNavigate={setCurrentView} />}
         {currentView === 'cbse' && <CBSECurriculum />}
         {currentView === 'contact' && <ContactInstructor />}
         {currentView === 'profile' && <ProfilePage />}
+        {currentView === 'explainer' && <ExplainerPage data={explainerData} onOpenModule={openModule} onBack={() => setCurrentView('dashboard')} />}
+        {currentView === 'assignments' && <AssignmentsView moduleFilter={assignFilter} onBack={() => setCurrentView('dashboard')} />}
       </SutraShell>
     );
   }

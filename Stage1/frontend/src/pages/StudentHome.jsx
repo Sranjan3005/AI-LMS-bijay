@@ -1,7 +1,28 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { Ico } from '../components/sutra/icons';
 import { firstName, initials } from '../components/sutra/SutraShell';
+import api from '../api';
+
+// Theory submodule → destination. Existing lessons open their real page; the
+// rest open a Sutra explainer (see content/explainers.js).
+const THEORY = {
+  'Understanding AI': { view: 'emergence_lesson' },
+  'Maths for AI': { view: 'maths_lesson' },
+  'Data & Analysis': { view: 'data_analysis' },
+  'Linear Regression': { view: 'linear_regression_lesson' },
+  'Classification': { content: 'classification' },
+  'Neural Networks': { content: 'neural' },
+  'Computer Vision': { view: 'computer_vision_lesson' },
+  'Agentic Flow Studio': { content: 'agentic' },
+  'AI Ethics Arena': { content: 'ethics' },
+};
+
+function subTarget(m, s) {
+  if (s.ty === 'theory') return THEORY[m.t] || { open: m.open };
+  if (s.ty === 'assign') return { assignments: m.open };
+  return { open: m.open };   // demonstration + hands-on → the real workspace
+}
 
 const TYPE = {
   theory: { label: 'Theory', color: 'var(--s-theory)', icon: 'read' },
@@ -83,10 +104,13 @@ const Pill = ({ st, label }) => (
   <span className={`pill ${st}`}><span className="dot" />{label || STLABEL[st]}</span>
 );
 
-const SubRow = ({ s }) => {
+const SubRow = ({ s, m, onOpenSub }) => {
   const T = TYPE[s.ty];
+  const go = () => onOpenSub(subTarget(m, s), s, m);
   return (
-    <div className="sub" style={{ '--fc': T.color }}>
+    <div className="sub is-click" style={{ '--fc': T.color }} role="button" tabIndex={0}
+         onClick={go}
+         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}>
       <div className="sub-flag" />
       <div className="sub-name">
         <div className="tbadge"><Ico name={T.icon} />{T.label}</div>
@@ -99,11 +123,12 @@ const SubRow = ({ s }) => {
         ))}
       </div>
       <div className="sub-end"><Pill st={s.st} label={s.stt} /><span className="sub-date">{s.date}</span></div>
+      <div className="sub-go"><Ico name="arrowR" w={2.2} /></div>
     </div>
   );
 };
 
-const ModuleRow = ({ m, open, onToggle, onOpenModule }) => (
+const ModuleRow = ({ m, open, onToggle, onOpenModule, onOpenSub, ringP }) => (
   <div className={`mrow${open ? ' is-open' : ''}`} style={{ '--m': m.m, '--mg': m.mg }}>
     <div className="mrow-head" role="button" tabIndex={0} aria-expanded={open}
          onClick={onToggle}
@@ -112,11 +137,11 @@ const ModuleRow = ({ m, open, onToggle, onOpenModule }) => (
       <div className="mrow-title"><div className="tt">{m.t}</div><div className="sb">{m.cls.toUpperCase()}</div></div>
       <div className="mrow-dates"><span className="k">TIMELINE</span>{m.dates}</div>
       <Pill st={m.st} />
-      <div className="ring" style={{ '--p': m.p, '--rc': m.rc }}><span>{m.p}</span></div>
+      <div className="ring" style={{ '--p': ringP, '--rc': m.rc }}><span>{ringP}</span></div>
       <div className="mrow-exp"><Ico name="plus" w={2.4} /></div>
     </div>
     <div className="subs"><div className="subs-in"><div className="subs-pad">
-      {m.subs.map((s, i) => <SubRow key={i} s={s} />)}
+      {m.subs.map((s, i) => <SubRow key={i} s={s} m={m} onOpenSub={onOpenSub} />)}
       <div className="mopen">
         <button className="btn btn-thread btn-sm" onClick={(e) => { e.stopPropagation(); onOpenModule(m.open); }}>
           Open {m.t}<Ico name="arrowR" w={2.2} />
@@ -126,10 +151,15 @@ const ModuleRow = ({ m, open, onToggle, onOpenModule }) => (
   </div>
 );
 
-const StudentHome = ({ onOpenModule, onNavigate }) => {
+const StudentHome = ({ onOpenModule, onOpenSub, onNavigate }) => {
   const { user } = useContext(AuthContext);
   // Open the first in-progress module by default.
   const [openId, setOpenId] = useState('Data & Analysis');
+  // Live per-module performance from graded assignments (falls back to demo %).
+  const [progress, setProgress] = useState({});
+  useEffect(() => {
+    api.get('/assignments/progress/').then((r) => setProgress(r.data || {})).catch(() => {});
+  }, []);
 
   return (
     <>
@@ -212,7 +242,9 @@ const StudentHome = ({ onOpenModule, onNavigate }) => {
                     <ModuleRow key={m.t} m={m}
                       open={openId === m.t}
                       onToggle={() => setOpenId(openId === m.t ? null : m.t)}
-                      onOpenModule={onOpenModule} />
+                      onOpenModule={onOpenModule}
+                      onOpenSub={onOpenSub}
+                      ringP={progress[m.open]?.avg_percent ?? m.p} />
                   ))}
                 </div>
               </div>
