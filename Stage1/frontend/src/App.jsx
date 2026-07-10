@@ -2,7 +2,11 @@ import React, { useContext, useState } from 'react';
 import { AuthContext, AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
-import StudentDashboard from './pages/StudentDashboard';
+import SutraShell from './components/sutra/SutraShell';
+import StudentHome from './pages/StudentHome';
+import CBSECurriculum from './pages/CBSECurriculum';
+import ContactInstructor from './pages/ContactInstructor';
+import ProfilePage from './pages/ProfilePage';
 import LabWorkspace from './pages/LabWorkspace';
 import DataLabWorkspace from './pages/DataLabWorkspace';
 import AgenticLanding from './pages/AgenticSandbox/AgenticLanding';
@@ -48,15 +52,28 @@ const AppContent = () => {
   }
 
   // Student Routing
-  if (currentView === 'dashboard') {
-    return <StudentDashboard 
-             onNavigateToLab={() => setCurrentView('lab')} 
-             onNavigateToDataLab={() => setCurrentView('data_lab')}
-             onNavigateToAgentic={() => setCurrentView('agentic')} 
-             onNavigateToFoundations={() => setCurrentView('foundations')}
-             onNavigateToEthics={() => setCurrentView('ethics_hub')}
-             onNavigateToAssignments={() => setCurrentView('assignments_list')}
-           />;
+  // Open a real module workspace from the Sutra learning flow.
+  const openModule = (key) => {
+    const labCats = { regression: 'REGRESSION', classification: 'CLASSIFICATION', neural: 'NEURAL_NETWORK', vision: 'COMPUTER_VISION' };
+    if (key === 'foundations') setCurrentView('foundations');
+    else if (key === 'data') setCurrentView('data_lab');
+    else if (key === 'agentic') setCurrentView('agentic');
+    else if (key === 'ethics') setCurrentView('ethics_hub');
+    else if (key === 'assignments') setCurrentView('assignments_list');
+    else if (labCats[key]) { setInitialLabCategory(labCats[key]); setCurrentView('lab'); }
+  };
+
+  // Student-facing pages that share the Sutra shell (nav + background + footer).
+  const shellViews = ['dashboard', 'cbse', 'contact', 'profile'];
+  if (shellViews.includes(currentView)) {
+    return (
+      <SutraShell currentView={currentView} onNavigate={setCurrentView} user={user}>
+        {currentView === 'dashboard' && <StudentHome onOpenModule={openModule} onNavigate={setCurrentView} />}
+        {currentView === 'cbse' && <CBSECurriculum />}
+        {currentView === 'contact' && <ContactInstructor />}
+        {currentView === 'profile' && <ProfilePage />}
+      </SutraShell>
+    );
   }
 
   if (currentView === 'lab') {
