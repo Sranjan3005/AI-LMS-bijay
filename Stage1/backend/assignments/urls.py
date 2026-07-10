@@ -11,4 +11,5 @@ urlpatterns = [
     path('templates/', views.TemplatesView.as_view(), name='assignment-templates'),
     path('assign/',    views.AssignView.as_view(),    name='assignment-assign'),
     path('placements/<int:placement_id>/remove/', views.RemovePlacementView.as_view(), name='assignment-remove'),
+    path('student/<int:student_id>/', views.StudentPlacementsView.as_view(), name='student-placements'),
 ]

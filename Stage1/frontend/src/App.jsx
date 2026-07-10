@@ -9,6 +9,7 @@ import ContactInstructor from './pages/ContactInstructor';
 import ProfilePage from './pages/ProfilePage';
 import ExplainerPage from './pages/ExplainerPage';
 import AssignmentsView from './pages/AssignmentsView';
+import SchoolAdminPanel from './pages/SchoolAdminPanel';
 import { EXPLAINERS } from './content/explainers';
 import LabWorkspace from './pages/LabWorkspace';
 import DataLabWorkspace from './pages/DataLabWorkspace';
@@ -50,6 +51,10 @@ const AppContent = () => {
   // Pure SPA routing based on auth state and role
   if (!user) {
     return <Login />;
+  }
+
+  if (user.role === 'school_admin') {
+    return <SchoolAdminPanel />;
   }
 
   if (user.is_staff) {

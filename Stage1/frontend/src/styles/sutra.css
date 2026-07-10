@@ -332,4 +332,32 @@
   .sutra .frow{grid-template-columns:1fr}
   .sutra .classtabs button{padding:10px 18px}
 }
+/* school admin console */
+.sutra .sap-badge{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t2);padding:6px 12px;border:1px solid var(--line-2);border-radius:var(--r-full);margin-left:4px}
+.sutra .sap-list{display:flex;flex-direction:column;gap:13px;max-width:860px;margin:0 auto;padding-bottom:60px}
+.sutra .sap-card{border-radius:var(--r-lg);background:var(--glass);border:1px solid var(--line);backdrop-filter:var(--blur);overflow:hidden}
+.sutra .sap-srow{display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;padding:16px 20px;cursor:pointer}
+.sutra .sap-av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#5E5CE6,#BF5AF2);display:grid;place-items:center;font-weight:700;color:#fff}
+.sutra .sap-sname .nm{font-weight:650;font-size:1.08rem}
+.sutra .sap-sname .sb{font-family:var(--mono);font-size:.76rem;color:var(--t3);margin-top:3px}
+.sutra .sap-card.open .mrow-exp{transform:rotate(45deg);background:var(--thread);color:#fff;border-color:transparent}
+.sutra .sap-detail{padding:6px 20px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.sutra .sap-assign{display:flex;gap:10px;margin:12px 0 6px}
+.sutra .sap-assign select,.sutra .sap-assign input{flex:1;padding:11px 14px;border-radius:var(--r-md);background:var(--bg-2);border:1px solid var(--line-2);color:var(--t1);font-family:var(--sans);font-size:.95rem}
+.sutra .sap-assign select:focus,.sutra .sap-assign input:focus{outline:none;border-color:var(--cyan)}
+.sutra .sap-place{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.sutra .sap-place.off{opacity:.5}
+.sutra .sap-kchip{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);border:1px solid var(--line-2);padding:4px 8px;border-radius:var(--r-full);white-space:nowrap}
+.sutra .sap-ptitle{flex:1;font-weight:550;font-size:.98rem}
+.sutra .sap-x{width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--t3);cursor:pointer;display:grid;place-items:center;transition:.2s;flex-shrink:0}
+.sutra .sap-x:hover{color:var(--red);border-color:rgba(255,69,58,.4)}
+.sutra .sap-x svg{width:15px;height:15px}
+.sutra .sap-muted{color:var(--t3);font-size:.92rem;padding:6px 2px}
+.sutra .sap-qhead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 20px 0}
+.sutra .sap-qsub{font-family:var(--disp);font-size:1.15rem;font-weight:700}
+.sutra .sap-qhead .sb{font-family:var(--mono);font-size:.76rem;color:var(--t3);margin-top:4px}
+.sutra .sap-qmsg{color:var(--t2);font-size:1rem;line-height:1.55;padding:12px 20px 0;white-space:pre-wrap}
+.sutra .sap-card .sap-assign{padding:0 20px 18px;margin-top:14px}
+@media(max-width:560px){.sutra .sap-srow{grid-template-columns:auto 1fr auto}.sutra .sap-srow .ring{display:none}}
+
 @media(prefers-reduced-motion:reduce){.sutra *{animation:none!important}}

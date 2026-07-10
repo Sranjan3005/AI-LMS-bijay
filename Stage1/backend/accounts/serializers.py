@@ -34,10 +34,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 class StudentProfileSerializer(serializers.ModelSerializer):
     """Used for GET/PATCH /api/v1/auth/profile/"""
 
+    school_name = serializers.CharField(source='school.name', read_only=True, default=None)
+
     class Meta:
         model  = Student
-        fields = ['id', 'name', 'email', 'grade', 'is_staff', 'created_at']
-        read_only_fields = ['id', 'email', 'created_at']
+        fields = ['id', 'name', 'email', 'grade', 'role', 'school', 'school_name', 'is_staff', 'created_at']
+        read_only_fields = ['id', 'email', 'role', 'school', 'school_name', 'created_at']
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

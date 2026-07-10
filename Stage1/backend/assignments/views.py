@@ -13,7 +13,6 @@ School-admin endpoints:
 """
 
 from django.db.models import Q
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -114,6 +113,28 @@ class RemovePlacementView(APIView):
                 id=placement_id, student__school=request.user.school)
         except StudentAssignment.DoesNotExist:
             return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
-        placement.is_active = False
+        placement.is_active = request.data.get('is_active', False)
         placement.save(update_fields=['is_active'])
-        return Response({'status': 'removed'})
+        return Response({'status': 'ok', 'is_active': placement.is_active})
+
+
+class StudentPlacementsView(APIView):
+    """School admin: list one student's assigned tasks (to review / remove)."""
+    permission_classes = [IsSchoolAdmin]
+
+    def get(self, request, student_id):
+        from accounts.models import Student
+        try:
+            student = Student.objects.get(id=student_id, school=request.user.school)
+        except Student.DoesNotExist:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        placements = (StudentAssignment.objects
+                      .filter(student=student).select_related('assignment'))
+        return Response([{
+            'id': p.id,
+            'title': p.assignment.title,
+            'kind': p.assignment.kind,
+            'module_key': p.assignment.module_key,
+            'status': p.status,
+            'is_active': p.is_active,
+        } for p in placements])
