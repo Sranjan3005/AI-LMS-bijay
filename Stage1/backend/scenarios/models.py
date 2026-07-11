@@ -26,6 +26,12 @@ class Scenario(models.Model):
     challenge    = models.TextField()
     takeaway     = models.TextField()
     try_it_out   = models.TextField()
+    # Authored narrative layer (grade 6-8 voice) shown around the lab flow.
+    story         = models.TextField(blank=True, default='', help_text='Why would anyone want to predict this? Shown before training.')
+    data_story    = models.TextField(blank=True, default='', help_text='How and why this data was collected.')
+    outcome_guide = models.TextField(blank=True, default='', help_text='What to look for in the results — shown beside the LLM explanation.')
+    guide_steps   = models.JSONField(default=list, blank=True, help_text='Ordered student instructions rendered as a checklist (guided flows).')
+    grade_band    = models.CharField(max_length=10, blank=True, default='6-8')
     icon         = models.CharField(max_length=10, default='🔬', help_text='Emoji shown on the card')
     order        = models.PositiveIntegerField(default=0, help_text='Display order within the model type')
     is_active    = models.BooleanField(default=True)
@@ -52,6 +58,7 @@ class DataVariant(models.Model):
     name        = models.CharField(max_length=50, help_text='Identifier used internally, e.g. perfect / messy / tiny')
     label       = models.CharField(max_length=100, help_text='Human-readable name shown in UI')
     description = models.TextField()
+    watch_for   = models.TextField(blank=True, default='', help_text='What this variant will do to the model — shown at data review.')
     order       = models.PositiveIntegerField(default=0)
     
     # New fields for Data Lab

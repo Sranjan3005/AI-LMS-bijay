@@ -278,14 +278,16 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory, initialScenario }) =
         {/* OVERLAY: Results frosted glass card */}
         {showResults && experimentResult && (
           selectedScenario?.model_type === 'COMPUTER_VISION' ? (
-            <CVPipelineOverlay 
-              result={experimentResult} 
-              onClose={() => setShowResults(false)} 
+            <CVPipelineOverlay
+              result={experimentResult}
+              scenario={selectedScenario}
+              onClose={() => setShowResults(false)}
             />
           ) : (
-            <ResultsOverlay 
-              result={experimentResult} 
-              onClose={() => setShowResults(false)} 
+            <ResultsOverlay
+              result={experimentResult}
+              scenario={selectedScenario}
+              onClose={() => setShowResults(false)}
             />
           )
         )}

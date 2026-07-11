@@ -7,7 +7,7 @@ class DataVariantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = DataVariant
-        fields = ['id', 'name', 'label', 'description', 'order', 'is_custom']
+        fields = ['id', 'name', 'label', 'description', 'watch_for', 'order', 'is_custom']
 
     def get_is_custom(self, obj):
         return obj.user is not None
@@ -20,7 +20,11 @@ class ScenarioListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Scenario
-        fields = ['id', 'title', 'model_type', 'challenge', 'icon', 'order', 'variant_count', 'variants']
+        # The lab only fetches the list endpoint, so it must carry the full
+        # authored narrative layer (story/data_story/outcome_guide/guide_steps).
+        fields = ['id', 'title', 'model_type', 'challenge', 'takeaway', 'try_it_out',
+                  'story', 'data_story', 'outcome_guide', 'guide_steps', 'grade_band',
+                  'icon', 'order', 'variant_count', 'variants']
 
 
 class ScenarioDetailSerializer(serializers.ModelSerializer):
@@ -29,4 +33,6 @@ class ScenarioDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Scenario
-        fields = ['id', 'title', 'model_type', 'challenge', 'takeaway', 'try_it_out', 'icon', 'order', 'variants']
+        fields = ['id', 'title', 'model_type', 'challenge', 'takeaway', 'try_it_out',
+                  'story', 'data_story', 'outcome_guide', 'guide_steps', 'grade_band',
+                  'icon', 'order', 'variants']

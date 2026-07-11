@@ -9,7 +9,7 @@ const QA_MAP = {
   fix_it_mode: { title: "Fix-It Mode: How to make it smarter?", icon: <Wrench size={20} /> },
 };
 
-const ResultsOverlay = ({ result, onClose }) => {
+const ResultsOverlay = ({ result, scenario, onClose }) => {
   const [expandedSection, setExpandedSection] = useState('chefs_choice');
 
   let explanationData = {};
@@ -98,6 +98,13 @@ const ResultsOverlay = ({ result, onClose }) => {
 
             {/* Right Column: QA Explanation */}
             <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+              {/* Authored outcome guide (seeded) — shown above the personalised LLM analysis */}
+              {result.success && scenario?.outcome_guide && (
+                <div style={{ background: 'rgba(255,159,10,0.06)', padding: '18px 20px', borderRadius: '8px', border: '1px solid rgba(255,159,10,0.3)', marginBottom: '15px' }}>
+                  <h3 style={{ margin: '0 0 8px', color: '#FF9F0A', fontSize: '1.05rem' }}>🔎 What to look for</h3>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.95rem' }}>{scenario.outcome_guide}</p>
+                </div>
+              )}
               {result.success && explanationData.fallback ? (
                 <div style={{ background: 'rgba(0, 240, 255, 0.05)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(0, 240, 255, 0.2)' }}>
                   {explanationData.fallback}

@@ -277,9 +277,31 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
             style={{ maxWidth: '1000px', margin: '0 auto' }}
           >
             <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>{scenario.title}</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '30px' }}>
-              {scenario.description}
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '24px' }}>
+              {scenario.challenge}
             </p>
+
+            {/* Authored narrative layer (seeded on the Scenario model) */}
+            {scenario.story && (
+              <div style={{ padding: '20px 24px', background: 'rgba(191,90,242,0.06)', borderRadius: '12px', marginBottom: '16px', borderLeft: '5px solid var(--accent-purple)' }}>
+                <h3 style={{ fontSize: '1.15rem', color: 'var(--accent-purple)', margin: '0 0 8px' }}>Why predict this?</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: 1.65, margin: 0 }}>{scenario.story}</p>
+              </div>
+            )}
+            {scenario.data_story && (
+              <div style={{ padding: '20px 24px', background: 'rgba(0,240,255,0.05)', borderRadius: '12px', marginBottom: '16px', borderLeft: '5px solid var(--accent-cyan)' }}>
+                <h3 style={{ fontSize: '1.15rem', color: 'var(--accent-cyan)', margin: '0 0 8px' }}>Where the data comes from</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: 1.65, margin: 0 }}>{scenario.data_story}</p>
+              </div>
+            )}
+            {scenario.guide_steps?.length > 0 && (
+              <div style={{ padding: '20px 24px', background: 'rgba(48,209,88,0.05)', borderRadius: '12px', marginBottom: '24px', borderLeft: '5px solid #30D158' }}>
+                <h3 style={{ fontSize: '1.15rem', color: '#30D158', margin: '0 0 10px' }}>Your mission — step by step</h3>
+                <ol style={{ margin: 0, paddingLeft: '22px', color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: 1.8 }}>
+                  {scenario.guide_steps.map((st, i) => <li key={i}>{st}</li>)}
+                </ol>
+              </div>
+            )}
 
             <h2 style={{ fontSize: '1.5rem', marginBottom: '20px', color: 'var(--accent-purple)' }}>Select a Dataset Variant</h2>
             
@@ -304,8 +326,14 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                     zIndex: 2
                   }}
                 >
-                  <div style={{ padding: '20px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+                  <div style={{ padding: '16px 18px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                     <h3 style={{ fontSize: '1.2rem', margin: 0, color: 'white', fontWeight: 'bold' }}>{variant.label}</h3>
+                    {variant.description && (
+                      <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.45,
+                                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {variant.description}
+                      </p>
+                    )}
                   </div>
                   
                   {variant.is_custom && (
@@ -526,6 +554,16 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                       {scenario.variants.find(v => v.name === selectedVariant)?.description}
                     </p>
                   </div>
+
+                  {/* Authored per-variant guidance */}
+                  {scenario.variants.find(v => v.name === selectedVariant)?.watch_for && (
+                    <div style={{ padding: '25px', background: 'rgba(255,159,10,0.05)', borderRadius: '12px', marginBottom: '20px', borderLeft: '5px solid #FF9F0A' }}>
+                      <h3 style={{ fontSize: '1.4rem', color: '#FF9F0A', marginBottom: '10px' }}>🔎 What to watch for</h3>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '1.15rem', lineHeight: '1.6', margin: 0 }}>
+                        {scenario.variants.find(v => v.name === selectedVariant)?.watch_for}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Deep Analysis Section */}
                   {scenario?.model_type !== 'COMPUTER_VISION' && (

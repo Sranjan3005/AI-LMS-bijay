@@ -11,7 +11,7 @@ const STAGE_ICONS = [
 
 const STAGE_COLORS = ['#00F0FF', '#FF9933', '#B200FF', '#00FF88'];
 
-const CVPipelineOverlay = ({ result, onClose }) => {
+const CVPipelineOverlay = ({ result, scenario, onClose }) => {
   const [activeStage, setActiveStage] = useState(-1);
   const [autoPlaying, setAutoPlaying] = useState(true);
   const [showFinal, setShowFinal] = useState(false);
@@ -418,6 +418,27 @@ const CVPipelineOverlay = ({ result, onClose }) => {
                   {prediction}
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Authored outcome guide (seeded) — what to look for in this result */}
+          {showFinal && scenario?.outcome_guide && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              style={{
+                background: 'rgba(255,159,10,0.06)',
+                border: '1px solid rgba(255,159,10,0.3)',
+                borderRadius: '16px',
+                padding: '18px 22px',
+                marginTop: '15px',
+              }}
+            >
+              <div style={{ fontSize: '0.8rem', color: '#FF9F0A', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 700, marginBottom: '6px' }}>
+                🔎 What to look for
+              </div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.98rem' }}>{scenario.outcome_guide}</p>
             </motion.div>
           )}
         </div>
