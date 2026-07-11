@@ -15,6 +15,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'insecure-fallback-change-me')
 
 INSTALLED_APPS = [
     'daphne',
+    'jazzmin',                 # modern admin theme (must precede django.contrib.admin)
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -36,6 +37,37 @@ INSTALLED_APPS = [
     'schools.apps.SchoolsConfig',
     'assignments.apps.AssignmentsConfig',
 ]
+
+# ─── Django admin theme (jazzmin) — the company "back office" ──────────────────
+JAZZMIN_SETTINGS = {
+    'site_title': 'Sutra Admin',
+    'site_header': 'Sutra',
+    'site_brand': 'Sutra Admin',
+    'welcome_sign': 'Sutra — Company Administration',
+    'copyright': 'Sutra Learning',
+    # Quick search box searches these models:
+    'search_model': ['schools.School', 'accounts.Student'],
+    # Sidebar order: onboarding first (schools, users), then coursework:
+    'order_with_respect_to': ['schools', 'accounts', 'assignments', 'scenarios'],
+    'icons': {
+        'schools.School': 'fas fa-school',
+        'schools.InstructorQuery': 'fas fa-question-circle',
+        'accounts.Student': 'fas fa-user-graduate',
+        'assignments.Assignment': 'fas fa-tasks',
+        'assignments.StudentAssignment': 'fas fa-user-check',
+        'assignments.AssignmentSubmission': 'fas fa-file-alt',
+        'auth.Group': 'fas fa-users-cog',
+    },
+    'related_modal_active': True,
+    'changeform_format': 'horizontal_tabs',
+}
+JAZZMIN_UI_TWEAKS = {
+    'theme': 'darkly',              # matches the product's dark look
+    'dark_mode_theme': 'darkly',
+    'navbar': 'navbar-dark',
+    'sidebar': 'sidebar-dark-primary',
+    'sidebar_nav_flat_style': True,
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
