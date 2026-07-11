@@ -39,6 +39,8 @@ const AppContent = () => {
   const [initialLabCategory, setInitialLabCategory] = useState(null);
   const [explainerData, setExplainerData] = useState(null);
   const [assignFilter, setAssignFilter] = useState(null);
+  const [returnView, setReturnView] = useState('foundations'); // where a lesson's Back should go
+  const [lastModule, setLastModule] = useState(null);          // module to re-open on return to home
 
   if (loading) {
     return (
@@ -74,9 +76,12 @@ const AppContent = () => {
   };
 
   // Open a submodule (theory explainer / lesson / workspace / assignments).
-  const openSub = (target) => {
+  // Records the module so returning to home re-opens & scrolls to it, and makes
+  // reused lesson pages return to the Sutra home (not the old Foundations dashboard).
+  const openSub = (target, _sub, m) => {
     if (!target) return;
-    if (target.view) return setCurrentView(target.view);
+    if (m) setLastModule(m.t);
+    if (target.view) { setReturnView('dashboard'); return setCurrentView(target.view); }
     if (target.open) return openModule(target.open);
     if (target.content) { setExplainerData(EXPLAINERS[target.content]); return setCurrentView('explainer'); }
     if (target.assignments) { setAssignFilter(target.assignments); return setCurrentView('assignments'); }
@@ -87,7 +92,7 @@ const AppContent = () => {
   if (shellViews.includes(currentView)) {
     return (
       <SutraShell currentView={currentView} onNavigate={setCurrentView} user={user}>
-        {currentView === 'dashboard' && <StudentHome onOpenModule={openModule} onOpenSub={openSub} onNavigate={setCurrentView} />}
+        {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenModule={openModule} onOpenSub={openSub} onNavigate={setCurrentView} />}
         {currentView === 'cbse' && <CBSECurriculum />}
         {currentView === 'contact' && <ContactInstructor />}
         {currentView === 'profile' && <ProfilePage />}
@@ -118,10 +123,10 @@ const AppContent = () => {
   if (currentView === 'foundations') {
     return <AIFoundationsDashboard 
              onBackToDashboard={() => setCurrentView('dashboard')} 
-             onNavigateToLesson1={() => setCurrentView('emergence_lesson')}
-             onNavigateToSmartPuppy={() => setCurrentView('smart_puppy')}
-             onNavigateToMaths={() => setCurrentView('maths_lesson')}
-             onNavigateToDataAnalysis={() => setCurrentView('data_analysis')}
+             onNavigateToLesson1={() => { setReturnView('foundations'); setCurrentView('emergence_lesson'); }}
+             onNavigateToSmartPuppy={() => { setReturnView('foundations'); setCurrentView('smart_puppy'); }}
+             onNavigateToMaths={() => { setReturnView('foundations'); setCurrentView('maths_lesson'); }}
+             onNavigateToDataAnalysis={() => { setReturnView('foundations'); setCurrentView('data_analysis'); }}
              onNavigateToSupervised={() => setCurrentView('supervised_lesson')}
              onNavigateToUnsupervised={() => setCurrentView('unsupervised_lesson')}
              onNavigateToRL={() => setCurrentView('rl_lesson')}
@@ -130,33 +135,33 @@ const AppContent = () => {
   }
 
   if (currentView === 'emergence_lesson') {
-    return <EmergenceOfIntelligence onBackToDashboard={() => setCurrentView('foundations')} />;
+    return <EmergenceOfIntelligence onBackToDashboard={() => setCurrentView(returnView)} />;
   }
 
   if (currentView === 'smart_puppy') {
-    return <SmartPuppy onBackToDashboard={() => setCurrentView('foundations')} />;
+    return <SmartPuppy onBackToDashboard={() => setCurrentView(returnView)} />;
   }
 
   if (currentView === 'maths_lesson') {
-    return <MathsForAI onBackToDashboard={() => setCurrentView('foundations')} />;
+    return <MathsForAI onBackToDashboard={() => setCurrentView(returnView)} />;
   }
 
   if (currentView === 'data_analysis') {
-    return <DataAnalysis onBackToDashboard={() => setCurrentView('foundations')} />;
+    return <DataAnalysis onBackToDashboard={() => setCurrentView(returnView)} />;
   }
 
   if (currentView === 'supervised_lesson') {
-    return <SupervisedLearning 
-             onBackToDashboard={() => setCurrentView('foundations')} 
-             onNavigateToLinearRegression={() => setCurrentView('linear_regression_lesson')}
-             onNavigateToComputerVision={() => setCurrentView('computer_vision_lesson')}
+    return <SupervisedLearning
+             onBackToDashboard={() => setCurrentView('foundations')}
+             onNavigateToLinearRegression={() => { setReturnView('supervised_lesson'); setCurrentView('linear_regression_lesson'); }}
+             onNavigateToComputerVision={() => { setReturnView('supervised_lesson'); setCurrentView('computer_vision_lesson'); }}
            />;
   }
 
   if (currentView === 'linear_regression_lesson') {
     return (
-      <LinearRegressionLesson 
-        onBackToSupervised={() => setCurrentView('supervised_lesson')} 
+      <LinearRegressionLesson
+        onBackToSupervised={() => setCurrentView(returnView)}
         onNavigateToPredictionEngine={(category) => {
           setInitialLabCategory(category);
           setCurrentView('lab');
@@ -167,8 +172,8 @@ const AppContent = () => {
 
   if (currentView === 'computer_vision_lesson') {
     return (
-      <ComputerVisionLesson 
-        onBackToSupervised={() => setCurrentView('supervised_lesson')} 
+      <ComputerVisionLesson
+        onBackToSupervised={() => setCurrentView(returnView)}
         onNavigateToPredictionEngine={(category) => {
           setInitialLabCategory(category);
           setCurrentView('lab');

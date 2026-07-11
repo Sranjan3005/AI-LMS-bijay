@@ -128,8 +128,8 @@ const SubRow = ({ s, m, onOpenSub }) => {
   );
 };
 
-const ModuleRow = ({ m, open, onToggle, onOpenModule, onOpenSub, ringP }) => (
-  <div className={`mrow${open ? ' is-open' : ''}`} style={{ '--m': m.m, '--mg': m.mg }}>
+const ModuleRow = ({ m, open, onToggle, onOpenSub, ringP }) => (
+  <div className={`mrow${open ? ' is-open' : ''}`} id={`mod-${m.t}`} style={{ '--m': m.m, '--mg': m.mg }}>
     <div className="mrow-head" role="button" tabIndex={0} aria-expanded={open}
          onClick={onToggle}
          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}>
@@ -143,7 +143,7 @@ const ModuleRow = ({ m, open, onToggle, onOpenModule, onOpenSub, ringP }) => (
     <div className="subs"><div className="subs-in"><div className="subs-pad">
       {m.subs.map((s, i) => <SubRow key={i} s={s} m={m} onOpenSub={onOpenSub} />)}
       <div className="mopen">
-        <button className="btn btn-thread btn-sm" onClick={(e) => { e.stopPropagation(); onOpenModule(m.open); }}>
+        <button className="btn btn-thread btn-sm" onClick={(e) => { e.stopPropagation(); onOpenSub({ open: m.open }, null, m); }}>
           Open {m.t}<Ico name="arrowR" w={2.2} />
         </button>
       </div>
@@ -151,15 +151,23 @@ const ModuleRow = ({ m, open, onToggle, onOpenModule, onOpenSub, ringP }) => (
   </div>
 );
 
-const StudentHome = ({ onOpenModule, onOpenSub, onNavigate }) => {
+const StudentHome = ({ initialOpen, onOpenSub, onNavigate }) => {
   const { user } = useContext(AuthContext);
-  // Open the first in-progress module by default.
-  const [openId, setOpenId] = useState('Data & Analysis');
+  // Re-open the module the student last visited (else the first in-progress one).
+  const [openId, setOpenId] = useState(initialOpen || 'Data & Analysis');
   // Live per-module performance from graded assignments (falls back to demo %).
   const [progress, setProgress] = useState({});
   useEffect(() => {
     api.get('/assignments/progress/').then((r) => setProgress(r.data || {})).catch(() => {});
   }, []);
+  // On return from a lesson/explainer, scroll the last-opened module into view.
+  useEffect(() => {
+    if (!initialOpen) return;
+    const raf = requestAnimationFrame(() => {
+      document.getElementById(`mod-${initialOpen}`)?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [initialOpen]);
 
   return (
     <>
@@ -242,7 +250,6 @@ const StudentHome = ({ onOpenModule, onOpenSub, onNavigate }) => {
                     <ModuleRow key={m.t} m={m}
                       open={openId === m.t}
                       onToggle={() => setOpenId(openId === m.t ? null : m.t)}
-                      onOpenModule={onOpenModule}
                       onOpenSub={onOpenSub}
                       ringP={progress[m.open]?.avg_percent ?? m.p} />
                   ))}
