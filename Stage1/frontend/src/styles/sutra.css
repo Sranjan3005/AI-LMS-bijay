@@ -358,6 +358,11 @@
 .sutra .sap-qhead .sb{font-family:var(--mono);font-size:.76rem;color:var(--t3);margin-top:4px}
 .sutra .sap-qmsg{color:var(--t2);font-size:1rem;line-height:1.55;padding:12px 20px 0;white-space:pre-wrap}
 .sutra .sap-card .sap-assign{padding:0 20px 18px;margin-top:14px}
+.sutra .sap-add{margin-bottom:14px}
+.sutra .sap-addgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sutra .sap-addgrid input{padding:11px 14px;border-radius:var(--r-md);background:var(--bg-2);border:1px solid var(--line-2);color:var(--t1);font-family:var(--sans);font-size:.95rem}
+.sutra .sap-addgrid input:focus{outline:none;border-color:var(--cyan)}
+@media(max-width:560px){.sutra .sap-addgrid{grid-template-columns:1fr}}
 @media(max-width:560px){.sutra .sap-srow{grid-template-columns:auto 1fr auto}.sutra .sap-srow .ring{display:none}}
 
 @media(prefers-reduced-motion:reduce){.sutra *{animation:none!important}}

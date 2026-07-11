@@ -51,6 +51,28 @@ class ReplyView(APIView):
         return Response(InstructorQuerySerializer(q).data)
 
 
+class CreateStudentView(APIView):
+    """School admin creates a student login for their own school."""
+    permission_classes = [IsSchoolAdmin]
+
+    def post(self, request):
+        from accounts.models import Student
+        name = (request.data.get('name') or '').strip()
+        email = (request.data.get('email') or '').strip().lower()
+        password = request.data.get('password') or ''
+        grade = request.data.get('grade') or 8
+        if not (name and email and password):
+            return Response({'error': 'Name, email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if Student.objects.filter(email=email).exists():
+            return Response({'error': 'A user with that email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        u = Student.objects.create_user(email=email, name=name, grade=int(grade), password=password)
+        u.role = 'student'
+        u.school = request.user.school
+        u.save(update_fields=['role', 'school'])
+        return Response({'id': u.id, 'name': u.name, 'email': u.email, 'grade': u.grade},
+                        status=status.HTTP_201_CREATED)
+
+
 class RosterView(APIView):
     permission_classes = [IsSchoolAdmin]
 

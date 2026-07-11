@@ -108,6 +108,45 @@ function QueryCard({ q, onReplied }) {
   );
 }
 
+/* ── create a student login ── */
+function AddStudent({ onAdded }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ name: '', email: '', grade: 8, password: '' });
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  const submit = async () => {
+    if (!f.name.trim() || !f.email.trim() || !f.password.trim()) { setMsg('Name, email and password are required.'); return; }
+    setBusy(true); setMsg('');
+    try {
+      await api.post('/schools/students/', f);
+      setF({ name: '', email: '', grade: 8, password: '' });
+      setOpen(false); onAdded();
+    } catch (e) { setMsg(e.response?.data?.error || 'Could not create student.'); }
+    finally { setBusy(false); }
+  };
+
+  if (!open) {
+    return <div className="sap-add"><button className="btn btn-thread btn-sm" onClick={() => setOpen(true)}><Ico name="user" w={2.2} />Add student</button></div>;
+  }
+  return (
+    <div className="sap-add sap-card" style={{ padding: '20px' }}>
+      <div className="sap-addgrid">
+        <input placeholder="Full name" value={f.name} onChange={set('name')} />
+        <input placeholder="Email (their login)" type="email" value={f.email} onChange={set('email')} />
+        <input placeholder="Class (e.g. 8)" type="number" value={f.grade} onChange={set('grade')} />
+        <input placeholder="Temporary password" value={f.password} onChange={set('password')} />
+      </div>
+      {msg && <div className="asn-err" style={{ marginTop: 10 }}>{msg}</div>}
+      <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+        <button className="btn btn-thread btn-sm" disabled={busy} onClick={submit}>{busy ? 'Creating…' : 'Create login'}</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => { setOpen(false); setMsg(''); }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 const SchoolAdminPanel = () => {
   const { user, logout } = useContext(AuthContext);
   const [tab, setTab] = useState('students');
@@ -115,11 +154,14 @@ const SchoolAdminPanel = () => {
   const [templates, setTemplates] = useState([]);
   const [queries, setQueries] = useState(null);
 
-  useEffect(() => {
+  const loadRoster = useCallback(() => {
     api.get('/schools/roster/').then(r => setRoster(r.data || [])).catch(() => setRoster([]));
+  }, []);
+  useEffect(() => {
+    loadRoster();
     api.get('/assignments/templates/').then(r => setTemplates(r.data || [])).catch(() => setTemplates([]));
     api.get('/schools/queries/').then(r => setQueries(r.data || [])).catch(() => setQueries([]));
-  }, []);
+  }, [loadRoster]);
 
   const openQueries = (queries || []).filter(q => q.status !== 'answered').length;
 
@@ -152,9 +194,12 @@ const SchoolAdminPanel = () => {
 
           <div className="sap-list">
             {tab === 'students' ? (
-              roster === null ? <div className="asn-empty">Loading…</div>
-                : roster.length === 0 ? <div className="asn-empty"><Ico name="users" /><h3>No students yet</h3><p>Students appear here once they're added to your school.</p></div>
-                  : roster.map(s => <StudentRow key={s.id} s={s} templates={templates} />)
+              <>
+                <AddStudent onAdded={loadRoster} />
+                {roster === null ? <div className="asn-empty">Loading…</div>
+                  : roster.length === 0 ? <div className="asn-empty"><Ico name="users" /><h3>No students yet</h3><p>Use “Add student” to create their logins.</p></div>
+                    : roster.map(s => <StudentRow key={s.id} s={s} templates={templates} />)}
+              </>
             ) : (
               queries === null ? <div className="asn-empty">Loading…</div>
                 : queries.length === 0 ? <div className="asn-empty"><Ico name="debate" /><h3>No questions yet</h3><p>Student questions from the "ask the instructor" form land here.</p></div>

@@ -3,37 +3,25 @@ import { AuthContext } from '../contexts/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [name, setName] = useState('');
-  const [grade, setGrade] = useState(8);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
-  const { login, register, googleLogin } = useContext(AuthContext);
+  const { login, googleLogin } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      if (isRegistering && !isAdminLogin) {
-        await register(name, email, password, grade);
-      } else {
-        await login(email, password, isAdminLogin);
-      }
+      await login(email, password, isAdminLogin);
     } catch (err) {
-      if (err.response && err.response.data) {
-        // Extract the first error message from the backend response
-        const data = err.response.data;
-        if (data.email) setError('Email: ' + data.email[0]);
-        else if (data.password) setError('Password: ' + data.password[0]);
-        else if (data.detail) setError(data.detail);
-        else setError(isRegistering ? 'Registration failed.' : 'Invalid credentials. Please try again.');
-      } else {
-        setError(isRegistering ? 'Registration failed.' : 'Invalid credentials. Please try again.');
-      }
+      const data = err.response && err.response.data;
+      if (data?.email) setError('Email: ' + data.email[0]);
+      else if (data?.password) setError('Password: ' + data.password[0]);
+      else if (data?.detail) setError(data.detail);
+      else setError('Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -85,31 +73,6 @@ const Login = () => {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {isRegistering && !isAdminLogin && (
-            <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Full Name</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  placeholder="Ada Lovelace"
-                  required 
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Grade / Class</label>
-                <input 
-                  type="number" 
-                  min="6" max="12"
-                  value={grade} 
-                  onChange={(e) => setGrade(Number(e.target.value))} 
-                  required 
-                />
-              </div>
-            </>
-          )}
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label style={{ fontSize: '14px', fontWeight: '500' }}>Email Address</label>
             <input 
@@ -142,7 +105,7 @@ const Login = () => {
               marginTop: '10px', transition: 'transform 0.2s'
             }}
           >
-            {isLoading ? 'Authenticating...' : (isAdminLogin ? 'Enter Admin Panel' : (isRegistering ? 'Create Account' : 'Enter Lab'))}
+            {isLoading ? 'Authenticating...' : (isAdminLogin ? 'Enter Admin Panel' : 'Log in')}
           </button>
         </form>
 
@@ -165,12 +128,9 @@ const Login = () => {
                 width="320"
               />
             </div>
-            <button 
-              onClick={() => setIsRegistering(!isRegistering)}
-              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', textDecoration: 'underline' }}
-            >
-              {isRegistering ? 'Already have an account? Log in' : 'Need an account? Sign up'}
-            </button>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
+              Students: use the login your school gave you.
+            </p>
           </div>
         )}
       </div>

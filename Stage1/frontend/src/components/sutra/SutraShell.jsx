@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import SutraBackground from './SutraBackground';
 import { BrandMark } from './icons';
+import { AuthContext } from '../../contexts/AuthContext';
 import '../../styles/sutra.css';
 
 // Shared shell for the student-facing Sutra pages: background + sticky nav + footer.
@@ -15,6 +16,7 @@ const firstName = (name) => (name || 'Student').trim().split(/\s+/)[0];
 
 const SutraShell = ({ currentView, onNavigate, user, children }) => {
   const [scrolled, setScrolled] = useState(false);
+  const { logout } = useContext(AuthContext);
   const year = new Date().getFullYear();
 
   useEffect(() => {
@@ -42,6 +44,7 @@ const SutraShell = ({ currentView, onNavigate, user, children }) => {
               ))}
             </div>
             <div className="nav-right">
+              <button className="btn btn-ghost btn-sm" onClick={logout}>Log in</button>
               <div className="profile-chip" role="button" tabIndex={0}
                    onClick={() => onNavigate('profile')}
                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onNavigate('profile'); }}>
