@@ -5,16 +5,18 @@ import ExploreTab from './ExploreTab';
 import BuildWizard from './BuildWizard';
 import './AgenticFlow.css';
 
-export default function AgenticLanding({ onBackToDashboard }) {
-  const [activeView, setActiveView] = useState('landing'); // 'landing', 'explore', 'build_wizard', 'workspace'
+export default function AgenticLanding({ onBackToDashboard, initialView, autoLaunchId }) {
+  // The learning flow can deep-link straight into a view ('explore' | 'workspace')
+  // and auto-launch a preset template inside Explore (autoLaunchId).
+  const [activeView, setActiveView] = useState(initialView || 'landing'); // 'landing', 'explore', 'build_wizard', 'workspace'
   const [userPrompt, setUserPrompt] = useState('');
 
   if (activeView === 'workspace') {
     return <AgenticWorkspace onBackToDashboard={() => setActiveView('landing')} userPrompt={userPrompt} />;
   }
-  
+
   if (activeView === 'explore') {
-    return <ExploreTab onBack={() => setActiveView('landing')} onOpenWorkspace={() => setActiveView('workspace')} />;
+    return <ExploreTab onBack={() => setActiveView('landing')} onOpenWorkspace={() => setActiveView('workspace')} autoLaunchId={autoLaunchId} />;
   }
 
   if (activeView === 'build_wizard') {

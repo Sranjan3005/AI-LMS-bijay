@@ -94,7 +94,7 @@ const EmergenceOfIntelligence = ({ onBackToDashboard }) => {
         <AnimatePresence mode="wait">
           {currentStep === 0 && (
             <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className={styles.flashcard}>
-              <div className={styles.heroEyebrow}>Introduction &middot; Class 9 — 12</div>
+              <div className={styles.heroEyebrow}>Introduction &middot; Class 6 — 8</div>
               <h1 className={styles.heroTitle}>The Chain Reaction<br />of <em>Mathematics.</em></h1>
               <p className={styles.heroSubtitle}>From counting stones to the emergence of artificial intelligence.</p>
               <div className={styles.heroRule}></div>

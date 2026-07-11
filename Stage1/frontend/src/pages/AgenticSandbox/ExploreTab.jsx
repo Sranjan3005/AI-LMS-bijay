@@ -66,8 +66,11 @@ const SCENARIOS = [
   }
 ];
 
-export default function ExploreTab({ onBack }) {
-  const [loadingScenario, setLoadingScenario] = useState(null);
+export default function ExploreTab({ onBack, autoLaunchId }) {
+  // Deep-link from the learning flow: auto-launch a preset template by id.
+  const [loadingScenario, setLoadingScenario] = useState(
+    autoLaunchId ? SCENARIOS.find(s => s.id === autoLaunchId) || null : null
+  );
   const [loadingStep, setLoadingStep] = useState(0);
   const [showWorkspace, setShowWorkspace] = useState(false);
 

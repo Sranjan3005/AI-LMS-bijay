@@ -5,10 +5,13 @@ import CVPipelineOverlay from '../components/workspace/CVPipelineOverlay';
 import api from '../api';
 import { ArrowLeft, Beaker } from 'lucide-react';
 
-const LabWorkspace = ({ onBackToDashboard, initialCategory }) => {
+const LabWorkspace = ({ onBackToDashboard, initialCategory, initialScenario }) => {
   const [scenarios, setScenarios] = useState([]);
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  // Deep-link: the learning flow can open a specific scenario by exact title.
+  // Consumed once so "Back to Scenarios" still shows the browser afterwards.
+  const [pendingScenario, setPendingScenario] = useState(initialScenario || null);
   
   const [previewData, setPreviewData] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -17,6 +20,19 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory }) => {
   const [experimentError, setExperimentError] = useState(null);
   const [isTraining, setIsTraining] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Deep-link: open the flow-requested scenario as soon as scenarios load.
+  useEffect(() => {
+    if (pendingScenario && scenarios.length > 0) {
+      const match = scenarios.find(s => s.title === pendingScenario);
+      setPendingScenario(null);
+      if (match) {
+        setSelectedScenario(match);
+        setSelectedVariant(null);
+        setPreviewData(null);
+      }
+    }
+  }, [pendingScenario, scenarios]);
 
   // Auto-scroll to initialCategory on mount
   useEffect(() => {

@@ -14,14 +14,17 @@ import { EXPLAINERS } from './content/explainers';
 import LabWorkspace from './pages/LabWorkspace';
 import DataLabWorkspace from './pages/DataLabWorkspace';
 import AgenticLanding from './pages/AgenticSandbox/AgenticLanding';
-import AIFoundationsDashboard from './pages/AIFoundations/AIFoundationsDashboard';
 import EmergenceOfIntelligence from './pages/AIFoundations/EmergenceOfIntelligence';
-import SmartPuppy from './pages/AIFoundations/SmartPuppy';
 import MathsForAI from './pages/AIFoundations/MathsForAI';
 import DataAnalysis from './pages/AIFoundations/DataAnalysis';
-import SupervisedLearning from './pages/AIFoundations/SupervisedLearning';
 import LinearRegressionLesson from './pages/AIFoundations/LinearRegressionLesson';
 import ComputerVisionLesson from './pages/AIFoundations/ComputerVisionLesson';
+import BreakingPoint from './pages/AIFoundations/BreakingPoint';
+import SpotTheAI from './pages/AIFoundations/SpotTheAI';
+import CVPlayground from './pages/CVPlayground';
+import ChartDetective from './pages/DataSkills/ChartDetective';
+import ChartPicker from './pages/DataSkills/ChartPicker';
+import TermMatch from './pages/DataSkills/TermMatch';
 import AIEthicsHub from './pages/AIEthicsArena/AIEthicsHub';
 import Level1EmotionDetector from './pages/AIEthicsArena/Level1EmotionDetector';
 import Level2ScholarshipAI from './pages/AIEthicsArena/Level2ScholarshipAI';
@@ -29,18 +32,18 @@ import Level3HallucinationHunter from './pages/AIEthicsArena/Level3Hallucination
 import Level4DeepfakeDetective from './pages/AIEthicsArena/Level4DeepfakeDetective';
 import Level5PrivacyEscapeRoom from './pages/AIEthicsArena/Level5PrivacyEscapeRoom';
 import Level6VoiceClone from './pages/AIEthicsArena/Level6VoiceClone';
-import AssignmentsList from './pages/Assignments/AssignmentsList';
-import AssignmentDetail from './pages/Assignments/AssignmentDetail';
+import { markEthicsComplete } from './utils/ethicsProgress';
 import './index.css';
 
 const AppContent = () => {
   const { user, loading } = useContext(AuthContext);
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' | 'lab'
+  const [currentView, setCurrentView] = useState('dashboard');
   const [initialLabCategory, setInitialLabCategory] = useState(null);
   const [explainerData, setExplainerData] = useState(null);
   const [assignFilter, setAssignFilter] = useState(null);
-  const [returnView, setReturnView] = useState('foundations'); // where a lesson's Back should go
-  const [lastModule, setLastModule] = useState(null);          // module to re-open on return to home
+  const [returnView, setReturnView] = useState('dashboard'); // where a lesson's Back should go
+  const [lastModule, setLastModule] = useState(null);        // module to re-open on return to home
+  const [viewParams, setViewParams] = useState({});          // deep-link props for the current view
 
   if (loading) {
     return (
@@ -67,32 +70,38 @@ const AppContent = () => {
   // Open a real module workspace from the Sutra learning flow.
   const openModule = (key) => {
     const labCats = { regression: 'REGRESSION', classification: 'CLASSIFICATION', neural: 'NEURAL_NETWORK', vision: 'COMPUTER_VISION' };
-    if (key === 'foundations') setCurrentView('foundations');
-    else if (key === 'data') setCurrentView('data_lab');
+    setViewParams({});
+    if (key === 'data') setCurrentView('data_lab');
     else if (key === 'agentic') setCurrentView('agentic');
     else if (key === 'ethics') setCurrentView('ethics_hub');
-    else if (key === 'assignments') setCurrentView('assignments_list');
     else if (labCats[key]) { setInitialLabCategory(labCats[key]); setCurrentView('lab'); }
   };
 
   // Open a submodule (theory explainer / lesson / workspace / assignments).
   // Records the module so returning to home re-opens & scrolls to it, and makes
-  // reused lesson pages return to the Sutra home (not the old Foundations dashboard).
+  // every activity's Back return to the Sutra home flow.
   const openSub = (target, _sub, m) => {
     if (!target) return;
     if (m) setLastModule(m.t);
-    if (target.view) { setReturnView('dashboard'); return setCurrentView(target.view); }
+    if (target.view) {
+      setViewParams(target.params || {});
+      setReturnView('dashboard');
+      return setCurrentView(target.view);
+    }
     if (target.open) return openModule(target.open);
     if (target.content) { setExplainerData(EXPLAINERS[target.content]); return setCurrentView('explainer'); }
     if (target.assignments) { setAssignFilter(target.assignments); return setCurrentView('assignments'); }
   };
 
+  const backToFlow = () => setCurrentView(returnView);
+
   // Student-facing pages that share the Sutra shell (nav + background + footer).
   const shellViews = ['dashboard', 'cbse', 'contact', 'profile', 'explainer', 'assignments'];
   if (shellViews.includes(currentView)) {
     return (
-      <SutraShell currentView={currentView} onNavigate={setCurrentView} user={user}>
-        {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenModule={openModule} onOpenSub={openSub} onNavigate={setCurrentView} />}
+      <SutraShell currentView={currentView} user={user}
+        onNavigate={(v) => { if (v === 'assignments') setAssignFilter(null); setCurrentView(v); }}>
+        {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenSub={openSub} onNavigate={setCurrentView} />}
         {currentView === 'cbse' && <CBSECurriculum />}
         {currentView === 'contact' && <ContactInstructor />}
         {currentView === 'profile' && <ProfilePage />}
@@ -103,67 +112,72 @@ const AppContent = () => {
   }
 
   if (currentView === 'lab') {
-    return <LabWorkspace 
-             initialCategory={initialLabCategory}
-             onBackToDashboard={() => setCurrentView('dashboard')} 
+    return <LabWorkspace
+             initialCategory={viewParams.initialCategory ?? initialLabCategory}
+             initialScenario={viewParams.initialScenario}
+             onBackToDashboard={() => setCurrentView('dashboard')}
            />;
   }
 
   if (currentView === 'data_lab') {
-    return <DataLabWorkspace 
+    return <DataLabWorkspace
              initialCategory={initialLabCategory}
-             onBackToDashboard={() => setCurrentView('dashboard')} 
+             onBackToDashboard={() => setCurrentView('dashboard')}
            />;
   }
 
   if (currentView === 'agentic') {
-    return <AgenticLanding onBackToDashboard={() => setCurrentView('dashboard')} />;
-  }
-
-  if (currentView === 'foundations') {
-    return <AIFoundationsDashboard 
-             onBackToDashboard={() => setCurrentView('dashboard')} 
-             onNavigateToLesson1={() => { setReturnView('foundations'); setCurrentView('emergence_lesson'); }}
-             onNavigateToSmartPuppy={() => { setReturnView('foundations'); setCurrentView('smart_puppy'); }}
-             onNavigateToMaths={() => { setReturnView('foundations'); setCurrentView('maths_lesson'); }}
-             onNavigateToDataAnalysis={() => { setReturnView('foundations'); setCurrentView('data_analysis'); }}
-             onNavigateToSupervised={() => setCurrentView('supervised_lesson')}
-             onNavigateToUnsupervised={() => setCurrentView('unsupervised_lesson')}
-             onNavigateToRL={() => setCurrentView('rl_lesson')}
-             onNavigateToNeuralNetworks={() => setCurrentView('neural_networks_lesson')}
+    return <AgenticLanding
+             initialView={viewParams.initialView}
+             autoLaunchId={viewParams.autoLaunchId}
+             onBackToDashboard={() => setCurrentView('dashboard')}
            />;
   }
 
+  // ── Lesson & activity routes (Back → the Sutra flow) ──
   if (currentView === 'emergence_lesson') {
-    return <EmergenceOfIntelligence onBackToDashboard={() => setCurrentView(returnView)} />;
+    return <EmergenceOfIntelligence onBackToDashboard={backToFlow} />;
   }
 
-  if (currentView === 'smart_puppy') {
-    return <SmartPuppy onBackToDashboard={() => setCurrentView(returnView)} />;
+  if (currentView === 'breaking_point') {
+    return <BreakingPoint onBack={backToFlow} />;
+  }
+
+  if (currentView === 'spot_the_ai') {
+    return <SpotTheAI onBack={backToFlow} />;
   }
 
   if (currentView === 'maths_lesson') {
-    return <MathsForAI onBackToDashboard={() => setCurrentView(returnView)} />;
+    return <MathsForAI onBackToDashboard={backToFlow} initialStep={viewParams.initialStep || 0} />;
   }
 
   if (currentView === 'data_analysis') {
-    return <DataAnalysis onBackToDashboard={() => setCurrentView(returnView)} />;
+    return <DataAnalysis onBackToDashboard={backToFlow} initialStep={viewParams.initialStep || 0} />;
   }
 
-  if (currentView === 'supervised_lesson') {
-    return <SupervisedLearning
-             onBackToDashboard={() => setCurrentView('foundations')}
-             onNavigateToLinearRegression={() => { setReturnView('supervised_lesson'); setCurrentView('linear_regression_lesson'); }}
-             onNavigateToComputerVision={() => { setReturnView('supervised_lesson'); setCurrentView('computer_vision_lesson'); }}
-           />;
+  if (currentView === 'chart_detective') {
+    return <ChartDetective onBack={backToFlow} />;
+  }
+
+  if (currentView === 'chart_picker') {
+    return <ChartPicker onBack={backToFlow} onOpenDataLab={() => setCurrentView('data_lab')} />;
+  }
+
+  if (currentView === 'term_match') {
+    return <TermMatch onBack={backToFlow} />;
+  }
+
+  if (currentView === 'cv_playground') {
+    return <CVPlayground onBack={backToFlow} />;
   }
 
   if (currentView === 'linear_regression_lesson') {
     return (
       <LinearRegressionLesson
-        onBackToSupervised={() => setCurrentView(returnView)}
+        onBackToSupervised={backToFlow}
         onNavigateToPredictionEngine={(category) => {
           setInitialLabCategory(category);
+          setViewParams({});
           setCurrentView('lab');
         }}
       />
@@ -173,9 +187,10 @@ const AppContent = () => {
   if (currentView === 'computer_vision_lesson') {
     return (
       <ComputerVisionLesson
-        onBackToSupervised={() => setCurrentView(returnView)}
+        onBackToSupervised={backToFlow}
         onNavigateToPredictionEngine={(category) => {
           setInitialLabCategory(category);
+          setViewParams({});
           setCurrentView('lab');
         }}
       />
@@ -183,50 +198,51 @@ const AppContent = () => {
   }
 
   // ── AI Ethics Arena Routes ──
+  // Levels launched from the hub return to the hub; levels launched straight
+  // from the learning flow return to the Sutra home (returnView).
   if (currentView === 'ethics_hub') {
+    const goLevel = (n) => () => { setReturnView('ethics_hub'); setCurrentView(`ethics_level_${n}`); };
     return <AIEthicsHub
              onBackToDashboard={() => setCurrentView('dashboard')}
-             onNavigateToLevel1={() => setCurrentView('ethics_level_1')}
-             onNavigateToLevel2={() => setCurrentView('ethics_level_2')}
-             onNavigateToLevel3={() => setCurrentView('ethics_level_3')}
-             onNavigateToLevel4={() => setCurrentView('ethics_level_4')}
-             onNavigateToLevel5={() => setCurrentView('ethics_level_5')}
-             onNavigateToLevel6={() => setCurrentView('ethics_level_6')}
+             onNavigateToLevel1={goLevel(1)}
+             onNavigateToLevel2={goLevel(2)}
+             onNavigateToLevel3={goLevel(3)}
+             onNavigateToLevel4={goLevel(4)}
+             onNavigateToLevel5={goLevel(5)}
+             onNavigateToLevel6={goLevel(6)}
            />;
   }
 
   if (currentView === 'ethics_level_1') {
-    return <Level1EmotionDetector onBackToHub={() => setCurrentView('ethics_hub')} />;
+    return <Level1EmotionDetector onBackToHub={backToFlow} onComplete={() => markEthicsComplete(1)} />;
   }
 
   if (currentView === 'ethics_level_2') {
-    return <Level2ScholarshipAI onBackToHub={() => setCurrentView('ethics_hub')} />;
+    return <Level2ScholarshipAI onBackToHub={backToFlow} onComplete={() => markEthicsComplete(2)} />;
   }
 
   if (currentView === 'ethics_level_3') {
-    return <Level3HallucinationHunter onBackToHub={() => setCurrentView('ethics_hub')} />;
+    return <Level3HallucinationHunter onBackToHub={backToFlow} onComplete={() => markEthicsComplete(3)} />;
   }
 
   if (currentView === 'ethics_level_4') {
-    return <Level4DeepfakeDetective onBackToHub={() => setCurrentView('ethics_hub')} />;
+    return <Level4DeepfakeDetective onBackToHub={backToFlow} onComplete={() => markEthicsComplete(4)} />;
   }
 
   if (currentView === 'ethics_level_5') {
-    return <Level5PrivacyEscapeRoom onBackToHub={() => setCurrentView('ethics_hub')} />;
+    return <Level5PrivacyEscapeRoom onBackToHub={backToFlow} onComplete={() => markEthicsComplete(5)} />;
   }
 
   if (currentView === 'ethics_level_6') {
-    return <Level6VoiceClone onBackToHub={() => setCurrentView('ethics_hub')} />;
+    return <Level6VoiceClone onBackToHub={backToFlow} onComplete={() => markEthicsComplete(6)} />;
   }
 
-  // ── Assignments Routes ──
-  if (currentView === 'assignments_list') {
-    return <AssignmentsList onNavigate={(route) => setCurrentView(route)} />;
-  }
-
-  if (currentView === 'assignment_detail') {
-    return <AssignmentDetail onNavigate={(route) => setCurrentView(route)} />;
-  }
+  // Unknown view — never leave the student on a blank screen.
+  return (
+    <SutraShell currentView="dashboard" user={user} onNavigate={setCurrentView}>
+      <StudentHome initialOpen={lastModule} onOpenSub={openSub} onNavigate={setCurrentView} />
+    </SutraShell>
+  );
 };
 
 function App() {

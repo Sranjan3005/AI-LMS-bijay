@@ -9,7 +9,7 @@ const SENTENCES = [
   "Congratulations! You have been selected for the district-level science competition."
 ];
 
-const Level6VoiceClone = ({ onBackToHub }) => {
+const Level6VoiceClone = ({ onBackToHub, onComplete }) => {
   const [availableVoices, setAvailableVoices] = useState([]);
   const [currentRound, setCurrentRound] = useState(0);
   const [playingVoice, setPlayingVoice] = useState(null); // 'A' or 'B'
@@ -381,7 +381,7 @@ const Level6VoiceClone = ({ onBackToHub }) => {
                 </span>
               </div>
               <br />
-              <button className={styles.btnPrimary} onClick={onBackToHub}>
+              <button className={styles.btnPrimary} onClick={() => { if (onComplete) onComplete(); onBackToHub(); }}>
                 <ChevronRight size={16} /> Back to Arena
               </button>
             </div>

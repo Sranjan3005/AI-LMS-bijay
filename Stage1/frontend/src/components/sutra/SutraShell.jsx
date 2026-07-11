@@ -7,6 +7,7 @@ import '../../styles/sutra.css';
 // Shared shell for the student-facing Sutra pages: background + sticky nav + footer.
 const NAV = [
   { key: 'dashboard', label: 'Home' },
+  { key: 'assignments', label: 'Assignments' },
   { key: 'cbse', label: 'CBSE Curriculum' },
   { key: 'contact', label: 'Contact Instructor' },
 ];
@@ -44,7 +45,7 @@ const SutraShell = ({ currentView, onNavigate, user, children }) => {
               ))}
             </div>
             <div className="nav-right">
-              <button className="btn btn-ghost btn-sm" onClick={logout}>Log in</button>
+              <button className="btn btn-ghost btn-sm" onClick={logout}>Log out</button>
               <div className="profile-chip" role="button" tabIndex={0}
                    onClick={() => onNavigate('profile')}
                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onNavigate('profile'); }}>
@@ -65,7 +66,7 @@ const SutraShell = ({ currentView, onNavigate, user, children }) => {
                 <div className="brand" onClick={() => onNavigate('dashboard')}>
                   <span className="brand-mark"><BrandMark /></span>Sutra
                 </div>
-                <p className="foot-tag">The thread from arithmetic to intelligence. A hands-on AI curriculum for Classes 6–12, aligned to CBSE's CT &amp; AI framework.</p>
+                <p className="foot-tag">The thread from arithmetic to intelligence. A hands-on AI curriculum for Classes 6–8, aligned to CBSE's CT &amp; AI framework.</p>
               </div>
               <div className="foot-col"><h5>Learn</h5>
                 <a onClick={() => onNavigate('dashboard')}>My learning flow</a>

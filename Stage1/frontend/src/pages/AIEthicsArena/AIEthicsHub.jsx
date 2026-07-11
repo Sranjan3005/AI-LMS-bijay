@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, PlayCircle, CheckCircle, Lock, Shield } from 'lucide-react';
+import { getEthicsCompleted } from '../../utils/ethicsProgress';
 import styles from './AIEthicsHub.module.css';
 
 const AIEthicsHub = ({
@@ -11,7 +12,8 @@ const AIEthicsHub = ({
   onNavigateToLevel5,
   onNavigateToLevel6
 }) => {
-  const [completedLevels, setCompletedLevels] = useState([]);
+  // Completion persists in localStorage; levels report it via onComplete in App.jsx.
+  const [completedLevels] = useState(() => getEthicsCompleted());
 
   const levels = [
     {

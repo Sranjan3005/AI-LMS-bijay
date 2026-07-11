@@ -10,8 +10,8 @@ const DEFAULT_SCORES = [20, 45, 45, 80, 90];
 const MATCH_LABELS = ['Match 1', 'Match 2', 'Match 3', 'Match 4', 'Match 5'];
 const BAR_COLORS = ['#00F0FF', '#B200FF', '#00FF88', '#FF3366', '#ffc832'];
 
-const MathsForAI = ({ onBackToDashboard }) => {
-  const [currentStep, setCurrentStep] = useState(0);
+const MathsForAI = ({ onBackToDashboard, initialStep = 0 }) => {
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const totalSteps = 6;
 
   // ─── Intro Sections State ───

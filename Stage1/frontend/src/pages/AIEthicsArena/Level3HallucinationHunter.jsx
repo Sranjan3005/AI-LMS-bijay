@@ -41,7 +41,7 @@ const QA_PAIRS = [
   },
 ];
 
-const Level3HallucinationHunter = ({ onBackToHub }) => {
+const Level3HallucinationHunter = ({ onBackToHub, onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState([]); // { correct: bool }
   const [revealed, setRevealed] = useState(false);
@@ -197,7 +197,7 @@ const Level3HallucinationHunter = ({ onBackToHub }) => {
                 </span>
               </div>
               <br />
-              <button className={styles.btnPrimary} onClick={onBackToHub}>
+              <button className={styles.btnPrimary} onClick={() => { if (onComplete) onComplete(); onBackToHub(); }}>
                 <ChevronRight size={16} /> Back to Arena
               </button>
             </div>

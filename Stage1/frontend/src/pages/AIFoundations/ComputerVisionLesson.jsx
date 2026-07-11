@@ -341,7 +341,6 @@ const ComputerVisionLesson = ({ onBackToSupervised, onNavigateToPredictionEngine
                 </p>
 
                 <div className={styles.filterToggleGroup}>
-                  {['original', 'edges', 'texture', 'heatmap'].forEach(() => {})}
                   {['original', 'edges', 'texture', 'heatmap'].map(f => (
                     <button
                       key={f}

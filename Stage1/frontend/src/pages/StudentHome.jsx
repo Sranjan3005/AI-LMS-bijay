@@ -2,27 +2,8 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { Ico } from '../components/sutra/icons';
 import { firstName, initials } from '../components/sutra/SutraShell';
+import { subTarget, moduleOpenTarget } from '../content/flowTargets';
 import api from '../api';
-
-// Theory submodule → destination. Existing lessons open their real page; the
-// rest open a Sutra explainer (see content/explainers.js).
-const THEORY = {
-  'Understanding AI': { view: 'emergence_lesson' },
-  'Maths for AI': { view: 'maths_lesson' },
-  'Data & Analysis': { view: 'data_analysis' },
-  'Linear Regression': { view: 'linear_regression_lesson' },
-  'Classification': { content: 'classification' },
-  'Neural Networks': { content: 'neural' },
-  'Computer Vision': { view: 'computer_vision_lesson' },
-  'Agentic Flow Studio': { content: 'agentic' },
-  'AI Ethics Arena': { content: 'ethics' },
-};
-
-function subTarget(m, s) {
-  if (s.ty === 'theory') return THEORY[m.t] || { open: m.open };
-  if (s.ty === 'assign') return { assignments: m.open };
-  return { open: m.open };   // demonstration + hands-on → the real workspace
-}
 
 const TYPE = {
   theory: { label: 'Theory', color: 'var(--s-theory)', icon: 'read' },
@@ -37,22 +18,23 @@ const PHASES = [
   { no: '01', t: 'Foundations', d: 'What AI is, and the maths that makes it work.', c: 'linear-gradient(135deg,#BF5AF2,#5E5CE6)', ca: 'rgba(191,90,242,.4)', mods: [
     { t: 'Understanding AI', cls: 'Class 6 · Concept', open: 'foundations', m: 'linear-gradient(135deg,#BF5AF2,#5E5CE6)', mg: 'rgba(191,90,242,.3)', rc: '#BF5AF2', ic: 'book', dates: '02 Jun – 12 Jun', st: 'done', p: 100, subs: [
       { ty: 'theory', n: 'What is Artificial Intelligence?', d: 'Explainer resource: how machines learn from examples, AI vs automation, and human vs machine intelligence.', date: '02 Jun', st: 'done', stt: 'Done', res: [{ t: 'Explainer', i: 'read', k: 1 }, { t: '8 min read', i: 'book' }] },
-      { ty: 'demo', n: 'Smart Puppy — code vs. learn', d: 'Watch a puppy “trained” vs “programmed” to see supervised, unsupervised & reinforcement learning.', date: '05 Jun', st: 'done', stt: 'Done', res: [{ t: 'Interactive demo', i: 'play', k: 1 }] },
-      { ty: 'hands', n: 'Spot the AI around you', d: 'Tag everyday apps as AI / not-AI and justify each in the sandbox.', date: '08 Jun', st: 'done', stt: 'Done', res: [{ t: 'Activity', i: 'terminal', k: 1 }] },
+      { ty: 'demo', n: 'When rules break — and robots learn', d: 'Program a delivery robot with if-else rules, watch them fail in a busy market, then watch it learn by trial and reward.', date: '05 Jun', st: 'done', stt: 'Done', res: [{ t: 'Interactive demo', i: 'play', k: 1 }] },
+      { ty: 'hands', n: 'Spot the AI around you', d: 'Sort everyday apps into AI / not-AI and see the reason behind every answer.', date: '08 Jun', st: 'done', stt: 'Done', res: [{ t: 'Activity', i: 'terminal', k: 1 }] },
       { ty: 'assign', n: 'Quiz: AI in daily life', d: 'Auto-graded check on core ideas and the AI project cycle.', date: '12 Jun · 9/10', st: 'done', stt: 'Graded', res: [{ t: 'Quiz', i: 'check', k: 1 }] },
     ] },
     { t: 'Maths for AI', cls: 'Class 6 · Concept', open: 'foundations', m: 'linear-gradient(135deg,#7C7AFF,#5E5CE6)', mg: 'rgba(94,92,230,.3)', rc: '#7C7AFF', ic: 'sigma', dates: '13 Jun – 24 Jun', st: 'done', p: 100, subs: [
       { ty: 'theory', n: 'Numbers, graphs & slope', d: 'Explainer resource: the arithmetic→algebra→calculus chain, and why slope is “how fast things change”.', date: '13 Jun', st: 'done', stt: 'Done', res: [{ t: 'Explainer', i: 'read', k: 1 }, { t: '6 min read', i: 'book' }] },
-      { ty: 'demo', n: 'See the maths behind a prediction', d: 'A guided walkthrough of a line fitting points as numbers update live.', date: '16 Jun', st: 'done', stt: 'Done', res: [{ t: 'Demo', i: 'play', k: 1 }] },
-      { ty: 'hands', n: 'Play with slope & weights', d: 'Drag sliders to change a line’s slope and see the error rise and fall.', date: '19 Jun', st: 'done', stt: 'Done', res: [{ t: 'Sandbox', i: 'sliders', k: 1 }] },
+      { ty: 'demo', n: 'The auto-rickshaw fare meter', d: 'Set the base fare and rate per km — and watch y = mx + c draw a live prediction line.', date: '16 Jun', st: 'done', stt: 'Done', res: [{ t: 'Demo', i: 'play', k: 1 }] },
+      { ty: 'hands', n: 'Play with slope & weights', d: 'Drag slope & intercept sliders to fit a line through real points and watch the error fall.', date: '19 Jun', st: 'done', stt: 'Done', res: [{ t: 'Sandbox', i: 'sliders', k: 1 }] },
       { ty: 'assign', n: 'Worksheet: read a graph', d: 'Interpret trends and predict the next value from a chart.', date: '24 Jun · 8/10', st: 'done', stt: 'Graded', res: [{ t: 'Submit', i: 'edit', k: 1 }] },
     ] },
   ] },
   { no: '02', t: 'Working with Data', d: 'Where models get their fuel — collect it, clean it, question it.', c: 'linear-gradient(135deg,#64D2FF,#0A84FF)', ca: 'rgba(100,210,255,.4)', mods: [
     { t: 'Data & Analysis', cls: 'Class 6–7 · Data Lab', open: 'data', m: 'linear-gradient(135deg,#64D2FF,#0A84FF)', mg: 'rgba(100,210,255,.3)', rc: '#64D2FF', ic: 'bars', dates: '01 Jul – 22 Jul', st: 'live', p: 60, subs: [
       { ty: 'theory', n: 'What is data, really?', d: 'Explainer resource: rows, features, labels, data types (text, numbers, images, sound) and where bias sneaks in.', date: '01 Jul', st: 'done', stt: 'Done', res: [{ t: 'Explainer', i: 'read', k: 1 }] },
-      { ty: 'demo', n: 'Charts & spotting bias', d: 'Watch a dataset turn into bar, line & pie charts, then see how a skewed sample misleads.', date: '05 Jul', st: 'done', stt: 'Done', res: [{ t: 'Demo', i: 'play', k: 1 }] },
-      { ty: 'hands', n: 'Upload & clean a CSV', d: 'Bring your own CSV, fix missing values, and feed it toward the models.', date: '09 Jul', st: 'live', stt: 'In progress', res: [{ t: 'Sandbox', i: 'terminal', k: 1 }, { t: 'Upload CSV', i: 'file' }] },
+      { ty: 'demo', n: 'Chart Detective — read the story', d: 'Read bar, line & pie charts, answer quick checks, and catch a biased survey red-handed.', date: '05 Jul', st: 'done', stt: 'Done', res: [{ t: 'Demo', i: 'play', k: 1 }] },
+      { ty: 'hands', n: 'Which chart fits your data?', d: 'Upload a small CSV (or use ours), pick a chart for it, and learn which chart suits which data.', date: '09 Jul', st: 'live', stt: 'In progress', res: [{ t: 'Sandbox', i: 'terminal', k: 1 }, { t: 'Upload CSV', i: 'file' }] },
+      { ty: 'hands', alt: true, n: 'Speak AI — word match', d: 'Match the words of AI — model, label, bias, accuracy — to their kid-friendly meanings.', date: '10 Jul', st: 'live', stt: 'New', res: [{ t: 'Game', i: 'terminal', k: 1 }] },
       { ty: 'assign', n: 'Project: clean a messy dataset', d: 'Turn a raw, dirty dataset into model-ready data and explain your steps.', date: 'due 11 Jul', st: 'soon', stt: 'Not started', res: [{ t: 'Submit', i: 'edit', k: 1 }] },
     ] },
   ] },
@@ -77,8 +59,8 @@ const PHASES = [
     ] },
     { t: 'Computer Vision', cls: 'Class 8 · Model', open: 'vision', m: 'linear-gradient(135deg,#FF9F0A,#FF375F)', mg: 'rgba(255,159,10,.3)', rc: '#FF9F0A', ic: 'eye', dates: '25 Aug – 05 Sep', st: 'soon', p: 0, subs: [
       { ty: 'theory', n: 'How machines see', d: 'Explainer resource: pixels, features and how an image becomes numbers a model can read.', date: '25 Aug', st: 'soon', stt: 'Locked', res: [{ t: 'Explainer', i: 'read', k: 1 }] },
-      { ty: 'demo', n: 'Image classifier in action', d: 'Watch a vision model label photos live and show what it focused on.', date: '28 Aug', st: 'soon', stt: 'Locked', res: [{ t: 'Live demo', i: 'play', k: 1 }] },
-      { ty: 'hands', n: 'Train an image model', d: 'Upload images, train a classifier, and test it on your own pictures.', date: '01 Sep', st: 'soon', stt: 'Locked', res: [{ t: 'Train model', i: 'lab', k: 1 }] },
+      { ty: 'demo', n: 'Vision Playground — detect, trace, read', d: 'Run real AI in your browser: detect objects with your webcam, trace edges, and read handwritten digits.', date: '28 Aug', st: 'soon', stt: 'Locked', res: [{ t: 'Live demo', i: 'play', k: 1 }] },
+      { ty: 'hands', n: 'The Handwriting Decoder', d: 'Collect 3–4 different handwriting samples, feed them to the model, and see whose writing it reads best.', date: '01 Sep', st: 'soon', stt: 'Locked', res: [{ t: 'Train model', i: 'lab', k: 1 }] },
       { ty: 'assign', n: 'Build an image classifier', d: 'Create a working vision classifier and report its accuracy and blind spots.', date: 'due 05 Sep', st: 'soon', stt: 'Locked', res: [{ t: 'Submit', i: 'edit', k: 1 }] },
     ] },
   ] },
@@ -128,7 +110,7 @@ const SubRow = ({ s, m, onOpenSub }) => {
   );
 };
 
-const ModuleRow = ({ m, open, onToggle, onOpenSub, ringP }) => (
+const ModuleRow = ({ m, st, open, onToggle, onOpenSub, ringP }) => (
   <div className={`mrow${open ? ' is-open' : ''}`} id={`mod-${m.t}`} style={{ '--m': m.m, '--mg': m.mg }}>
     <div className="mrow-head" role="button" tabIndex={0} aria-expanded={open}
          onClick={onToggle}
@@ -136,14 +118,14 @@ const ModuleRow = ({ m, open, onToggle, onOpenSub, ringP }) => (
       <div className="mrow-ic"><Ico name={m.ic} w={2.1} /></div>
       <div className="mrow-title"><div className="tt">{m.t}</div><div className="sb">{m.cls.toUpperCase()}</div></div>
       <div className="mrow-dates"><span className="k">TIMELINE</span>{m.dates}</div>
-      <Pill st={m.st} />
+      <Pill st={st || m.st} />
       <div className="ring" style={{ '--p': ringP, '--rc': m.rc }}><span>{ringP}</span></div>
       <div className="mrow-exp"><Ico name="plus" w={2.4} /></div>
     </div>
     <div className="subs"><div className="subs-in"><div className="subs-pad">
       {m.subs.map((s, i) => <SubRow key={i} s={s} m={m} onOpenSub={onOpenSub} />)}
       <div className="mopen">
-        <button className="btn btn-thread btn-sm" onClick={(e) => { e.stopPropagation(); onOpenSub({ open: m.open }, null, m); }}>
+        <button className="btn btn-thread btn-sm" onClick={(e) => { e.stopPropagation(); onOpenSub(moduleOpenTarget(m), null, m); }}>
           Open {m.t}<Ico name="arrowR" w={2.2} />
         </button>
       </div>
@@ -160,6 +142,19 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate }) => {
   useEffect(() => {
     api.get('/assignments/progress/').then((r) => setProgress(r.data || {})).catch(() => {});
   }, []);
+  // Derive live module status + track totals from graded work (authored fallbacks).
+  const statusFor = (m) => {
+    const pr = progress[m.open];
+    if (!pr || !pr.assigned) return m.st;
+    if (pr.graded === pr.assigned) return 'done';
+    if (pr.graded > 0) return 'live';
+    return m.st;
+  };
+  const allMods = PHASES.flatMap(p => p.mods);
+  const ringOf = (m) => progress[m.open]?.avg_percent ?? m.p;
+  const doneCount = allMods.filter(m => statusFor(m) === 'done').length;
+  const trackPct = Math.round(allMods.reduce((a, m) => a + ringOf(m), 0) / allMods.length);
+
   // On return from a lesson/explainer, scroll the last-opened module into view.
   useEffect(() => {
     if (!initialOpen) return;
@@ -177,7 +172,7 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate }) => {
             <Ico name="spark" />The AI-building school · CBSE CT &amp; AI aligned
           </span>
           <h1>AI literacy,<br /><span className="grad">taught through building.</span></h1>
-          <p className="sub">Sutra is a hands-on AI curriculum for Classes 6–12. You don't watch AI — you train real models, wire live agents, and argue the ethics. One thread from arithmetic to intelligence.</p>
+          <p className="sub">Sutra is a hands-on AI curriculum for Classes 6–8. You don't watch AI — you train real models, wire live agents, and argue the ethics. One thread from arithmetic to intelligence.</p>
           <div className="hero-cta">
             <a className="btn btn-thread btn-lg" href="#flow"
                onClick={(e) => { e.preventDefault(); document.getElementById('flow')?.scrollIntoView({ behavior: 'smooth' }); }}>
@@ -201,7 +196,7 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate }) => {
             <div>
               <span className="eyebrow"><Ico name="trend" />Your learning flow</span>
               <h2 style={{ marginTop: 12 }}>From arithmetic to agents.</h2>
-              <p>Welcome back, {firstName(user?.name)} — you're <strong style={{ color: 'var(--t1)' }}>48%</strong> through the AI track.</p>
+              <p>Welcome back, {firstName(user?.name)} — you're <strong style={{ color: 'var(--t1)' }}>{trackPct}%</strong> through the AI track.</p>
             </div>
             <div className="jour-who">
               <div className="jour-meta"><div className="nm">{user?.name || 'Student'}</div><div className="cl">CLASS {user?.grade || '8'} · AI TRACK</div></div>
@@ -212,8 +207,8 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate }) => {
           <div className="sum">
             <div className="sumc accent">
               <div className="lab"><Ico name="tick" />Track progress</div>
-              <div className="big">48%</div><div className="pbar"><i style={{ width: '48%' }} /></div>
-              <div className="note">2 of 9 modules complete</div>
+              <div className="big">{trackPct}%</div><div className="pbar"><i style={{ width: `${trackPct}%` }} /></div>
+              <div className="note">{doneCount} of {allMods.length} modules complete</div>
             </div>
             <div className="sumc">
               <div className="lab"><Ico name="check" />Assignments due</div>
@@ -247,11 +242,11 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate }) => {
               <div className="pgroup" style={{ '--pc-a': p.ca }}>
                 <div className="mlist">
                   {p.mods.map(m => (
-                    <ModuleRow key={m.t} m={m}
+                    <ModuleRow key={m.t} m={m} st={statusFor(m)}
                       open={openId === m.t}
                       onToggle={() => setOpenId(openId === m.t ? null : m.t)}
                       onOpenSub={onOpenSub}
-                      ringP={progress[m.open]?.avg_percent ?? m.p} />
+                      ringP={ringOf(m)} />
                   ))}
                 </div>
               </div>

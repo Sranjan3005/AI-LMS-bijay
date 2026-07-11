@@ -15,7 +15,7 @@ const FIELDS = [
   { id: 'password', label: '🔑 Favourite Password', placeholder: 'Enter password', risk: 30, riskCategory: 'critical', hackerUse: 'Direct access to your accounts if you reuse passwords across sites.' },
 ];
 
-const Level5PrivacyEscapeRoom = ({ onBackToHub }) => {
+const Level5PrivacyEscapeRoom = ({ onBackToHub, onComplete }) => {
   const [formValues, setFormValues] = useState({});
   const [phase, setPhase] = useState('form'); // form | report
   const [revealedFields, setRevealedFields] = useState([]);
@@ -250,7 +250,7 @@ const Level5PrivacyEscapeRoom = ({ onBackToHub }) => {
             </div>
 
             <div style={{ textAlign: 'center', marginTop: 24 }}>
-              <button className={styles.btnPrimary} onClick={onBackToHub}>
+              <button className={styles.btnPrimary} onClick={() => { if (onComplete) onComplete(); onBackToHub(); }}>
                 <ChevronRight size={16} /> Back to Arena
               </button>
             </div>

@@ -98,7 +98,7 @@ const ImageIllustration = ({ type, isAI, theme }) => {
   );
 };
 
-const Level4DeepfakeDetective = ({ onBackToHub }) => {
+const Level4DeepfakeDetective = ({ onBackToHub, onComplete }) => {
   const [currentRound, setCurrentRound] = useState(0);
   const [selected, setSelected] = useState(null); // 'A' or 'B'
   const [revealed, setRevealed] = useState(false);
@@ -282,7 +282,7 @@ const Level4DeepfakeDetective = ({ onBackToHub }) => {
                 </span>
               </div>
               <br />
-              <button className={styles.btnPrimary} onClick={onBackToHub}>
+              <button className={styles.btnPrimary} onClick={() => { if (onComplete) onComplete(); onBackToHub(); }}>
                 <ChevronRight size={16} /> Back to Arena
               </button>
             </div>

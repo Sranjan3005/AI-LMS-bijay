@@ -37,7 +37,7 @@ const SUGGESTIONS = [
 
 const MAX_ROUNDS = 5;
 
-const Level1EmotionDetector = ({ onBackToHub }) => {
+const Level1EmotionDetector = ({ onBackToHub, onComplete }) => {
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([]);
   const [currentResult, setCurrentResult] = useState(null);
@@ -284,7 +284,7 @@ const Level1EmotionDetector = ({ onBackToHub }) => {
             <span className={styles.missionScoreLabel}>Fooled the AI:</span>
             <span className={styles.missionScoreValue}>{score}/{MAX_ROUNDS}</span>
           </div>
-          <button className={styles.btnPrimary} onClick={onBackToHub}>
+          <button className={styles.btnPrimary} onClick={() => { if (onComplete) onComplete(); onBackToHub(); }}>
             <ChevronRight size={16} /> Back to Arena
           </button>
         </div>

@@ -20,7 +20,7 @@ const QUIZ_OPTIONS = [
 
 const CORRECT_ANSWER = 1; // index of correct option
 
-const Level2ScholarshipAI = ({ onBackToHub }) => {
+const Level2ScholarshipAI = ({ onBackToHub, onComplete }) => {
   const [phase, setPhase] = useState('review'); // review | investigate | quiz | complete
   const [flagged, setFlagged] = useState([]);
   const [showReveal, setShowReveal] = useState(false);
@@ -270,7 +270,7 @@ const Level2ScholarshipAI = ({ onBackToHub }) => {
               </div>
             </div>
             <div style={{ textAlign: 'center', marginTop: 28 }}>
-              <button className={styles.btnPrimary} onClick={onBackToHub}>
+              <button className={styles.btnPrimary} onClick={() => { if (onComplete) onComplete(); onBackToHub(); }}>
                 <ChevronRight size={16} /> Back to Arena
               </button>
             </div>
