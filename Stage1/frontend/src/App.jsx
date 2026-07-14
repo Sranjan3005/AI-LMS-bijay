@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext, AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
@@ -14,7 +14,7 @@ import { EXPLAINERS } from './content/explainers';
 import LabWorkspace from './pages/LabWorkspace';
 import DataLabWorkspace from './pages/DataLabWorkspace';
 import AgenticLanding from './pages/AgenticSandbox/AgenticLanding';
-import EmergenceOfIntelligence from './pages/AIFoundations/EmergenceOfIntelligence';
+import WhatIsAI from './pages/AIFoundations/WhatIsAI';
 import MathsForAI from './pages/AIFoundations/MathsForAI';
 import DataAnalysis from './pages/AIFoundations/DataAnalysis';
 import LinearRegressionLesson from './pages/AIFoundations/LinearRegressionLesson';
@@ -33,17 +33,23 @@ import Level4DeepfakeDetective from './pages/AIEthicsArena/Level4DeepfakeDetecti
 import Level5PrivacyEscapeRoom from './pages/AIEthicsArena/Level5PrivacyEscapeRoom';
 import Level6VoiceClone from './pages/AIEthicsArena/Level6VoiceClone';
 import { markEthicsComplete } from './utils/ethicsProgress';
+import api from './api';
 import './index.css';
 
 const AppContent = () => {
   const { user, loading } = useContext(AuthContext);
   const [currentView, setCurrentView] = useState('dashboard');
-  const [initialLabCategory, setInitialLabCategory] = useState(null);
   const [explainerData, setExplainerData] = useState(null);
   const [assignFilter, setAssignFilter] = useState(null);
+  const [assignFocused, setAssignFocused] = useState(false);  // opened from a module → show just that module's task
   const [returnView, setReturnView] = useState('dashboard'); // where a lesson's Back should go
   const [lastModule, setLastModule] = useState(null);        // module to re-open on return to home
   const [viewParams, setViewParams] = useState({});          // deep-link props for the current view
+  const [classFilter, setClassFilter] = useState(null);      // { cls, modules } — CBSE "Open learning flow" filter
+
+  // Opening a new full-page view should start at the top, not wherever the
+  // previous (e.g. scrolled-down dashboard) view left the window.
+  useEffect(() => { window.scrollTo(0, 0); }, [currentView]);
 
   if (loading) {
     return (
@@ -70,11 +76,9 @@ const AppContent = () => {
   // Open a real module workspace from the Sutra learning flow.
   const openModule = (key) => {
     const labCats = { regression: 'REGRESSION', classification: 'CLASSIFICATION', neural: 'NEURAL_NETWORK', vision: 'COMPUTER_VISION' };
-    setViewParams({});
-    if (key === 'data') setCurrentView('data_lab');
-    else if (key === 'agentic') setCurrentView('agentic');
-    else if (key === 'ethics') setCurrentView('ethics_hub');
-    else if (labCats[key]) { setInitialLabCategory(labCats[key]); setCurrentView('lab'); }
+    if (key === 'agentic') { setViewParams({}); setCurrentView('agentic'); }
+    else if (key === 'ethics') { setViewParams({}); setCurrentView('ethics_hub'); }
+    else if (labCats[key]) { setViewParams({ modelType: labCats[key] }); setCurrentView('lab'); }
   };
 
   // Open a submodule (theory explainer / lesson / workspace / assignments).
@@ -83,6 +87,11 @@ const AppContent = () => {
   const openSub = (target, _sub, m) => {
     if (!target) return;
     if (m) setLastModule(m.t);
+    // Opening a theory/demo/hands activity counts as completing it. Opening all
+    // three of a module auto-unlocks that module's task (server-side).
+    if (m?.open && _sub && ['theory', 'demo', 'hands'].includes(_sub.ty)) {
+      api.post('/assignments/activity-complete/', { module_key: m.open, sub_type: _sub.ty }).catch(() => {});
+    }
     if (target.view) {
       setViewParams(target.params || {});
       setReturnView('dashboard');
@@ -90,7 +99,7 @@ const AppContent = () => {
     }
     if (target.open) return openModule(target.open);
     if (target.content) { setExplainerData(EXPLAINERS[target.content]); return setCurrentView('explainer'); }
-    if (target.assignments) { setAssignFilter(target.assignments); return setCurrentView('assignments'); }
+    if (target.assignments) { setAssignFilter(target.assignments); setAssignFocused(true); return setCurrentView('assignments'); }
   };
 
   const backToFlow = () => setCurrentView(returnView);
@@ -100,43 +109,62 @@ const AppContent = () => {
   if (shellViews.includes(currentView)) {
     return (
       <SutraShell currentView={currentView} user={user}
-        onNavigate={(v) => { if (v === 'assignments') setAssignFilter(null); setCurrentView(v); }}>
-        {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenSub={openSub} onNavigate={setCurrentView} />}
-        {currentView === 'cbse' && <CBSECurriculum />}
+        onNavigate={(v) => { if (v === 'assignments') { setAssignFilter(null); setAssignFocused(false); } if (v === 'dashboard') setClassFilter(null); setCurrentView(v); }}>
+        {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenSub={openSub} onNavigate={setCurrentView}
+                                          classFilter={classFilter} onClearClassFilter={() => setClassFilter(null)} />}
+        {currentView === 'cbse' && <CBSECurriculum onOpenLearningFlow={(cls, modules) => {
+          setClassFilter({ cls, modules }); setLastModule(null); window.scrollTo(0, 0); setCurrentView('dashboard');
+        }} />}
         {currentView === 'contact' && <ContactInstructor />}
         {currentView === 'profile' && <ProfilePage />}
         {currentView === 'explainer' && <ExplainerPage data={explainerData} onOpenModule={openModule} onBack={() => setCurrentView('dashboard')} />}
-        {currentView === 'assignments' && <AssignmentsView moduleFilter={assignFilter} onBack={() => setCurrentView('dashboard')} />}
+        {currentView === 'assignments' && <AssignmentsView moduleFilter={assignFilter} focused={assignFocused}
+          onBack={() => setCurrentView('dashboard')}
+          onOpenAgentStudio={(item) => {
+            setViewParams({ assignment: {
+              assignmentId: item.assignment.id,
+              placementId: item.practice ? null : item.id,
+              practice: !!item.practice,
+              title: item.assignment.title,
+              problem: item.assignment.description,
+            } });
+            setCurrentView('agentic');
+          }} />}
       </SutraShell>
     );
   }
 
   if (currentView === 'lab') {
     return <LabWorkspace
-             initialCategory={viewParams.initialCategory ?? initialLabCategory}
-             initialScenario={viewParams.initialScenario}
+             modelType={viewParams.modelType}
+             initialScenarioId={viewParams.scenarioId}
              onBackToDashboard={() => setCurrentView('dashboard')}
            />;
   }
 
   if (currentView === 'data_lab') {
     return <DataLabWorkspace
-             initialCategory={initialLabCategory}
+             modelType={viewParams.modelType}
              onBackToDashboard={() => setCurrentView('dashboard')}
+             onOpenDemonstration={(scenario) => {
+               setViewParams({ modelType: scenario.model_type, scenarioId: scenario.id });
+               setCurrentView('lab');
+             }}
            />;
   }
 
   if (currentView === 'agentic') {
     return <AgenticLanding
-             initialView={viewParams.initialView}
+             initialView={viewParams.assignment ? 'workspace' : viewParams.initialView}
              autoLaunchId={viewParams.autoLaunchId}
-             onBackToDashboard={() => setCurrentView('dashboard')}
+             assignment={viewParams.assignment}
+             onBackToDashboard={() => setCurrentView(viewParams.assignment ? 'assignments' : 'dashboard')}
            />;
   }
 
   // ── Lesson & activity routes (Back → the Sutra flow) ──
-  if (currentView === 'emergence_lesson') {
-    return <EmergenceOfIntelligence onBackToDashboard={backToFlow} />;
+  if (currentView === 'what_is_ai') {
+    return <WhatIsAI onBack={backToFlow} />;
   }
 
   if (currentView === 'breaking_point') {
@@ -176,8 +204,7 @@ const AppContent = () => {
       <LinearRegressionLesson
         onBackToSupervised={backToFlow}
         onNavigateToPredictionEngine={(category) => {
-          setInitialLabCategory(category);
-          setViewParams({});
+          setViewParams({ modelType: category });
           setCurrentView('lab');
         }}
       />
@@ -189,8 +216,7 @@ const AppContent = () => {
       <ComputerVisionLesson
         onBackToSupervised={backToFlow}
         onNavigateToPredictionEngine={(category) => {
-          setInitialLabCategory(category);
-          setViewParams({});
+          setViewParams({ modelType: category });
           setCurrentView('lab');
         }}
       />

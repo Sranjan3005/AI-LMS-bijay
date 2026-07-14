@@ -1,0 +1,6 @@
+{
+  "name": "Chitti the Robot: Reinforcement Learning Lab",
+  "description": "An interactive teaching game for CBSE Grades 6-8 demonstrating the difference between hand-written rules and Reinforcement Learning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

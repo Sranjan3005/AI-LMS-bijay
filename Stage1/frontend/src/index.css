@@ -20,6 +20,11 @@
   --border-radius: 12px;
 }
 
+/* App-wide readability bump — scales every rem-based size 10% (16px → 17.6px root). */
+html {
+  font-size: 110%;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

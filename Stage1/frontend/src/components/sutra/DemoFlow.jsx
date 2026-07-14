@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, PlayCircle, Wrench, Globe2 } from 'lucide-react';
 import s from './DemoFlow.module.css';
 
@@ -25,6 +25,9 @@ const DemoFlow = ({ eyebrow, title, lede, accent = '#64d2ff', video = '', tryLab
   const [stepIdx, setStepIdx] = useState(0);
   const [picked, setPicked] = useState(null);
   const step = steps[stepIdx];
+
+  // A new step should always start at the top, never mid-scroll.
+  useEffect(() => { window.scrollTo(0, 0); }, [stepIdx]);
   const isYouTube = typeof video === 'string' && video.includes('youtube');
 
   return (

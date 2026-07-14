@@ -11,7 +11,7 @@ import {
   useOnSelectionChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Play, Save, ArrowLeft, Trash2, Terminal, X, Bot } from 'lucide-react';
+import { Play, Save, ArrowLeft, Trash2, Terminal, X, Bot, ClipboardCheck, Sparkles } from 'lucide-react';
 import api, { API_BASE_URL } from '../../api';
 import './AgenticFlow.css';
 
@@ -58,7 +58,7 @@ const initialNodes = [];
 let id = 0;
 const getId = () => `node_${id++}`;
 
-function Canvas({ onBackToDashboard, presetFlow, isExploreMode }) {
+function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
   const reactFlowWrapper = useRef(null);
   const { getNodes, getEdges, screenToFlowPosition } = useReactFlow();
   
@@ -83,6 +83,34 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode }) {
   const [selectedCount, setSelectedCount] = useState(0);
   const [showLogs, setShowLogs] = useState(true);
   const wsRef = useRef(null);
+
+  // Assignment mode: build a pipeline, then submit it for AI evaluation.
+  const [showProblem, setShowProblem] = useState(true);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evalResult, setEvalResult] = useState(null);
+
+  const handleSubmitEvaluation = async () => {
+    const graph = { nodes: getNodes(), edges: getEdges() };
+    if (!graph.nodes.length) {
+      alert('Build your pipeline first — drag in some nodes and connect them, then submit.');
+      return;
+    }
+    setIsEvaluating(true);
+    try {
+      const base = { content: JSON.stringify(graph) };
+      const url = assignment.practice
+        ? '/assignments/practice/submit/'
+        : `/assignments/${assignment.placementId}/submit/`;
+      const payload = assignment.practice ? { ...base, assignment: assignment.assignmentId } : base;
+      const { data } = await api.post(url, payload);
+      setEvalResult(data);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || 'Could not submit for evaluation. Please try again.');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
 
   useOnSelectionChange({
     onChange: ({ nodes, edges }) => {
@@ -289,10 +317,20 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode }) {
           )}
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
+          {assignment && (
+            <button
+              className="btn-primary"
+              onClick={handleSubmitEvaluation}
+              disabled={isEvaluating}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', border: 'none' }}
+            >
+              <ClipboardCheck size={16} /> {isEvaluating ? 'Evaluating…' : 'Submit for evaluation'}
+            </button>
+          )}
           {!isExploreMode && (
-            <button 
-              className="btn-secondary" 
-              onClick={() => { setNodes([]); setEdges([]); setLogs([]); }} 
+            <button
+              className="btn-secondary"
+              onClick={() => { setNodes([]); setEdges([]); setLogs([]); }}
               style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <Trash2 size={16} /> Clear Canvas
@@ -327,6 +365,28 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode }) {
         </div>
       </div>
 
+      {/* Assignment brief */}
+      {assignment && (
+        <div style={{ background: 'linear-gradient(90deg, rgba(139,92,246,0.14), rgba(217,70,239,0.06))', borderBottom: '1px solid var(--glass-border)', padding: showProblem ? '12px 20px' : '6px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#d946ef', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <ClipboardCheck size={14} /> Assignment · {assignment.title}
+              </div>
+              {showProblem && (
+                <p style={{ margin: '8px 0 0', color: '#e2e8f0', fontSize: '0.92rem', lineHeight: 1.55, maxWidth: 1000 }}>
+                  {assignment.problem}
+                </p>
+              )}
+            </div>
+            <button onClick={() => setShowProblem(v => !v)} className="btn-secondary"
+              style={{ flex: 'none', padding: '5px 12px', fontSize: '0.8rem' }}>
+              {showProblem ? 'Hide brief' : 'Show brief'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="agentic-container" style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <Sidebar />
         <div className="agentic-canvas-wrapper" ref={reactFlowWrapper} style={{ flex: 1, height: '100%', position: 'relative' }}>
@@ -359,6 +419,37 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode }) {
             </div>
             <p style={{ color: '#e2e8f0', lineHeight: '1.6', fontSize: '1rem' }}>{aiExplanation}</p>
             <button onClick={() => setAiExplanation(null)} className="btn-primary" style={{ marginTop: '20px', width: '100%', background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>Got it, let's test it!</button>
+          </div>
+        )}
+
+        {/* Assignment evaluation result */}
+        {evalResult && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(4,5,12,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div style={{ width: '100%', maxWidth: 520, background: '#12131f', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 18, padding: 30, boxShadow: '0 30px 80px rgba(0,0,0,0.5)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+                <div style={{ width: 52, height: 52, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', background: 'linear-gradient(135deg,#8b5cf6,#d946ef)' }}>
+                  <Sparkles size={26} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>Pipeline evaluated</div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Sutra AI reviewed your agent design</div>
+                </div>
+                {evalResult.status === 'graded' && (
+                  <div style={{ marginLeft: 'auto', fontFamily: 'monospace', fontWeight: 700, fontSize: '1.4rem', color: '#d946ef', background: 'rgba(217,70,239,0.14)', padding: '8px 14px', borderRadius: 12 }}>
+                    {evalResult.score}/{evalResult.max_score}
+                  </div>
+                )}
+              </div>
+              <p style={{ color: '#e2e8f0', lineHeight: 1.6, fontSize: '0.98rem' }}>
+                {evalResult.status === 'graded'
+                  ? (evalResult.llm_feedback || 'Nice work building the pipeline!')
+                  : 'Your pipeline is submitted — the evaluation is being prepared. Check the assignment shortly for your score and feedback.'}
+              </p>
+              <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                <button className="btn-secondary" onClick={() => setEvalResult(null)} style={{ flex: 1 }}>Keep editing</button>
+                <button className="btn-primary" onClick={onBackToDashboard} style={{ flex: 1, background: 'linear-gradient(135deg,#8b5cf6,#d946ef)', border: 'none' }}>Back to assignment</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -418,13 +509,13 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode }) {
   );
 }
 
-export default function AgenticWorkspace({ onBackToDashboard, presetFlow, isExploreMode, userPrompt }) {
+export default function AgenticWorkspace({ onBackToDashboard, presetFlow, isExploreMode, userPrompt, assignment }) {
   // Merge userPrompt into presetFlow if needed
   const enhancedPreset = presetFlow ? { ...presetFlow, userPrompt } : { userPrompt };
 
   return (
     <ReactFlowProvider>
-      <Canvas onBackToDashboard={onBackToDashboard} presetFlow={enhancedPreset} isExploreMode={isExploreMode} />
+      <Canvas onBackToDashboard={onBackToDashboard} presetFlow={enhancedPreset} isExploreMode={isExploreMode} assignment={assignment} />
     </ReactFlowProvider>
   );
 }

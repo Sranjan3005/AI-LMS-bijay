@@ -41,6 +41,16 @@ def grade_submission_obj(submission_id):
 
     if a.kind == 'quiz':
         score, feedback = grade_quiz(a, sub.answers)
+    elif a.module_key == 'agentic':
+        # The student's submission is their agent pipeline (nodes+edges JSON).
+        from core.llm import evaluate_agent_pipeline
+        score, feedback = evaluate_agent_pipeline(
+            title=a.title,
+            problem=a.description or a.title,
+            rubric=a.rubric,
+            max_points=a.points,
+            graph_json=sub.content,
+        )
     else:
         from core.llm import grade_submission
         score, feedback = grade_submission(

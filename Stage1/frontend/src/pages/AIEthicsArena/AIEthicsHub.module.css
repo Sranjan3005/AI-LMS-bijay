@@ -156,7 +156,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 24px;
-  max-width: 1050px;
+  max-width: 1360px;
   margin: 48px auto 60px;
   padding: 0 36px;
 }

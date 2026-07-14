@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Database, Zap, AlertTriangle, Package, Bot, ArrowRight, ArrowLeft, BarChart2, Hash, Maximize2, Minimize2, Activity, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,6 +6,21 @@ import Plot from 'react-plotly.js';
 import api from '../../api';
 import trainingVideo from '../../assets/training_video.mp4';
 import DrawingCanvas from './DrawingCanvas';
+import { runDigitPipeline } from '../../lib/cv/digit';
+import { runEdgePipeline } from '../../lib/cv/edge';
+import { runOcrPipeline } from '../../lib/cv/ocr';
+import { canvasFromDataURL } from '../../lib/cv/imageOps';
+
+// Computer-vision scenarios run fully in the browser (no Docker/Celery/LLM):
+// the same real models used in the CV demonstration playground.
+const CV_PIPELINES = {
+  'The Digit Detective':     runDigitPipeline,
+  'The Handwriting Decoder': runOcrPipeline,
+  'The Edge Explorer':       runEdgePipeline,
+};
+
+// Hex palette for Plotly (CSS vars don't resolve inside Plotly traces).
+const PLOTLY_COLORS = ['#00F0FF', '#00FF88', '#B200FF', '#FF3366', '#facc15', '#f472b6', '#FF9933', '#5E5CE6'];
 
 const PREDICTION_PROMPTS = {
   'The Social Media Trend': "Give me the number of likes, I'll try to guess the comments!",
@@ -31,15 +46,53 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
   const [interpretData, setInterpretData] = useState(null);
   const [allPreviews, setAllPreviews] = useState({});
   const [cvInputImage, setCvInputImage] = useState(null);
-  
+  // Client-side CV prediction (runs in-browser, no backend)
+  const [cvResult, setCvResult] = useState(null);
+  const [cvBusy, setCvBusy] = useState(false);
+  const [cvError, setCvError] = useState(null);
+
   // Animation states: 'selection', 'data_review', 'feeding_training', 'trained', 'robot_predict', 'error'
   const [animationStep, setAnimationStep] = useState('selection');
+  const rootRef = useRef(null);
 
   useEffect(() => {
     if (!selectedVariant) {
       setAnimationStep('selection');
     }
+    // fresh dataset → clear any previous in-browser CV run
+    setCvResult(null);
+    setCvError(null);
+    setCvInputImage(null);
   }, [selectedVariant]);
+
+  // Whenever the flow moves to a new step, scroll its scroll container back to top
+  // so a step never opens already scrolled down.
+  useEffect(() => {
+    const scroller = rootRef.current?.closest('[data-scroll]');
+    if (scroller) scroller.scrollTop = 0;
+    else window.scrollTo(0, 0);
+  }, [animationStep]);
+
+  const isCV = scenario?.model_type === 'COMPUTER_VISION';
+
+  const runCvPrediction = async () => {
+    if (!cvInputImage) { alert('Please draw something on the canvas first!'); return; }
+    setCvBusy(true); setCvError(null); setCvResult(null);
+    try {
+      const srcCanvas = await canvasFromDataURL(cvInputImage);
+      const pipeline = CV_PIPELINES[scenario.title] || runDigitPipeline;
+      const res = await pipeline(srcCanvas);
+      if (res?.ok) setCvResult(res);
+      else setCvError(res?.message || (res?.reason === 'blank'
+        ? 'Draw something bigger and bolder, then try again!'
+        : 'The vision model could not read that — try a clearer drawing.'));
+    } catch (err) {
+      console.error('Client CV pipeline failed', err);
+      setCvError('Something went wrong running the vision pipeline. Please try again.');
+    } finally {
+      setCvBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!scenario) return;
@@ -264,7 +317,7 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
   }
 
   return (
-    <div style={{ ...getBgStyle(), padding: '40px' }}>
+    <div ref={rootRef} style={{ ...getBgStyle(), padding: '40px' }}>
       <AnimatePresence mode="popLayout">
         
         {/* View 1: Selection */}
@@ -274,30 +327,30 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            style={{ maxWidth: '1000px', margin: '0 auto' }}
+            style={{ maxWidth: '1240px', margin: '0 auto' }}
           >
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>{scenario.title}</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '24px' }}>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '10px', color: '#ffffff', textShadow: '0 2px 14px rgba(0,0,0,0.85)' }}>{scenario.title}</h1>
+            <p style={{ color: '#eef0f6', fontSize: '1.1rem', marginBottom: '24px', textShadow: '0 1px 10px rgba(0,0,0,0.8)', maxWidth: 820 }}>
               {scenario.challenge}
             </p>
 
             {/* Authored narrative layer (seeded on the Scenario model) */}
             {scenario.story && (
-              <div style={{ padding: '20px 24px', background: 'rgba(191,90,242,0.06)', borderRadius: '12px', marginBottom: '16px', borderLeft: '5px solid var(--accent-purple)' }}>
-                <h3 style={{ fontSize: '1.15rem', color: 'var(--accent-purple)', margin: '0 0 8px' }}>Why predict this?</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: 1.65, margin: 0 }}>{scenario.story}</p>
+              <div style={{ padding: '20px 24px', background: 'rgba(12,10,24,0.82)', backdropFilter: 'blur(3px)', borderRadius: '12px', marginBottom: '16px', borderLeft: '5px solid var(--accent-purple)' }}>
+                <h3 style={{ fontSize: '1.15rem', color: '#d9a8ff', margin: '0 0 8px' }}>Why predict this?</h3>
+                <p style={{ color: '#e5e8f2', fontSize: '1.02rem', lineHeight: 1.65, margin: 0 }}>{scenario.story}</p>
               </div>
             )}
             {scenario.data_story && (
-              <div style={{ padding: '20px 24px', background: 'rgba(0,240,255,0.05)', borderRadius: '12px', marginBottom: '16px', borderLeft: '5px solid var(--accent-cyan)' }}>
-                <h3 style={{ fontSize: '1.15rem', color: 'var(--accent-cyan)', margin: '0 0 8px' }}>Where the data comes from</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: 1.65, margin: 0 }}>{scenario.data_story}</p>
+              <div style={{ padding: '20px 24px', background: 'rgba(6,18,26,0.82)', backdropFilter: 'blur(3px)', borderRadius: '12px', marginBottom: '16px', borderLeft: '5px solid var(--accent-cyan)' }}>
+                <h3 style={{ fontSize: '1.15rem', color: '#8fe6ff', margin: '0 0 8px' }}>Where the data comes from</h3>
+                <p style={{ color: '#e5e8f2', fontSize: '1.02rem', lineHeight: 1.65, margin: 0 }}>{scenario.data_story}</p>
               </div>
             )}
             {scenario.guide_steps?.length > 0 && (
-              <div style={{ padding: '20px 24px', background: 'rgba(48,209,88,0.05)', borderRadius: '12px', marginBottom: '24px', borderLeft: '5px solid #30D158' }}>
-                <h3 style={{ fontSize: '1.15rem', color: '#30D158', margin: '0 0 10px' }}>Your mission — step by step</h3>
-                <ol style={{ margin: 0, paddingLeft: '22px', color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: 1.8 }}>
+              <div style={{ padding: '20px 24px', background: 'rgba(6,20,12,0.82)', backdropFilter: 'blur(3px)', borderRadius: '12px', marginBottom: '24px', borderLeft: '5px solid #30D158' }}>
+                <h3 style={{ fontSize: '1.15rem', color: '#7cf0a4', margin: '0 0 10px' }}>Your mission — step by step</h3>
+                <ol style={{ margin: 0, paddingLeft: '22px', color: '#e5e8f2', fontSize: '1.02rem', lineHeight: 1.8 }}>
                   {scenario.guide_steps.map((st, i) => <li key={i}>{st}</li>)}
                 </ol>
               </div>
@@ -433,7 +486,7 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}
+            style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
@@ -464,15 +517,16 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
               {previewData && !loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   
-                  {/* Graph Area / Drawing Area */}
+                  {/* Graph Area / Sample-data Area */}
                   <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
-                    {scenario?.model_type === 'COMPUTER_VISION' ? (
-                      <div style={{ padding: '20px', textAlign: 'center' }}>
-                        {allPreviews[selectedVariant]?.sample_image ? (
-                          <img src={`data:image/png;base64,${allPreviews[selectedVariant].sample_image}`} alt="Sample" style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '12px', border: '2px solid var(--glass-border)', objectFit: 'contain' }} />
-                        ) : (
-                          <div style={{ color: 'var(--text-secondary)' }}>Dataset sample image</div>
-                        )}
+                    {isCV ? (
+                      <div style={{ padding: '10px 0 4px', width: '100%' }}>
+                        <h3 style={{ fontSize: '1.3rem', color: 'white', textAlign: 'center', marginBottom: '18px' }}>What this data looks like</h3>
+                        <CVSampleGallery scenario={scenario} />
+                      </div>
+                    ) : isClassification && featureCols.length > 2 ? (
+                      <div style={{ width: '100%' }}>
+                        <ClassParcoords rows={chartData} featureCols={featureCols} yCol={yCol} />
                       </div>
                     ) : (
                       <div style={{ height: '350px', width: '100%' }}>
@@ -718,7 +772,7 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
             <motion.div 
               layoutId="output-packet"
               className="glass-panel"
-              style={{ maxWidth: '800px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', padding: '40px', borderRadius: '24px', background: 'rgba(15, 23, 42, 0.95)' }}
+              style={{ maxWidth: '1040px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', padding: '40px', borderRadius: '24px', background: 'rgba(15, 23, 42, 0.95)' }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '30px' }}>
                 <motion.div 
@@ -746,29 +800,41 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                       {PREDICTION_PROMPTS[scenario.title] || "Ask a Question"}
                     </h4>
                     
-                    {scenario?.model_type === 'COMPUTER_VISION' ? (
+                    {isCV ? (
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-                          <DrawingCanvas 
+                          <DrawingCanvas
                             scenario={scenario}
-                            onImageReady={setCvInputImage}
+                            onImageReady={(img) => { setCvInputImage(img); setCvResult(null); setCvError(null); }}
                             width={280}
                             height={280}
                           />
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                          <button 
+                          <button
                             className="btn-primary"
-                            onClick={() => {
-                              if (!cvInputImage) { alert("Please draw something!"); return; }
-                              onRunModel({ input_image: cvInputImage.split(',')[1] });
-                            }}
-                            disabled={loading}
+                            onClick={runCvPrediction}
+                            disabled={cvBusy}
                             style={{ padding: '12px 30px', fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                           >
-                            {loading ? 'Processing Pipeline...' : 'Predict'} <Zap size={18} />
+                            {cvBusy ? 'Reading the pixels…' : 'Predict'} <Zap size={18} />
                           </button>
                         </div>
+
+                        {cvError && (
+                          <div style={{ marginTop: '20px', padding: '14px 18px', borderRadius: '12px', background: 'rgba(255,159,10,0.1)', border: '1px solid rgba(255,159,10,0.4)', color: '#ffe9c7', textAlign: 'center' }}>
+                            ✏️ {cvError}
+                          </div>
+                        )}
+
+                        {cvResult && (
+                          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: '24px' }}>
+                            <div style={{ padding: '16px 20px', borderRadius: '14px', background: 'linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,240,255,0.08))', border: '1px solid rgba(0,255,136,0.3)', fontSize: '1.15rem', fontWeight: 600, textAlign: 'center', marginBottom: '18px' }}>
+                              🎯 {cvResult.prediction || (cvResult.digit != null ? `It reads: ${cvResult.digit} — ${cvResult.confidence}% confident` : 'Done!')}
+                            </div>
+                            <CVStages stages={cvResult.stages} highlight={cvResult.digit} />
+                          </motion.div>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -864,5 +930,188 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
     </div>
   );
 };
+
+// ── In-browser CV pipeline stages (shared visual with the CV playground) ──
+function CVStages({ stages = [], highlight }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+      {stages.map((st, i) => (
+        <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: 16 }}>
+          <h4 style={{ color: 'var(--accent-cyan)', margin: '0 0 8px', fontSize: '1rem' }}>{i + 1} · {st.title}</h4>
+          {st.image && <img src={st.image} alt={st.title} style={{ width: '100%', borderRadius: 8, margin: '4px 0 8px', imageRendering: 'pixelated' }} />}
+          {st.text && <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.35)', borderRadius: 8, padding: '10px 12px', margin: '4px 0 8px', wordBreak: 'break-word' }}>{st.text}</div>}
+          {st.bars && (
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 90, margin: '6px 0 10px' }}>
+              {st.bars.map((b, j) => (
+                <div key={j} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                  <div style={{ width: '100%', borderRadius: 3, height: `${Math.max(3, b.value * 82)}px`, background: j === highlight ? 'linear-gradient(180deg,#30d158,#0a84ff)' : 'rgba(255,255,255,0.2)' }} />
+                  <span style={{ fontSize: '0.68rem', color: j === highlight ? '#30d158' : 'var(--text-secondary)', fontWeight: j === highlight ? 700 : 400 }}>{b.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>{st.description}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Sample-data gallery: shows what the training data actually looks like ──
+// (varied handwriting / shapes), the CV analogue of showing the chart for
+// regression scenarios.
+function drawShape(ctx, shape, size) {
+  const c = size / 2, r = size * 0.32;
+  ctx.beginPath();
+  if (shape === 'circle') {
+    ctx.arc(c, c, r, 0, Math.PI * 2);
+  } else if (shape === 'square') {
+    ctx.rect(c - r, c - r, r * 2, r * 2);
+  } else if (shape === 'triangle') {
+    ctx.moveTo(c, c - r); ctx.lineTo(c + r, c + r); ctx.lineTo(c - r, c + r); ctx.closePath();
+  } else if (shape === 'star') {
+    for (let i = 0; i < 10; i++) {
+      const rad = i % 2 === 0 ? r : r * 0.45;
+      const a = (Math.PI / 5) * i - Math.PI / 2;
+      const x = c + rad * Math.cos(a), y = c + rad * Math.sin(a);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+  ctx.stroke();
+}
+
+function SampleTile({ spec, size = 104 }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, size, size);
+    ctx.save();
+    ctx.translate(size / 2, size / 2);
+    if (spec.rotate) ctx.rotate((spec.rotate * Math.PI) / 180);
+    if (spec.type === 'glyph') {
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `${spec.weight || 'bold'} ${spec.fontSize || 58}px ${spec.font}`;
+      ctx.fillText(spec.text, 0, spec.dy || 0);
+    } else {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 4;
+      ctx.lineJoin = 'round';
+      drawShape(ctx, spec.shape, size);
+    }
+    ctx.restore();
+  }, [spec, size]);
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <canvas ref={ref} width={size} height={size} style={{ width: size, height: size, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: '#000' }} />
+      {spec.caption && <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 6 }}>{spec.caption}</div>}
+    </div>
+  );
+}
+
+function buildSampleSpecs(title) {
+  if (title === 'The Edge Explorer') {
+    return [
+      { type: 'shape', shape: 'circle', caption: 'circle' },
+      { type: 'shape', shape: 'square', caption: 'square', rotate: 8 },
+      { type: 'shape', shape: 'triangle', caption: 'triangle' },
+      { type: 'shape', shape: 'star', caption: 'star', rotate: -6 },
+    ];
+  }
+  if (title === 'The Handwriting Decoder') {
+    const word = 'Sutra';
+    return [
+      { type: 'glyph', text: word, font: "'Courier New', monospace", fontSize: 28, caption: 'neat print' },
+      { type: 'glyph', text: word, font: 'Georgia, serif', fontSize: 30, caption: 'serif', rotate: -3 },
+      { type: 'glyph', text: word, font: "'Comic Sans MS', cursive", fontSize: 28, caption: 'rounded', rotate: 4 },
+      { type: 'glyph', text: word, font: "'Segoe Script', 'Brush Script MT', cursive", weight: 'normal', fontSize: 30, caption: 'cursive', rotate: -5 },
+    ];
+  }
+  // The Digit Detective (default): the same digit in many handwriting styles
+  const fonts = [
+    { font: "'Courier New', monospace", rotate: 0 },
+    { font: 'Georgia, serif', rotate: -10 },
+    { font: "'Comic Sans MS', cursive", rotate: 8 },
+    { font: "'Segoe Script', 'Brush Script MT', cursive", rotate: -6, weight: 'normal' },
+    { font: 'Impact, sans-serif', rotate: 5 },
+    { font: "'Trebuchet MS', sans-serif", rotate: -4 },
+  ];
+  return [3, 7, 2, 5, 8, 4].map((d, i) => ({
+    type: 'glyph', text: String(d), fontSize: 60, ...fonts[i], caption: `style ${i + 1}`,
+  }));
+}
+
+function CVSampleGallery({ scenario }) {
+  const specs = useMemo(() => buildSampleSpecs(scenario?.title), [scenario?.title]);
+  const isDigits = scenario?.title === 'The Digit Detective';
+  const isWords = scenario?.title === 'The Handwriting Decoder';
+  const caption = isDigits
+    ? 'The model learned from 60,000 handwritten digits — every one written by a different hand. Here are a few styles it studied. Yours just joins the collection.'
+    : isWords
+      ? 'OCR grows up on samples like these — from neat print to flowing cursive. Notice how the joined-up styles are the hardest to cut into separate letters.'
+      : 'Edge detection needs no training data at all — it is pure maths. These are the kinds of shapes you can trace: sharp outlines are its favourite food.';
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {specs.map((sp, i) => <SampleTile key={i} spec={sp} />)}
+      </div>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, textAlign: 'center', maxWidth: 620, margin: '16px auto 0' }}>{caption}</p>
+    </div>
+  );
+}
+
+// ── Parallel-coordinates view for classification with many features ──
+// A 2-D scatter can only show 2 columns; parallel coordinates show every
+// feature at once, one vertical axis each, lines coloured by their class.
+function ClassParcoords({ rows, featureCols, yCol }) {
+  const labels = useMemo(() => [...new Set(rows.map(r => r[yCol]))], [rows, yCol]);
+  const idxOf = useMemo(() => labels.reduce((m, l, i) => { m[l] = i; return m; }, {}), [labels]);
+  const n = labels.length;
+  const colorVals = rows.map(r => idxOf[r[yCol]]);
+  const colorscale = n <= 1
+    ? [[0, PLOTLY_COLORS[0]], [1, PLOTLY_COLORS[0]]]
+    : labels.map((l, i) => [i / (n - 1), PLOTLY_COLORS[i % PLOTLY_COLORS.length]]);
+
+  return (
+    <div style={{ width: '100%' }}>
+      <Plot
+        data={[{
+          type: 'parcoords',
+          line: { color: colorVals, colorscale, cmin: 0, cmax: Math.max(1, n - 1), showscale: false },
+          dimensions: featureCols.map(col => ({
+            label: col,
+            values: rows.map(r => r[col]),
+          })),
+        }]}
+        layout={{
+          autosize: true,
+          paper_bgcolor: 'transparent',
+          plot_bgcolor: 'transparent',
+          font: { color: '#c9cde0', size: 11 },
+          margin: { l: 70, r: 50, t: 40, b: 24 },
+        }}
+        useResizeHandler
+        style={{ width: '100%', height: '320px' }}
+        config={{ displayModeBar: false }}
+      />
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
+        {labels.map((l, i) => (
+          <span key={String(l)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <span style={{ width: 14, height: 14, borderRadius: 4, background: PLOTLY_COLORS[i % PLOTLY_COLORS.length] }} />
+            {String(l)}
+          </span>
+        ))}
+      </div>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', marginTop: 8 }}>
+        Each vertical line is one feature. Every data point is a thread crossing all of them, coloured by its class. Drag an axis to reorder, or drag along an axis to filter.
+      </p>
+    </div>
+  );
+}
 
 export default DataCanvas;

@@ -1,74 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataCanvas from '../components/workspace/DataCanvas';
 import ResultsOverlay from '../components/workspace/ResultsOverlay';
 import CVPipelineOverlay from '../components/workspace/CVPipelineOverlay';
 import api from '../api';
-import { ArrowLeft, Beaker } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
-const LabWorkspace = ({ onBackToDashboard, initialCategory, initialScenario }) => {
+// Per-model presentation for the scoped scenario picker. Each landing-page
+// model module opens straight into ITS scenarios — no shared "Prediction Engine".
+const MODEL_META = {
+  REGRESSION:      { title: 'Regression', tag: 'Predict a number', sub: 'Pick a real-world problem and train a model to predict a number — then see how good its predictions are.', accent: '#30D158', grad: 'linear-gradient(135deg,#30D158,#00C7BE)' },
+  CLASSIFICATION:  { title: 'Classification', tag: 'Sort into groups', sub: 'Pick a problem and train a model to sort things into the right category — and watch where it gets fooled.', accent: '#00C7BE', grad: 'linear-gradient(135deg,#00C7BE,#0A84FF)' },
+  NEURAL_NETWORK:  { title: 'Neural Networks', tag: 'A brain-inspired model', sub: 'Train a network of tiny decision-makers and watch its accuracy climb as it practises.', accent: '#0A84FF', grad: 'linear-gradient(135deg,#0A84FF,#5E5CE6)' },
+  COMPUTER_VISION: { title: 'Computer Vision', tag: 'Teach a machine to see', sub: 'Draw or upload, and watch the AI turn pixels into an answer, stage by stage.', accent: '#FF9F0A', grad: 'linear-gradient(135deg,#FF9F0A,#FF375F)' },
+};
+
+const LabWorkspace = ({ onBackToDashboard, modelType, initialCategory, initialScenarioId }) => {
+  const filterType = modelType || initialCategory || null;
+  const autoSelectedRef = useRef(false);
+  const meta = MODEL_META[filterType] || { title: 'Scenarios', tag: '', sub: 'Pick a scenario to train a model.', accent: '#5E5CE6', grad: 'linear-gradient(135deg,#5E5CE6,#BF5AF2)' };
+
   const [scenarios, setScenarios] = useState([]);
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  // Deep-link: the learning flow can open a specific scenario by exact title.
-  // Consumed once so "Back to Scenarios" still shows the browser afterwards.
-  const [pendingScenario, setPendingScenario] = useState(initialScenario || null);
-  
   const [previewData, setPreviewData] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
-  
   const [experimentResult, setExperimentResult] = useState(null);
   const [experimentError, setExperimentError] = useState(null);
   const [isTraining, setIsTraining] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  // Deep-link: open the flow-requested scenario as soon as scenarios load.
-  useEffect(() => {
-    if (pendingScenario && scenarios.length > 0) {
-      const match = scenarios.find(s => s.title === pendingScenario);
-      setPendingScenario(null);
-      if (match) {
-        setSelectedScenario(match);
-        setSelectedVariant(null);
-        setPreviewData(null);
-      }
-    }
-  }, [pendingScenario, scenarios]);
-
-  // Auto-scroll to initialCategory on mount
-  useEffect(() => {
-    if (!selectedScenario && initialCategory && scenarios.length > 0) {
-      setTimeout(() => {
-        document.getElementById(`category-${initialCategory}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }, [selectedScenario, initialCategory, scenarios]);
-
   const fetchScenarios = async () => {
     try {
       const response = await api.get('/scenarios/');
-      // We fetch ALL scenarios, not filtered by activeModule
-      setScenarios(response.data);
-      if (selectedScenario) {
-        const updated = response.data.find(s => s.id === selectedScenario.id);
-        // Only update if it actually changed to prevent infinite loops if called from elsewhere
-        if (updated && JSON.stringify(updated) !== JSON.stringify(selectedScenario)) {
-          setSelectedScenario(updated);
+      const list = filterType ? response.data.filter(s => s.model_type === filterType) : response.data;
+      setScenarios(list);
+      // Deep-link: arriving from "train your own data" opens straight into that scenario.
+      if (initialScenarioId && !autoSelectedRef.current) {
+        const target = list.find(s => s.id === initialScenarioId);
+        if (target) {
+          autoSelectedRef.current = true;
+          setSelectedScenario(target);
+          setSelectedVariant(null);
+          setPreviewData(null);
         }
       }
+      if (selectedScenario) {
+        const updated = list.find(s => s.id === selectedScenario.id);
+        if (updated && JSON.stringify(updated) !== JSON.stringify(selectedScenario)) setSelectedScenario(updated);
+      }
     } catch (err) {
-      console.error("Failed to fetch scenarios", err);
+      console.error('Failed to fetch scenarios', err);
     }
   };
 
-  // Fetch all scenarios on mount
-  useEffect(() => {
-    fetchScenarios();
-  }, []);
+  useEffect(() => { fetchScenarios(); }, []);
 
   useEffect(() => {
-    if (selectedScenario && selectedVariant) {
-      fetchPreview();
-    }
+    if (selectedScenario && selectedVariant) fetchPreview();
   }, [selectedScenario, selectedVariant]);
 
   const fetchPreview = async () => {
@@ -76,14 +64,11 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory, initialScenario }) =
     setPreviewData(null);
     try {
       const response = await api.get(`/${selectedScenario.model_type.toLowerCase()}/preview/`, {
-        params: {
-          scenario_id: selectedScenario.id,
-          variant_name: selectedVariant
-        }
+        params: { scenario_id: selectedScenario.id, variant_name: selectedVariant },
       });
       setPreviewData(response.data);
     } catch (err) {
-      console.error("Failed to fetch preview", err);
+      console.error('Failed to fetch preview', err);
     } finally {
       setLoadingPreview(false);
     }
@@ -99,170 +84,82 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory, initialScenario }) =
         scenario_id: selectedScenario.id,
         variant_name: selectedVariant,
         student_prompt: '',
-        ...extraPayload
+        ...extraPayload,
       });
-
       if (response.data.task_id) {
         while (true) {
           const statusRes = await api.get(`/${selectedScenario.model_type.toLowerCase()}/run-status/`, {
-            params: { task_id: response.data.task_id }
+            params: { task_id: response.data.task_id },
           });
-          
-          if (statusRes.data.status === 'completed') {
-            response = { data: statusRes.data.result };
-            break;
-          } else if (statusRes.data.status === 'failed') {
-            throw new Error(statusRes.data.error || 'Experiment failed during background processing.');
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          if (statusRes.data.status === 'completed') { response = { data: statusRes.data.result }; break; }
+          if (statusRes.data.status === 'failed') throw new Error(statusRes.data.error || 'Experiment failed during background processing.');
+          await new Promise(r => setTimeout(r, 1500));
         }
       }
-
       setExperimentResult(response.data);
       setShowResults(true);
     } catch (err) {
-      console.error("Experiment failed", err);
+      console.error('Experiment failed', err);
       setExperimentError(err.response?.data?.error || err.message);
     } finally {
       setIsTraining(false);
     }
   };
 
+  // ── Scoped scenario picker (agentic-style cards, Sutra dark) ──
   if (!selectedScenario) {
-    const allCategories = [...new Set(scenarios.map(s => s.model_type))];
-    const preferredOrder = ['REGRESSION', 'CLASSIFICATION', 'NEURAL_NETWORK', 'COMPUTER_VISION'];
-    const uniqueCategories = allCategories.sort((a, b) => {
-      const indexA = preferredOrder.indexOf(a);
-      const indexB = preferredOrder.indexOf(b);
-      return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
-    });
-
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-        
-        {/* FIXED TOP NAV */}
-        <div style={{
-          background: 'rgba(10, 15, 30, 0.95)',
-          backdropFilter: 'blur(10px)',
-          padding: '20px 40px',
-          borderBottom: '1px solid var(--glass-border)',
-          zIndex: 10,
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
-            <div>
-              <button className="btn-secondary" onClick={onBackToDashboard} style={{ marginBottom: '10px' }}>
-                <ArrowLeft size={18} /> Back to Dashboard
-              </button>
-              <h1 style={{ fontSize: '2.2rem', margin: 0 }}>
-                <Beaker size={32} style={{ verticalAlign: 'middle', marginRight: '10px' }} /> Prediction Engine
-              </h1>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {uniqueCategories.map(cat => (
-                <button
-                  key={`nav-${cat}`}
-                  onClick={() => {
-                    document.getElementById(`category-${cat}`)?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="btn-secondary"
-                  style={{
-                    background: 'rgba(0, 240, 255, 0.1)',
-                    borderColor: 'rgba(0, 240, 255, 0.3)',
-                    color: '#00F0FF'
-                  }}
-                >
-                  {cat.replace(/_/g, ' ')}
+      <div style={pageStyle}>
+        <div style={headerBarStyle}>
+          <button style={{ ...backStyle, margin: 0 }} onClick={onBackToDashboard}><ArrowLeft size={16} /> Back to my flow</button>
+        </div>
+        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 clamp(16px,4vw,56px)' }}>
+          <div style={{ textAlign: 'center', margin: '10px 0 34px' }}>
+            <span style={{ ...eyebrowStyle, color: meta.accent }}>{meta.tag}</span>
+            <h1 style={{ fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', margin: '10px 0 8px', fontWeight: 700 }}>
+              <span style={{ background: meta.grad, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>{meta.title}</span> scenarios
+            </h1>
+            <p style={{ color: '#9aa0b5', maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>{meta.sub}</p>
+          </div>
+
+          {scenarios.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#9aa0b5' }}>Loading scenarios…</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 22 }}>
+              {scenarios.map(sc => (
+                <button key={sc.id} onClick={() => { setSelectedScenario(sc); setSelectedVariant(null); setPreviewData(null); }}
+                  style={cardStyle}
+                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = `${meta.accent}66`; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}>
+                  <div style={{ ...cardIcon, background: `${meta.accent}22` }}>{sc.icon}</div>
+                  <h3 style={{ fontSize: '1.35rem', margin: '0 0 8px' }}>{sc.title}</h3>
+                  <p style={{ color: '#9aa0b5', lineHeight: 1.55, fontSize: '0.95rem', flex: 1, margin: 0 }}>{sc.challenge}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: meta.accent, fontWeight: 600, marginTop: 16 }}>
+                    Start this scenario <ArrowRight size={16} />
+                  </div>
                 </button>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* SCROLLABLE MAIN CONTENT */}
-        <div style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '40px', fontSize: '1.1rem' }}>
-            Select an experiment below to start training AI models!
-          </p>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '50px' }}>
-            {uniqueCategories.map(cat => {
-              const catScenarios = scenarios.filter(s => s.model_type === cat);
-              return (
-                <div key={cat} id={`category-${cat}`}>
-                  <h2 style={{ 
-                    fontSize: '1.8rem', 
-                    marginBottom: '20px', 
-                    paddingBottom: '10px', 
-                    borderBottom: '1px solid rgba(255,255,255,0.1)',
-                    color: 'var(--accent-cyan)'
-                  }}>
-                    {cat.replace(/_/g, ' ')}
-                  </h2>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                    {catScenarios.map(scenario => (
-                      <div 
-                        key={scenario.id}
-                        className="glass-panel"
-                        onClick={() => {
-                          setSelectedScenario(scenario);
-                          setSelectedVariant(null);
-                          setPreviewData(null);
-                        }}
-                        style={{
-                          cursor: 'pointer',
-                          padding: '20px',
-                          transition: 'transform 0.2s',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '10px'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                      >
-                        <div style={{ fontSize: '3rem' }}>{scenario.icon}</div>
-                        <h3 style={{ fontSize: '1.2rem', margin: 0 }}>{scenario.title}</h3>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
-                          {scenario.model_type.replace(/_/g, ' ')}
-                        </span>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', flex: 1 }}>{scenario.challenge}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          )}
         </div>
       </div>
     );
   }
 
+  // ── Selected scenario: the training canvas ──
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      
-      {/* Top Header with Back Button */}
-      <div style={{ padding: '15px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', background: 'rgba(10, 15, 30, 0.8)' }}>
-        <button 
-          className="btn-secondary" 
-          onClick={() => setSelectedScenario(null)}
-          style={{ padding: '8px 15px', marginRight: '20px' }}
-        >
-          <ArrowLeft size={18} /> Back to Scenarios
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#070812' }}>
+      <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', background: 'rgba(10,12,26,0.9)' }}>
+        <button style={{ ...backStyle, margin: 0, marginRight: 20 }} onClick={() => setSelectedScenario(null)}>
+          <ArrowLeft size={16} /> Back to {meta.title} scenarios
         </button>
-        <h2 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <h2 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: 10 }}>
           {selectedScenario.icon} {selectedScenario.title}
         </h2>
       </div>
 
-      {/* Main Data Canvas */}
-      <div style={{ flex: 1, position: 'relative', overflowY: 'auto' }}>
-        <DataCanvas 
+      <div data-scroll style={{ flex: 1, position: 'relative', overflowY: 'auto' }}>
+        <DataCanvas
           scenario={selectedScenario}
           selectedVariant={selectedVariant}
           onSelectVariant={setSelectedVariant}
@@ -274,27 +171,47 @@ const LabWorkspace = ({ onBackToDashboard, initialCategory, initialScenario }) =
           experimentError={experimentError}
           onRefreshScenarios={fetchScenarios}
         />
-
-        {/* OVERLAY: Results frosted glass card */}
         {showResults && experimentResult && (
           selectedScenario?.model_type === 'COMPUTER_VISION' ? (
-            <CVPipelineOverlay
-              result={experimentResult}
-              scenario={selectedScenario}
-              onClose={() => setShowResults(false)}
-            />
+            <CVPipelineOverlay result={experimentResult} scenario={selectedScenario} onClose={() => setShowResults(false)} />
           ) : (
-            <ResultsOverlay
-              result={experimentResult}
-              scenario={selectedScenario}
-              onClose={() => setShowResults(false)}
-            />
+            <ResultsOverlay result={experimentResult} scenario={selectedScenario} onClose={() => setShowResults(false)} />
           )
         )}
       </div>
-
     </div>
   );
+};
+
+const pageStyle = {
+  minHeight: '100vh',
+  background: 'radial-gradient(1200px 600px at 80% -10%, rgba(94,92,230,0.16), transparent 60%), radial-gradient(900px 500px at -10% 30%, rgba(100,210,255,0.10), transparent 55%), #070812',
+  color: '#f2f3f8',
+  fontFamily: "'Outfit','Segoe UI',sans-serif",
+  padding: '0 0 80px',
+};
+const headerBarStyle = {
+  position: 'sticky', top: 0, zIndex: 50,
+  display: 'flex', alignItems: 'center',
+  padding: '14px clamp(16px,4vw,56px)',
+  background: 'rgba(7,8,18,0.82)', backdropFilter: 'blur(12px)',
+  borderBottom: '1px solid rgba(255,255,255,0.07)',
+  marginBottom: 24,
+};
+const backStyle = {
+  display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.08)', color: '#cdd1e0', padding: '9px 16px', borderRadius: 10,
+  cursor: 'pointer', fontSize: '0.92rem', fontFamily: 'inherit',
+};
+const eyebrowStyle = { display: 'inline-flex', fontSize: '0.78rem', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600 };
+const cardStyle = {
+  background: 'rgba(16,18,32,0.72)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+  padding: 28, cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s', textAlign: 'left',
+  display: 'flex', flexDirection: 'column', color: '#f2f3f8', fontFamily: 'inherit',
+};
+const cardIcon = {
+  width: 58, height: 58, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: '2rem', marginBottom: 16,
 };
 
 export default LabWorkspace;

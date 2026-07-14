@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import api from '../../api';
 
-const SocialMediaDataLab = ({ scenario, onBackToDashboard }) => {
+const SocialMediaDataLab = ({ scenario, onBackToDashboard, onOpenDemonstration }) => {
   const [step, setStep] = useState(1);
   const [data, setData] = useState([
     { likes: '', comments: '' },
@@ -143,7 +143,7 @@ const SocialMediaDataLab = ({ scenario, onBackToDashboard }) => {
   );
 
   return (
-    <div style={{ padding: '40px', maxWidth: '850px', margin: '0 auto' }}>
+    <div style={{ padding: '40px', maxWidth: '1040px', margin: '0 auto' }}>
       <div className="glass-panel" style={{ padding: '40px' }}>
         <h2 style={{ fontSize: '2rem', marginBottom: '15px', textAlign: 'center' }}>
           Data Collection: {scenario.title}
@@ -423,9 +423,12 @@ const SocialMediaDataLab = ({ scenario, onBackToDashboard }) => {
                 <h3 style={{ margin: '0 0 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                   <CheckCircle size={24} /> Dataset Saved!
                 </h3>
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                  You can now go to the Prediction Engine, select this scenario, and choose your custom dataset to train the AI!
+                <p style={{ margin: '0 0 16px', color: 'var(--text-secondary)' }}>
+                  Your dataset <b>&ldquo;{variantName}&rdquo;</b> is ready. Jump straight into the {scenario.title} demonstration and train a model on it.
                 </p>
+                <button className="btn-primary" onClick={() => onOpenDemonstration?.(scenario)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  Train on it in the Demonstration <ArrowRight size={16} />
+                </button>
               </div>
             )}
 

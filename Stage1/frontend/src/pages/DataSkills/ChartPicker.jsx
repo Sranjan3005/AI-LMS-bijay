@@ -181,54 +181,69 @@ const ChartPicker = ({ onBack, onOpenDataLab }) => {
         { icon: '🤖', title: 'Feeding models', text: 'The scatter you made of two number columns? That is literally what a regression model looks at when it learns.' },
       ]}
     >
-      <div className={s.card}>
-        <h3 style={{ margin: '0 0 10px' }}>1 · Pick your data</h3>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-          {BUILTINS.map(b => (
-            <button key={b.id} className={`${s.pillBtn} ${dsId === b.id ? s.pillOn : ''}`}
-                    onClick={() => { setDsId(b.id); setChartType(null); }}>
-              <Database size={14} /> {b.label}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20, alignItems: 'start' }}>
+        {/* LEFT — data + chart-type controls + verdict */}
+        <div className={s.card} style={{ minWidth: 0 }}>
+          <h3 style={{ margin: '0 0 10px' }}>1 · Pick your data</h3>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            {BUILTINS.map(b => (
+              <button key={b.id} className={`${s.pillBtn} ${dsId === b.id ? s.pillOn : ''}`}
+                      onClick={() => { setDsId(b.id); setChartType(null); }}>
+                <Database size={14} /> {b.label}
+              </button>
+            ))}
+            <button className={`${s.pillBtn} ${dsId === 'custom' ? s.pillOn : ''}`} onClick={() => fileRef.current?.click()}>
+              <Upload size={14} /> Upload my CSV
             </button>
-          ))}
-          <button className={`${s.pillBtn} ${dsId === 'custom' ? s.pillOn : ''}`} onClick={() => fileRef.current?.click()}>
-            <Upload size={14} /> Upload my CSV
-          </button>
-          <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onFile} />
-        </div>
-        {dsId !== 'custom' && <p className={s.muted} style={{ marginTop: 0, fontSize: '.88rem' }}>{builtin.hint}</p>}
-        {uploadErr && <div className={`${s.banner} ${s.bannerWarn}`} style={{ marginTop: 0, marginBottom: 12 }}>⚠️ {uploadErr}</div>}
-        {ds ? <DataTable ds={ds} /> : <p className={s.muted}>Upload a small CSV like: <code>Month,Sales</code> then one row per line.</p>}
-        {ds?.truncated && <p className={s.muted} style={{ fontSize: '.8rem' }}>Showing the first 200 rows.</p>}
+            <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onFile} />
+          </div>
+          {dsId !== 'custom' && <p className={s.muted} style={{ marginTop: 0, fontSize: '.88rem' }}>{builtin.hint}</p>}
+          {uploadErr && <div className={`${s.banner} ${s.bannerWarn}`} style={{ marginTop: 0, marginBottom: 12 }}>⚠️ {uploadErr}</div>}
+          {ds ? <DataTable ds={ds} /> : <p className={s.muted}>Upload a small CSV like: <code>Month,Sales</code> then one row per line.</p>}
+          {ds?.truncated && <p className={s.muted} style={{ fontSize: '.8rem' }}>Showing the first 200 rows.</p>}
 
-        {ds && (
-          <>
-            <h3 style={{ margin: '20px 0 10px' }}>2 · Pick a chart for it</h3>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-              {CHART_TYPES.map(c => (
-                <button key={c.id} className={`${s.pillBtn} ${chartType === c.id ? s.pillOn : ''}`} title={c.fit}
-                        onClick={() => setChartType(c.id)}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
+          {ds && (
+            <>
+              <h3 style={{ margin: '20px 0 10px' }}>2 · Pick a chart for it</h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                {CHART_TYPES.map(c => (
+                  <button key={c.id} className={`${s.pillBtn} ${chartType === c.id ? s.pillOn : ''}`} title={c.fit}
+                          onClick={() => setChartType(c.id)}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
 
-            {chartType && (
-              <>
-                <RenderChart type={chartType} ds={ds} />
-                <div className={verdict.ok ? s.banner : `${s.banner} ${s.bannerWarn}`}>
-                  {verdict.ok ? '✅ ' : '🤔 '}{verdict.msg}
-                </div>
-                {verdict.ok && (
-                  <div style={{ textAlign: 'center', marginTop: 14 }}>
-                    <button className={s.navBtn} onClick={onOpenDataLab}>
-                      Take your data further in the Data Lab →
-                    </button>
+              {verdict && (
+                <>
+                  <div className={verdict.ok ? s.banner : `${s.banner} ${s.bannerWarn}`}>
+                    {verdict.ok ? '✅ ' : '🤔 '}{verdict.msg}
                   </div>
-                )}
-              </>
-            )}
-          </>
-        )}
+                  {verdict.ok && (
+                    <div style={{ textAlign: 'center', marginTop: 14 }}>
+                      <button className={s.navBtn} onClick={onOpenDataLab}>
+                        Take your data further in the Data Lab →
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* RIGHT — YOUR data, drawn */}
+        <div className={s.card} style={{ position: 'sticky', top: 84, minWidth: 0 }}>
+          <h3 style={{ margin: '0 0 12px' }}>Your data, drawn</h3>
+          {ds && chartType ? (
+            <RenderChart type={chartType} ds={ds} />
+          ) : (
+            <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, border: '1px dashed rgba(255,255,255,.15)', borderRadius: 12, color: '#9aa0b5', textAlign: 'center', padding: 20 }}>
+              <span style={{ fontSize: '2.2rem' }}>📊</span>
+              {ds ? 'Pick a chart type on the left and it appears here.' : 'Pick a dataset on the left to get started.'}
+            </div>
+          )}
+        </div>
       </div>
     </DemoFlow>
   );

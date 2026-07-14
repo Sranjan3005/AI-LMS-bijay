@@ -4,9 +4,49 @@ import api from '../api';
 import SutraBackground from '../components/sutra/SutraBackground';
 import { BrandMark, Ico } from '../components/sutra/icons';
 import { initials } from '../components/sutra/SutraShell';
+import AssignmentPlanner from '../components/AssignmentPlanner';
 import '../styles/sutra.css';
 
 const KIND_LABEL = { quiz: 'Quiz', task: 'Task', submission: 'Submission' };
+
+/* ── class-wide actions: assign to everyone + open the AI planner ── */
+function ClassActions({ templates, roster, onOpenPlanner, onAssigned }) {
+  const [sel, setSel] = useState('');
+  const [due, setDue] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const assignClass = async () => {
+    if (!sel) return; setBusy(true); setMsg('');
+    try {
+      const { data } = await api.post('/assignments/assign-class/', { assignment: sel, due_date: due || null });
+      setMsg(`Assigned to ${data.placed} student${data.placed === 1 ? '' : 's'}.`);
+      setSel(''); setDue(''); onAssigned?.();
+    } catch (e) { setMsg('Could not assign — please try again.'); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="sap-card sap-classbar">
+      <div className="sap-classrow">
+        <div className="sap-classlab"><Ico name="users" w={2.2} />Give an assignment to the whole class</div>
+        <select value={sel} onChange={(e) => setSel(e.target.value)}>
+          <option value="">Choose an assignment…</option>
+          {templates.map(t => <option key={t.id} value={t.id}>{KIND_LABEL[t.kind]} · {t.title}</option>)}
+        </select>
+        <input type="date" value={due} onChange={(e) => setDue(e.target.value)} title="Due date (optional)" />
+        <button className="btn btn-thread btn-sm" disabled={!sel || busy} onClick={assignClass}>
+          {busy ? 'Assigning…' : 'Give to whole class'}
+        </button>
+      </div>
+      <div className="sap-classrow">
+        <div className="sap-classlab"><Ico name="spark" w={2.2} />Need a new one?</div>
+        <button className="btn btn-ghost btn-sm" onClick={onOpenPlanner}><Ico name="spark" />Plan an assignment with AI</button>
+        {msg && <span className="sap-classmsg">{msg}</span>}
+      </div>
+    </div>
+  );
+}
 
 /* ── one student, expandable to manage their tasks ── */
 function StudentRow({ s, templates }) {
@@ -153,15 +193,19 @@ const SchoolAdminPanel = () => {
   const [roster, setRoster] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [queries, setQueries] = useState(null);
+  const [showPlanner, setShowPlanner] = useState(false);
 
   const loadRoster = useCallback(() => {
     api.get('/schools/roster/').then(r => setRoster(r.data || [])).catch(() => setRoster([]));
   }, []);
+  const loadTemplates = useCallback(() => {
+    api.get('/assignments/templates/').then(r => setTemplates(r.data || [])).catch(() => setTemplates([]));
+  }, []);
   useEffect(() => {
     loadRoster();
-    api.get('/assignments/templates/').then(r => setTemplates(r.data || [])).catch(() => setTemplates([]));
+    loadTemplates();
     api.get('/schools/queries/').then(r => setQueries(r.data || [])).catch(() => setQueries([]));
-  }, [loadRoster]);
+  }, [loadRoster, loadTemplates]);
 
   const openQueries = (queries || []).filter(q => q.status !== 'answered').length;
 
@@ -195,6 +239,9 @@ const SchoolAdminPanel = () => {
           <div className="sap-list">
             {tab === 'students' ? (
               <>
+                <ClassActions templates={templates} roster={roster || []}
+                  onOpenPlanner={() => setShowPlanner(true)}
+                  onAssigned={loadRoster} />
                 <AddStudent onAdded={loadRoster} />
                 {roster === null ? <div className="asn-empty">Loading…</div>
                   : roster.length === 0 ? <div className="asn-empty"><Ico name="users" /><h3>No students yet</h3><p>Use “Add student” to create their logins.</p></div>
@@ -208,6 +255,14 @@ const SchoolAdminPanel = () => {
           </div>
         </div>
       </div>
+
+      {showPlanner && (
+        <AssignmentPlanner
+          roster={roster || []}
+          onClose={() => setShowPlanner(false)}
+          onDone={() => { loadTemplates(); loadRoster(); }}
+        />
+      )}
     </div>
   );
 };

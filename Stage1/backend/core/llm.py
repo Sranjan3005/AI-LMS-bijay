@@ -261,6 +261,149 @@ def grade_submission(*, title: str, question: str, rubric: str, max_points: int,
         return None, ""
 
 
+_PLANNER_SYSTEM = (
+    "You are an expert CBSE (Classes 6-8) AI-curriculum teacher helping an instructor "
+    "design a homework assignment. Return ONLY a JSON object with one key \"options\", "
+    "whose value is a list of 2 or 3 assignment options. Each option is an object with:\n"
+    "- \"title\": a short assignment title\n"
+    "- \"kind\": either \"quiz\" or \"task\"\n"
+    "- \"description\": for a task, the full question/prompt the student answers; for a "
+    "quiz, a one-line instruction\n"
+    "- \"rubric\": (task only) 1-2 sentences on how to grade it fairly\n"
+    "- \"questions\": (quiz only) a list of 3-4 objects, each {\"q\": str, "
+    "\"options\": [4 strings], \"answer\": <0-based index of the correct option>}\n"
+    "Keep everything age-appropriate for a 12-14 year old, concrete, and tied to the "
+    "given module. Use simple language and Indian real-world examples where natural. "
+    "Respond ONLY with valid JSON — no markdown."
+)
+
+_MODULE_LABEL = {
+    'foundations': 'What is AI / Foundations',
+    'data': 'Working with Data & Analysis',
+    'regression': 'Linear Regression (predicting a number)',
+    'classification': 'Classification (sorting into groups)',
+    'neural': 'Neural Networks',
+    'vision': 'Computer Vision',
+    'agentic': 'Agentic AI / AI agents & pipelines',
+    'ethics': 'Responsible AI / Ethics',
+}
+
+
+def plan_assignments(module_key: str, sub_type: str = '', kind: str = 'task', notes: str = '') -> list:
+    """Generate 2-3 assignment options for an instructor. Returns a list of option
+    dicts (see _PLANNER_SYSTEM). Returns [] on failure so the caller can 400."""
+    import json
+    module_label = _MODULE_LABEL.get(module_key, module_key or 'AI basics')
+    kind_pref = 'multiple-choice quizzes' if kind == 'quiz' else 'short written tasks'
+    user_message = (
+        f"Module: {module_label}\n"
+        f"Focus area / submodule: {sub_type or 'the whole module'}\n"
+        f"Preferred kind: {kind} (design {kind_pref})\n"
+        f"Instructor notes: {notes or '(none)'}\n\n"
+        f"Design 2-3 distinct assignment options."
+    )
+    try:
+        client = _get_client()
+        response = client.chat.completions.create(
+            model=_DEPLOYMENT,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": _PLANNER_SYSTEM},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        data = json.loads(response.choices[0].message.content)
+        options = data.get("options", []) if isinstance(data, dict) else []
+        return options if isinstance(options, list) else []
+    except Exception as e:
+        logger.exception(f'[llm] plan_assignments failed: {e}')
+        return []
+
+
+_NODE_GUIDE = {
+    'textInput': 'Text Input — provides raw text to the pipeline',
+    'documentReader': 'Document Reader — reads an uploaded document',
+    'visionScanner': 'Vision Scanner — reads/analyses an image',
+    'customizer': 'Customizer — a custom LLM instruction/prompt step',
+    'summarizer': 'Summarizer — condenses text to key points',
+    'sentimentRadar': 'Sentiment Analyzer — scores tone (positive/negative)',
+    'webSearch': 'Web Search — looks facts up on the web',
+    'decider': 'Decider — branches the flow based on a condition',
+    'merger': 'Merger — combines results from multiple branches',
+    'display': 'Display — shows the final output',
+    'chartGenerator': 'Chart Generator — turns data into a chart',
+}
+
+_AGENT_EVAL_SYSTEM = (
+    "You are a kind but fair teacher evaluating a Class 6-8 student's AI AGENT PIPELINE "
+    "(a node-and-arrow flow they built in a visual studio). Judge whether the pipeline is a "
+    "sensible design that solves the given problem: are the right kinds of nodes present, "
+    "connected in a logical order from an input, through processing, to an output? Reward "
+    "correct structure and thoughtful choices; it does NOT need to be perfect. "
+    "Return ONLY a JSON object with two keys: \"score\" (an integer 0..max) and \"feedback\" "
+    "(a warm, specific 2-4 sentence note that names what they got right and ONE concrete way "
+    "to improve the flow). Keep language simple for a 12-14 year old."
+)
+
+
+def evaluate_agent_pipeline(*, title: str, problem: str, rubric: str, max_points: int, graph_json: str) -> tuple:
+    """LLM-evaluate a student's agent pipeline (nodes+edges JSON). Returns
+    (score:int|None, feedback:str). (None, '') on failure → left for manual grading."""
+    import json
+    try:
+        graph = json.loads(graph_json) if graph_json else {}
+    except (ValueError, TypeError):
+        graph = {}
+    nodes = graph.get('nodes', []) if isinstance(graph, dict) else []
+    edges = graph.get('edges', []) if isinstance(graph, dict) else []
+
+    if not nodes:
+        return 0, "Your pipeline is empty — drag in some nodes, connect them, then submit again."
+
+    # Serialise the graph into something the LLM can reason about.
+    label_by_id = {}
+    node_lines = []
+    for n in nodes:
+        nid = n.get('id', '?')
+        ntype = n.get('type', 'unknown')
+        label = (n.get('data') or {}).get('label', '')
+        label_by_id[nid] = label or ntype
+        desc = _NODE_GUIDE.get(ntype, ntype)
+        node_lines.append(f"- {nid}: {desc}" + (f' (labelled "{label}")' if label else ''))
+    edge_lines = [f"- {label_by_id.get(e.get('source'), e.get('source'))} → "
+                  f"{label_by_id.get(e.get('target'), e.get('target'))}" for e in edges]
+
+    rubric_text = rubric or ("Reward a clear input node, sensible processing steps in a logical "
+                             "order, and an output/display node, all correctly connected.")
+    user_message = (
+        f"Assignment: {title}\n"
+        f"Problem to solve: {problem}\n"
+        f"What a good pipeline looks like: {rubric_text}\n"
+        f"Maximum score: {max_points}\n\n"
+        f"The student built these nodes:\n" + "\n".join(node_lines) + "\n\n"
+        f"Connected like this:\n" + ("\n".join(edge_lines) if edge_lines else "(no connections made)") + "\n\n"
+        f"Evaluate the pipeline from 0 to {max_points} and give feedback."
+    )
+    try:
+        client = _get_client()
+        response = client.chat.completions.create(
+            model=_DEPLOYMENT,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": _AGENT_EVAL_SYSTEM},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        data = json.loads(response.choices[0].message.content)
+        score = int(round(float(data.get("score", 0))))
+        score = max(0, min(int(max_points), score))
+        feedback = str(data.get("feedback", "")).strip()
+        return score, feedback
+    except Exception as e:
+        logger.exception(f'[llm] evaluate_agent_pipeline failed: {e}')
+        return None, ""
+
+
 def extract_csv_from_unstructured_data(scenario_title: str, file_type: str, base64_content: str) -> str:
     """
     Uses the Vision/Language LLM to extract a structured CSV from an uploaded Image/Doc/PDF.

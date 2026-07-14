@@ -82,6 +82,32 @@ class StudentAssignment(models.Model):
         return f'{self.assignment.title} → {self.student}'
 
 
+class ActivityCompletion(models.Model):
+    """Records that a student opened (engaged with) one submodule activity of a
+    module — theory / demo / hands. When all three exist for a module, that
+    module's written task is auto-placed on the student (see the
+    activity-complete endpoint). This is the source of truth for the module
+    completion bar and the "earn your assignment" gate."""
+
+    SUB_CHOICES = [
+        ('theory', 'Theory'),
+        ('demo', 'Demonstration'),
+        ('hands', 'Hands-on'),
+    ]
+
+    student      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='activity_completions')
+    module_key   = models.CharField(max_length=40, db_index=True)
+    sub_type     = models.CharField(max_length=16, choices=SUB_CHOICES)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('student', 'module_key', 'sub_type')]
+        ordering = ['-completed_at']
+
+    def __str__(self):
+        return f'{self.student} · {self.module_key}/{self.sub_type}'
+
+
 class AssignmentSubmission(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending grade'),

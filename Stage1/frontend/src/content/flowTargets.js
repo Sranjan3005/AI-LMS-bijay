@@ -13,8 +13,8 @@
 
 export const FLOW = {
   'Understanding AI': {
-    theory: { view: 'emergence_lesson' },
-    demo:   { view: 'breaking_point' },     // rules work → rules break → it learns
+    theory: { view: 'what_is_ai' },         // engaging "what is AI" + Teach-the-Machine
+    demo:   { view: 'breaking_point' },      // rules work → rules break → it learns (reinforcement)
     hands:  { view: 'spot_the_ai' },
   },
   'Maths for AI': {
@@ -30,28 +30,28 @@ export const FLOW = {
   },
   'Linear Regression': {
     theory: { view: 'linear_regression_lesson' },
-    demo:   { view: 'lab', params: { initialCategory: 'REGRESSION', initialScenario: 'The Lemonade Stand' } },
-    hands:  { view: 'lab', params: { initialCategory: 'REGRESSION', initialScenario: 'The Study Score Predictor' } },
+    demo:   { view: 'lab', params: { modelType: 'REGRESSION' } },        // pick a regression scenario & train
+    hands:  { view: 'data_lab', params: { modelType: 'REGRESSION' } },   // bring your own data
   },
   'Classification': {
     theory: { content: 'classification' },
-    demo:   { view: 'lab', params: { initialCategory: 'CLASSIFICATION', initialScenario: 'The Spam Catcher' } },
-    hands:  { view: 'lab', params: { initialCategory: 'CLASSIFICATION', initialScenario: 'The Smart Trash Can' } },
+    demo:   { view: 'lab', params: { modelType: 'CLASSIFICATION' } },
+    hands:  { view: 'data_lab', params: { modelType: 'CLASSIFICATION' } },
   },
   'Neural Networks': {
     theory: { content: 'neural' },
-    demo:   { view: 'lab', params: { initialCategory: 'NEURAL_NETWORK', initialScenario: 'The Self-Driving Eye' } },
-    hands:  { view: 'lab', params: { initialCategory: 'NEURAL_NETWORK', initialScenario: 'The Emotion Reader' } },
+    demo:   { view: 'lab', params: { modelType: 'NEURAL_NETWORK' } },
+    hands:  { view: 'data_lab', params: { modelType: 'NEURAL_NETWORK' } },
   },
   'Computer Vision': {
     theory: { view: 'computer_vision_lesson' },
     demo:   { view: 'cv_playground' },       // in-browser object detection / edges / digit reader
-    hands:  { view: 'lab', params: { initialCategory: 'COMPUTER_VISION', initialScenario: 'The Handwriting Decoder' } },
+    hands:  { view: 'lab', params: { modelType: 'COMPUTER_VISION' } },   // draw/upload & train (canvas input)
   },
   'Agentic Flow Studio': {
     theory: { content: 'agentic' },
-    demo:   { view: 'agentic', params: { initialView: 'explore', autoLaunchId: 'smart-cafe' } },
-    hands:  { view: 'agentic', params: { initialView: 'workspace' } },
+    demo:   { view: 'agentic', params: { initialView: 'explore' } },          // pre-built scenarios gallery (the 3 cards)
+    hands:  { view: 'agentic', params: { initialView: 'build_wizard' } },     // "What do you want to build?" first
   },
   'AI Ethics Arena': {
     theory: { content: 'ethics' },

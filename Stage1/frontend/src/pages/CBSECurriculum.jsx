@@ -49,7 +49,7 @@ const CBSE = {
   ], map: ['Agentic Flow Studio', 'Computer Vision', 'Data & Analysis', 'AI Ethics Arena'] },
 };
 
-const CBSECurriculum = () => {
+const CBSECurriculum = ({ onOpenLearningFlow }) => {
   const [cls, setCls] = useState('6');
   const c = CBSE[cls];
 
@@ -95,6 +95,18 @@ const CBSECurriculum = () => {
           <span className="lab">Delivered in Sutra by</span>
           {c.map.map(m => <span className="maptag" key={m}>{m}</span>)}
         </div>
+
+        {onOpenLearningFlow && (
+          <div className="cbse-flow-cta">
+            <div>
+              <h3>Ready to learn it?</h3>
+              <p>Jump into your learning flow with just the Class {cls} modules shown — the exact set CBSE places in this class.</p>
+            </div>
+            <button className="btn btn-thread" onClick={() => onOpenLearningFlow(cls, c.map)}>
+              Open learning flow<Ico name="arrowR" w={2.2} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
