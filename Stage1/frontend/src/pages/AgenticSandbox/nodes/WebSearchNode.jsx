@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Globe } from 'lucide-react';
+import NodeResultFooter from './NodeResultFooter';
 
 export default function WebSearchNode({ data }) {
   return (
@@ -8,6 +9,7 @@ export default function WebSearchNode({ data }) {
       <div className="custom-node-header" style={{ color: 'var(--accent-purple)' }}>
         <Globe size={16} /> <span>Safe Web Search</span>
       </div>
+      <NodeResultFooter result={data.__result} />
       <Handle type="source" position={Position.Right} />
     </div>
   );

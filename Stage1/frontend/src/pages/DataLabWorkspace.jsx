@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DataLabCanvas from '../components/workspace/DataLabCanvas';
+import ScenarioPreviewStrip from '../components/workspace/ScenarioPreviewStrip';
 import api from '../api';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -59,6 +60,7 @@ const DataLabWorkspace = ({ onBackToDashboard, modelType, initialCategory, onOpe
                   <div style={{ ...cardIcon, background: `${meta.accent}22` }}>{sc.icon}</div>
                   <h3 style={{ fontSize: '1.35rem', margin: '0 0 8px' }}>{sc.title}</h3>
                   <p style={{ color: '#9aa0b5', lineHeight: 1.55, fontSize: '0.95rem', flex: 1, margin: 0 }}>{sc.challenge}</p>
+                  <ScenarioPreviewStrip title={sc.title} accent={meta.accent} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: meta.accent, fontWeight: 600, marginTop: 16 }}>
                     Collect my own data <ArrowRight size={16} />
                   </div>

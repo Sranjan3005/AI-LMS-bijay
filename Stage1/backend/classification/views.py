@@ -107,6 +107,66 @@ class ClassificationUploadRunView(APIView):
         return Response(result, status=status.HTTP_200_OK)
 
 
+class ClassificationPredictView(APIView):
+    """
+    POST /api/v1/classification/predict/
+    Body: { experiment_id, features: { colName: val } }
+
+    Loads the model the sandbox trained (model_b64) and predicts the class for
+    one new example. Also returns per-class probabilities when the classifier
+    supports them, so students can see how confident it actually is.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        experiment_id = request.data.get('experiment_id')
+        features = request.data.get('features')
+
+        if not experiment_id or not features:
+            return Response({'error': 'experiment_id and features are required.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            experiment = ClassificationExperiment.objects.get(id=experiment_id, student=request.user)
+        except ClassificationExperiment.DoesNotExist:
+            return Response({'error': 'Experiment not found or access denied.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        if not experiment.model_b64:
+            return Response({'error': 'No trained model was saved for this experiment. Re-run the training to enable predictions.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        import base64
+        import joblib
+
+        try:
+            model = joblib.load(io.BytesIO(base64.b64decode(experiment.model_b64)))
+            df = pd.DataFrame([features])
+            pred = model.predict(df)
+
+            result = pred.tolist()
+            if isinstance(result, list) and result:
+                result = result[0]
+                if isinstance(result, list):   # handle [[val]] vs [val]
+                    result = result[0]
+
+            payload = {'prediction': result}
+
+            if hasattr(model, 'predict_proba'):
+                try:
+                    proba = model.predict_proba(df)[0]
+                    classes = [str(c) for c in getattr(model, 'classes_', range(len(proba)))]
+                    payload['probabilities'] = {c: round(float(p) * 100, 1) for c, p in zip(classes, proba)}
+                except Exception:
+                    pass   # probabilities are a bonus, never fail the prediction over them
+
+            return Response(payload, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': 'Prediction failed.', 'details': str(e)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class ClassificationResultsListView(generics.ListAPIView):
     serializer_class   = ClassificationExperimentListSerializer
     permission_classes = [IsAuthenticated]

@@ -8,6 +8,7 @@ export default defineConfig(({ command }) => {
     // Built output is embedded in the main app under /games/chiti/ (see public/games/chiti).
     // Dev server stays at root so `npm run dev` still works normally.
     base: command === 'build' ? '/games/chiti/' : '/',
+    build: { minify: false },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

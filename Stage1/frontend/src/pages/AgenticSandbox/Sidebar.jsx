@@ -1,8 +1,8 @@
 import { 
-  Type, FileText, Camera, 
-  Bot, Minimize2, Smile, Globe, 
-  GitBranch, Merge, 
-  MonitorPlay, BarChart3 
+  Type, FileText, Camera,
+  Bot, Minimize2, Smile, Globe,
+  GitBranch, Merge,
+  MonitorPlay, BarChart3, ScanSearch, Send
 } from 'lucide-react';
 import './AgenticFlow.css';
 
@@ -45,6 +45,7 @@ export default function Sidebar() {
       <div>
         <h4 className="agentic-sidebar-category">Processing (Brains)</h4>
         <DraggableItem type="customizer" label="The Customizer" icon={Bot} colorClass="node-process" points={5} onDragStart={onDragStart} />
+        <DraggableItem type="objectDetection" label="Object Detection" icon={ScanSearch} colorClass="node-process" points={5} onDragStart={onDragStart} />
         <DraggableItem type="summarizer" label="Summarizer" icon={Minimize2} colorClass="node-process" points={5} onDragStart={onDragStart} />
         <DraggableItem type="sentimentRadar" label="Sentiment Radar" icon={Smile} colorClass="node-process" points={5} onDragStart={onDragStart} />
         <DraggableItem type="webSearch" label="Safe Web Search" icon={Globe} colorClass="node-process" points={2} onDragStart={onDragStart} />
@@ -60,6 +61,7 @@ export default function Sidebar() {
         <h4 className="agentic-sidebar-category">Output (Actions)</h4>
         <DraggableItem type="display" label="Screen Display" icon={MonitorPlay} colorClass="node-output" onDragStart={onDragStart} />
         <DraggableItem type="chartGenerator" label="Chart Generator" icon={BarChart3} colorClass="node-output" onDragStart={onDragStart} />
+        <DraggableItem type="messenger" label="Send Message" icon={Send} colorClass="node-output" onDragStart={onDragStart} />
       </div>
     </aside>
   );

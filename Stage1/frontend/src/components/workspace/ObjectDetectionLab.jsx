@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Camera, Image as ImageIcon, Play, Square, Upload, Loader2, ScanEye, Sparkles, AlertTriangle } from 'lucide-react';
-import { loadDetector, detect, COCO_CLASSES } from '../../lib/cv/detector';
+import { loadDetector, detect, HOUSEHOLD_CLASSES } from '../../lib/cv/detector';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -271,9 +271,9 @@ const ObjectDetectionLab = () => {
               A YOLO-style model looks at the <strong>whole picture just once</strong>, splits it into a grid, and for every part guesses
               <em> "is there an object here, and what is it?"</em> — all in a single pass. That's why it's fast enough for live video.
             </p>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 6 }}>It knows 80 everyday things:</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Everyday things it can spot around you:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
-              {COCO_CLASSES.map((c) => {
+              {HOUSEHOLD_CLASSES.map((c) => {
                 const on = detectedClasses.has(c);
                 return (
                   <span key={c} style={{

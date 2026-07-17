@@ -657,11 +657,13 @@ export default function App() {
     };
   }, [isPlaying, playSpeed, activeTab, robotPos, activeLayout, executeRuleStep, executeRlStep]);
 
+  const [canvasNode, setCanvasNode] = useState<HTMLCanvasElement | null>(null);
+
   // ==========================================
   // CANVAS RENDERING CORE ENGINE
   // ==========================================
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = canvasNode;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -874,7 +876,7 @@ export default function App() {
       ctx.font = "bold 11px sans-serif";
       ctx.fillText(impactOverlay.text, tx, ty);
     }
-  }, [robotPos, trail, activeLayout, activeTab, qTable, showQValues, robotMood, impactOverlay, isWall, isPuddle]);
+  }, [canvasNode, robotPos, trail, activeLayout, activeTab, qTable, showQValues, robotMood, impactOverlay, isWall, isPuddle]);
 
   // Handle manual steps
   const triggerStep = () => {
@@ -1105,7 +1107,7 @@ export default function App() {
             <div className="relative mx-auto bg-slate-950 rounded-xl overflow-hidden border border-slate-700 shadow-inner flex justify-center items-center">
               <canvas
                 id="mazeCanvas"
-                ref={canvasRef}
+                ref={setCanvasNode}
                 width={360}
                 height={360}
                 className="block max-w-full aspect-square"

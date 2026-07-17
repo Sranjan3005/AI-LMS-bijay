@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { UploadCloud, Save, Plus, Trash2, CheckCircle, AlertTriangle, Table2, ArrowRight } from 'lucide-react';
 import api from '../../api';
 import { TabularInsights } from './DataInsights';
+import ScenarioImageShowcase, { hasImageShowcase } from './ScenarioImageShowcase';
+import PhotoTrainingLab, { hasPhotoTraining } from './PhotoTrainingLab';
 
 /**
  * TabularDataLab — "collect your own data" for any regression/classification
@@ -12,6 +14,10 @@ import { TabularInsights } from './DataInsights';
 const emptyRow = (cols) => Object.fromEntries(cols.map(c => [c, '']));
 
 const TabularDataLab = ({ scenario, onOpenDemonstration }) => {
+  // Photo-teachable scenarios default to the real (client-side) photo trainer;
+  // the numeric table stays available as the "measured features" view.
+  const canPhoto = hasPhotoTraining(scenario.title);
+  const [mode, setMode] = useState(canPhoto ? 'photos' : 'numbers');
   const [columns, setColumns] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [rows, setRows] = useState([]);
@@ -119,6 +125,26 @@ const TabularDataLab = ({ scenario, onOpenDemonstration }) => {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24, alignItems: 'start' }}>
+      {/* Real sample images for image-flavoured scenarios (renders nothing otherwise) */}
+      <ScenarioImageShowcase scenario={scenario} />
+
+      {/* Photo-teachable scenarios: choose how you want to teach it */}
+      {canPhoto && (
+        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '.85rem' }}>How do you want to teach it?</span>
+          <button onClick={() => setMode('photos')} style={modeBtn(mode === 'photos')}>📷 Teach with real photos</button>
+          <button onClick={() => setMode('numbers')} style={modeBtn(mode === 'numbers')}>🔢 Enter measured features</button>
+        </div>
+      )}
+
+      {canPhoto && mode === 'photos' && (
+        <div style={{ gridColumn: '1 / -1' }}>
+          <PhotoTrainingLab key={scenario.title} scenario={scenario} />
+        </div>
+      )}
+
+      {mode === 'numbers' && (
+      <>
       {/* LEFT — the table */}
       <div style={{ background: 'rgba(10,14,26,0.55)', border: '1px solid var(--glass-border)', borderRadius: 16, padding: 20, minWidth: 0 }}>
         <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -127,6 +153,16 @@ const TabularDataLab = ({ scenario, onOpenDemonstration }) => {
         <p style={{ margin: '0 0 16px', color: 'var(--text-secondary)', fontSize: '.9rem', lineHeight: 1.5 }}>
           One row per example. The last column, <b style={{ color: '#FFCC00' }}>{target}</b>, is what the AI will learn to predict.
         </p>
+
+        {hasImageShowcase(scenario.title) && (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'rgba(0,240,255,0.06)', border: '1px solid rgba(0,240,255,0.28)', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+            <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔬</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '.88rem', lineHeight: 1.55 }}>
+              This view trains on the <b style={{ color: '#fff' }}>features measured from each photo</b> ({columns.slice(0, -1).join(', ')}) — enter the numbers below, or upload a CSV.
+              {canPhoto && <> Want to skip the numbers? <b style={{ color: '#4ade80' }}>Switch to “📷 Teach with real photos”</b> above and train it on actual pictures instead.</>}
+            </span>
+          </div>
+        )}
 
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 120 * columns.length + 84 }}>
@@ -203,8 +239,18 @@ const TabularDataLab = ({ scenario, onOpenDemonstration }) => {
 
       {/* RIGHT — live inference */}
       <TabularInsights rows={rows} columns={columns} modelType={scenario.model_type} scenarioTitle={scenario.title} />
+      </>
+      )}
     </div>
   );
 };
+
+const modeBtn = (on) => ({
+  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999,
+  background: on ? 'rgba(48,209,88,.16)' : 'rgba(255,255,255,.05)',
+  border: `1px solid ${on ? 'rgba(48,209,88,.55)' : 'var(--glass-border)'}`,
+  color: on ? '#4ade80' : 'var(--text-secondary)',
+  fontFamily: 'inherit', fontWeight: 600, fontSize: '.85rem', cursor: 'pointer',
+});
 
 export default TabularDataLab;

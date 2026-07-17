@@ -24,6 +24,7 @@ import SpotTheAI from './pages/AIFoundations/SpotTheAI';
 import CVPlayground from './pages/CVPlayground';
 import ChartDetective from './pages/DataSkills/ChartDetective';
 import ChartPicker from './pages/DataSkills/ChartPicker';
+import TeachTheMachine from './pages/AIFoundations/TeachTheMachine';
 import TermMatch from './pages/DataSkills/TermMatch';
 import AIEthicsHub from './pages/AIEthicsArena/AIEthicsHub';
 import Level1EmotionDetector from './pages/AIEthicsArena/Level1EmotionDetector';
@@ -185,6 +186,10 @@ const AppContent = () => {
 
   if (currentView === 'chart_detective') {
     return <ChartDetective onBack={backToFlow} />;
+  }
+
+  if (currentView === 'teach_machine') {
+    return <TeachTheMachine onBack={backToFlow} />;
   }
 
   if (currentView === 'chart_picker') {

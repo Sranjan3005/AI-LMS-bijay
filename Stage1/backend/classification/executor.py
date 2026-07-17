@@ -72,6 +72,7 @@ def run_experiment(student, scenario_id, variant_name, student_prompt='', upload
         stdout_log     = sandbox_result['stdout'],
         stderr_log     = sandbox_result['stderr'],
         output_image   = sandbox_result['output_image'] or '',
+        model_b64      = sandbox_result.get('model_b64') or '',
         explanation    = explanation,
         data_source    = data_source,
         status         = 'SUCCESS' if sandbox_result['success'] else 'FAILED',

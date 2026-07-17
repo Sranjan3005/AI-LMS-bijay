@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Minimize2 } from 'lucide-react';
+import NodeResultFooter from './NodeResultFooter';
 
 export default function SummarizerNode({ data }) {
   return (
@@ -8,6 +9,7 @@ export default function SummarizerNode({ data }) {
       <div className="custom-node-header" style={{ color: 'var(--accent-purple)' }}>
         <Minimize2 size={16} /> <span>Summarizer</span>
       </div>
+      <NodeResultFooter result={data.__result} />
       <Handle type="source" position={Position.Right} />
     </div>
   );

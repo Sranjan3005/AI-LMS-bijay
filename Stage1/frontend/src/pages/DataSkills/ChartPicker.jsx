@@ -3,15 +3,41 @@ import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from 'recharts';
-import { Upload, Database } from 'lucide-react';
+import { Upload, Database, RotateCcw, Sparkles } from 'lucide-react';
 import DemoFlow from '../../components/sutra/DemoFlow';
 import { parseCsv } from '../../utils/csv';
+import { CHART_TYPES, judgeFit } from '../../utils/chartFit';
+import { GuideProvider, useGuide } from '../../components/guide/GuideProvider';
 import s from '../../components/sutra/DemoFlow.module.css';
+
+// Chiti's script for this page — build a real bar chart, hit a mismatch, repair
+// it into a real scatter, then set the student free. Targets are data-guide attrs.
+const GUIDE_STEPS = [
+  { target: '[data-guide="pick-data"]', mood: 'point',
+    say: "Hi, I'm Chiti! 🤖 This is our tuck-shop data — snacks and how many sold. Let's turn it into charts together!" },
+  { target: '[data-guide="pick-chart"]', mood: 'think', waitFor: 'chart:bar',
+    say: 'These are categories, so a 📊 Bar chart is perfect. Tap Bar and watch it draw!' },
+  { target: '[data-guide="verdict"]', mood: 'cheer',
+    say: 'A perfect bar chart! 🎉 The tallest bar is the best-seller — categories love bars.' },
+  { target: '[data-guide="pick-chart"]', mood: 'think', waitFor: 'chart:scatter',
+    say: 'Now tap ✨ Scatter. Our data has only ONE number column — watch what I do next 👀' },
+  { target: '[data-guide="verdict"]', mood: 'point', waitFor: 'repair-applied',
+    say: 'No scatter yet — it needs TWO numbers! Hit "➕ Add a second number: Cost" and I\'ll invent one for every snack.' },
+  { target: '[data-guide="chart"]', mood: 'cheer',
+    say: "Boom 💥 Every snack is a dot now. This is exactly what an AI model 'sees' when it learns from data!" },
+  { target: null, mood: 'cheer',
+    say: 'You built a bar AND a scatter 🙌 Now explore on your own — try 📈 Line, 🥧 Pie, or upload your own CSV. Tap "Ask Chiti" to bring me back anytime!' },
+];
 
 /**
  * Which chart fits your data? — "Working with Data" hands-on.
  * Pick a built-in dataset or upload a small CSV, choose a chart type,
  * see YOUR data drawn that way, and get rule-based feedback on the fit.
+ *
+ * When a chart CAN'T honestly be drawn (e.g. a scatter on one-number data),
+ * we don't fake it — we explain why and offer a one-click repair (add a
+ * column, group slices, switch chart) so the student watches it start working.
+ * The fit logic lives in utils/chartFit.js so the Data Labs can reuse it.
  */
 
 const COLORS = ['#64D2FF', '#5E5CE6', '#BF5AF2', '#30D158', '#FF9F0A', '#FF453A', '#00C7BE'];
@@ -39,42 +65,6 @@ const BUILTINS = [
       rows: [{ Hours: 1, Marks: 42 }, { Hours: 2, Marks: 55 }, { Hours: 2.5, Marks: 53 }, { Hours: 3, Marks: 64 }, { Hours: 4, Marks: 71 }, { Hours: 5, Marks: 83 }, { Hours: 6, Marks: 88 }, { Hours: 7, Marks: 94 }] },
   },
 ];
-
-const CHART_TYPES = [
-  { id: 'bar', label: '📊 Bar', fit: 'Comparing categories (which is biggest?)' },
-  { id: 'line', label: '📈 Line', fit: 'Change over time (what’s the trend?)' },
-  { id: 'pie', label: '🥧 Pie', fit: 'Parts of a whole (share of 100%)' },
-  { id: 'scatter', label: '✨ Scatter', fit: 'Two numbers, looking for a relationship — the AI favourite' },
-];
-
-// Rule-based feedback: how well does chartType fit the shape of the dataset?
-function judge(chartType, ds) {
-  const { textCols, numericCols, rows } = ds;
-  const hasCat = textCols.length >= 1 && numericCols.length >= 1;
-  const twoNums = numericCols.length >= 2;
-  const looksTime = hasCat && /month|day|date|week|year|time/i.test(textCols[0]);
-  const total = hasCat ? rows.reduce((a, r) => a + (Number(r[numericCols[0]]) || 0), 0) : 0;
-
-  switch (chartType) {
-    case 'bar':
-      if (looksTime) return { ok: false, msg: 'A bar chart works, but your first column looks like TIME — a line chart would show the trend much better.' };
-      if (hasCat) return { ok: true, msg: 'Great fit! Categories + one number = bar chart. Tallest bar wins at a glance.' };
-      return { ok: false, msg: 'You have two number columns — bars need categories to compare. Try a scatter to hunt for a relationship.' };
-    case 'line':
-      if (looksTime) return { ok: true, msg: 'Perfect — time on the X-axis, value on the Y. The line tells the story of change.' };
-      if (hasCat) return { ok: false, msg: 'A line joins your categories as if they were a sequence — but snack names have no order! Bars fit categories better.' };
-      return { ok: false, msg: 'Lines are for ordered data (usually time). For two free numbers, scatter is the honest choice.' };
-    case 'pie':
-      if (hasCat && rows.length <= 6 && total > 0) return { ok: true, msg: `OK fit: few categories forming a whole (total ${total}). But careful — pies get unreadable beyond ~5 slices.` };
-      if (hasCat) return { ok: false, msg: 'Too many slices make a pie unreadable — a bar chart compares these categories much more clearly.' };
-      return { ok: false, msg: 'A pie needs parts-of-a-whole categories. Two number columns want a scatter instead.' };
-    case 'scatter':
-      if (twoNums) return { ok: true, msg: 'Exactly right — two numbers per row, one dot each. If the dots form a slope, the two things are related. This is the chart ML models “see”.' };
-      return { ok: false, msg: 'Scatter needs TWO number columns (like hours & marks). This dataset has only one — bars or a line fit better.' };
-    default:
-      return { ok: false, msg: '' };
-  }
-}
 
 function DataTable({ ds }) {
   return (
@@ -132,36 +122,61 @@ function RenderChart({ type, ds }) {
       </PieChart>
     </ResponsiveContainer>
   );
-  // scatter
+  // scatter — only reached when there are two numeric columns (see chartFit.canRender)
   return (
     <ResponsiveContainer width="100%" height={280}>
       <ScatterChart margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.08)" />
         <XAxis dataKey={nx} name={nx} stroke="#9aa0b5" fontSize={12} type="number" />
-        <YAxis dataKey={ny || nx} name={ny || nx} stroke="#9aa0b5" fontSize={12} type="number" />{tooltip}
+        <YAxis dataKey={ny} name={ny} stroke="#9aa0b5" fontSize={12} type="number" />{tooltip}
         <Scatter data={ds.rows} fill="#BF5AF2" />
       </ScatterChart>
     </ResponsiveContainer>
   );
 }
 
-const ChartPicker = ({ onBack, onOpenDataLab }) => {
+// Shown in place of the chart when the data can't honestly be drawn that way.
+function CantDraw({ chartLabel }) {
+  return (
+    <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, border: '1px dashed rgba(255,159,10,.35)', borderRadius: 12, color: '#ffe9c7', textAlign: 'center', padding: '20px 26px', background: 'rgba(255,159,10,.05)' }}>
+      <span style={{ fontSize: '2.2rem' }}>🚫</span>
+      <div style={{ fontWeight: 600 }}>No {chartLabel.toLowerCase()} to draw — yet.</div>
+      <div style={{ color: '#d8bd93', fontSize: '.9rem', lineHeight: 1.5, maxWidth: 340 }}>
+        This data doesn’t have the shape a {chartLabel.toLowerCase()} needs. See the fix below the chart ↓
+      </div>
+    </div>
+  );
+}
+
+const ChartPickerInner = ({ onBack, onOpenDataLab }) => {
   const [dsId, setDsId] = useState('snacks');
   const [custom, setCustom] = useState(null);
+  const [patched, setPatched] = useState(null);   // repaired dataset override
   const [uploadErr, setUploadErr] = useState('');
   const [chartType, setChartType] = useState(null);
   const fileRef = useRef(null);
+  const { start, signal } = useGuide();
 
   const builtin = BUILTINS.find(b => b.id === dsId);
-  const ds = dsId === 'custom' ? custom : builtin.data;
-  const verdict = chartType && ds ? judge(chartType, ds) : null;
+  const base = dsId === 'custom' ? custom : builtin?.data;
+  const ds = patched || base;
+  const verdict = chartType && ds ? judgeFit(chartType, ds) : null;
+  const chartLabel = chartType ? CHART_TYPES.find(c => c.id === chartType)?.label.replace(/^\S+\s/, '') : '';
+
+  const chooseDataset = (id) => { setDsId(id); setPatched(null); setChartType(null); signal('data-picked'); };
+  const pickChart = (id) => { setChartType(id); signal(`chart:${id}`); };
+
+  const applyRepair = (repair) => {
+    if (repair.toChart) { setChartType(repair.toChart); signal(`chart:${repair.toChart}`); return; }
+    if (repair.apply) { setPatched(repair.apply(ds)); signal('repair-applied'); }
+  };
 
   const onFile = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
     try {
       const parsed = parseCsv(await f.text());
-      setCustom(parsed); setDsId('custom'); setChartType(null); setUploadErr('');
+      setCustom(parsed); setDsId('custom'); setPatched(null); setChartType(null); setUploadErr('');
     } catch (err) {
       setUploadErr(err.message || 'Could not read that file — is it a simple CSV?');
     }
@@ -174,7 +189,7 @@ const ChartPicker = ({ onBack, onOpenDataLab }) => {
       eyebrow="Working with Data · Hands-on"
       accent="#64D2FF"
       title="Which chart fits your data?"
-      lede="Real analysts don't decorate data — they match the chart to the data's shape. Pick a dataset (or upload your own), choose a chart, and see if it fits."
+      lede="Real analysts don't decorate data — they match the chart to the data's shape. Pick a dataset (or upload your own), choose a chart, and see if it fits. When it can't, fix the data and watch it work."
       realLife={[
         { icon: '🧾', title: 'The cheat-sheet', text: 'Categories → bar. Time → line. Share of whole → pie. Two numbers → scatter. That one line runs half of data science.' },
         { icon: '📊', title: 'School projects', text: 'Next science-fair poster: pick the chart from the DATA shape, not from what looks prettiest.' },
@@ -182,13 +197,18 @@ const ChartPicker = ({ onBack, onOpenDataLab }) => {
       ]}
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20, alignItems: 'start' }}>
-        {/* LEFT — data + chart-type controls + verdict */}
+        {/* LEFT — data + chart-type controls */}
         <div className={s.card} style={{ minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 10px' }}>1 · Pick your data</h3>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <h3 style={{ margin: 0 }}>1 · Pick your data</h3>
+            <button className={s.pillBtn} style={{ padding: '6px 12px', fontSize: '.82rem' }} onClick={() => start(GUIDE_STEPS)}>
+              <Sparkles size={13} /> Guide me
+            </button>
+          </div>
+          <div data-guide="pick-data" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10, borderRadius: 12 }}>
             {BUILTINS.map(b => (
               <button key={b.id} className={`${s.pillBtn} ${dsId === b.id ? s.pillOn : ''}`}
-                      onClick={() => { setDsId(b.id); setChartType(null); }}>
+                      onClick={() => chooseDataset(b.id)}>
                 <Database size={14} /> {b.label}
               </button>
             ))}
@@ -197,50 +217,84 @@ const ChartPicker = ({ onBack, onOpenDataLab }) => {
             </button>
             <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onFile} />
           </div>
-          {dsId !== 'custom' && <p className={s.muted} style={{ marginTop: 0, fontSize: '.88rem' }}>{builtin.hint}</p>}
+          {dsId !== 'custom' && !patched && <p className={s.muted} style={{ marginTop: 0, fontSize: '.88rem' }}>{builtin.hint}</p>}
           {uploadErr && <div className={`${s.banner} ${s.bannerWarn}`} style={{ marginTop: 0, marginBottom: 12 }}>⚠️ {uploadErr}</div>}
           {ds ? <DataTable ds={ds} /> : <p className={s.muted}>Upload a small CSV like: <code>Month,Sales</code> then one row per line.</p>}
           {ds?.truncated && <p className={s.muted} style={{ fontSize: '.8rem' }}>Showing the first 200 rows.</p>}
+          {patched && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+              <span style={{ color: '#64D2FF', fontSize: '.85rem' }}>✨ {patched.patchNote}</span>
+              <button className={s.pillBtn} style={{ padding: '5px 12px', fontSize: '.82rem' }} onClick={() => setPatched(null)}>
+                <RotateCcw size={13} /> Reset data
+              </button>
+            </div>
+          )}
 
           {ds && (
             <>
               <h3 style={{ margin: '20px 0 10px' }}>2 · Pick a chart for it</h3>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+              <div data-guide="pick-chart" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, borderRadius: 12 }}>
                 {CHART_TYPES.map(c => (
                   <button key={c.id} className={`${s.pillBtn} ${chartType === c.id ? s.pillOn : ''}`} title={c.fit}
-                          onClick={() => setChartType(c.id)}>
+                          onClick={() => pickChart(c.id)}>
                     {c.label}
                   </button>
                 ))}
               </div>
-
-              {verdict && (
-                <>
-                  <div className={verdict.ok ? s.banner : `${s.banner} ${s.bannerWarn}`}>
-                    {verdict.ok ? '✅ ' : '🤔 '}{verdict.msg}
-                  </div>
-                  {verdict.ok && (
-                    <div style={{ textAlign: 'center', marginTop: 14 }}>
-                      <button className={s.navBtn} onClick={onOpenDataLab}>
-                        Take your data further in the Data Lab →
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
+              <p className={s.muted} style={{ fontSize: '.84rem', marginBottom: 0 }}>
+                See it drawn on the right — with the verdict and, when needed, a one-click fix.
+              </p>
             </>
           )}
         </div>
 
-        {/* RIGHT — YOUR data, drawn */}
-        <div className={s.card} style={{ position: 'sticky', top: 84, minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 12px' }}>Your data, drawn</h3>
-          {ds && chartType ? (
-            <RenderChart type={chartType} ds={ds} />
-          ) : (
-            <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, border: '1px dashed rgba(255,255,255,.15)', borderRadius: 12, color: '#9aa0b5', textAlign: 'center', padding: 20 }}>
-              <span style={{ fontSize: '2.2rem' }}>📊</span>
-              {ds ? 'Pick a chart type on the left and it appears here.' : 'Pick a dataset on the left to get started.'}
+        {/* RIGHT — YOUR data drawn, with the reasoning card BELOW it */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+          <div data-guide="chart" className={s.card} style={{ minWidth: 0 }}>
+            <h3 style={{ margin: '0 0 12px' }}>Your data, drawn</h3>
+            {ds && chartType ? (
+              verdict && verdict.canRender
+                ? <RenderChart type={chartType} ds={ds} />
+                : <CantDraw chartLabel={chartLabel} />
+            ) : (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, border: '1px dashed rgba(255,255,255,.15)', borderRadius: 12, color: '#9aa0b5', textAlign: 'center', padding: 20 }}>
+                <span style={{ fontSize: '2.2rem' }}>📊</span>
+                {ds ? 'Pick a chart type on the left and it appears here.' : 'Pick a dataset on the left to get started.'}
+              </div>
+            )}
+          </div>
+
+          {/* Reasoning card — the "why it fits (or doesn't)" + repair, below the chart */}
+          {verdict && (
+            <div data-guide="verdict" className={s.card} style={{ minWidth: 0 }}>
+              <h3 style={{ margin: '0 0 10px' }}>Why this {verdict.ok ? 'fits' : "doesn't fit"}</h3>
+              <div className={verdict.ok ? s.banner : `${s.banner} ${s.bannerWarn}`} style={{ marginTop: 0 }}>
+                {verdict.ok ? '✅ ' : '🤔 '}{verdict.msg}
+              </div>
+
+              {verdict.repair && (
+                <div style={{ marginTop: 14 }}>
+                  {verdict.repair.note && (
+                    <p className={s.muted} style={{ marginTop: 0, marginBottom: 10, fontSize: '.92rem', lineHeight: 1.55 }}>
+                      💡 {verdict.repair.note}
+                    </p>
+                  )}
+                  <button
+                    className={s.pillBtn}
+                    style={{ background: 'color-mix(in srgb, #64D2FF 20%, transparent)', borderColor: 'color-mix(in srgb, #64D2FF 60%, transparent)', fontSize: '.95rem' }}
+                    onClick={() => applyRepair(verdict.repair)}>
+                    {verdict.repair.label}
+                  </button>
+                </div>
+              )}
+
+              {verdict.ok && (
+                <div style={{ textAlign: 'center', marginTop: 16 }}>
+                  <button className={s.navBtn} onClick={onOpenDataLab}>
+                    Take your data further in the Data Lab →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -248,5 +302,13 @@ const ChartPicker = ({ onBack, onOpenDataLab }) => {
     </DemoFlow>
   );
 };
+
+// Wrap in the guide provider so Chiti can walk students through this page.
+// (Later this provider can live at the App root for platform-wide guides.)
+const ChartPicker = (props) => (
+  <GuideProvider steps={GUIDE_STEPS} autoStartKey="chartPicker">
+    <ChartPickerInner {...props} />
+  </GuideProvider>
+);
 
 export default ChartPicker;

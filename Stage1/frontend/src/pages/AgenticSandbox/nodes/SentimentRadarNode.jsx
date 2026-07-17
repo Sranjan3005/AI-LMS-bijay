@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Smile } from 'lucide-react';
+import NodeResultFooter from './NodeResultFooter';
 
 export default function SentimentRadarNode({ data }) {
   return (
@@ -8,6 +9,7 @@ export default function SentimentRadarNode({ data }) {
       <div className="custom-node-header" style={{ color: 'var(--accent-purple)' }}>
         <Smile size={16} /> <span>Sentiment Radar</span>
       </div>
+      <NodeResultFooter result={data.__result} />
       <Handle type="source" position={Position.Right} />
     </div>
   );

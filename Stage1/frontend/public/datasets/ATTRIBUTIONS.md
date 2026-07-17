@@ -1,0 +1,51 @@
+# Dataset sample images — attributions
+
+Small sample images pulled from Wikimedia Commons for the visual/preview layer.
+All are freely licensed (CC / public domain). This is NOT training data.
+
+- **mushroom/red_poison/01.jpg** — CC0 — Bernard Spragg. NZ from Christchurch, New Zealand — https://commons.wikimedia.org/wiki/File:Amanita_muscaria,_(fly_agaric)_(41266565421).jpg
+- **mushroom/red_poison/02.jpg** — CC BY-SA 4.0 — PatriciaVNes — https://commons.wikimedia.org/wiki/File:Amanita_muscaria,_Fly_Agaric.jpg
+- **mushroom/red_poison/03.jpg** — CC BY 2.0 — Scott Darbey from Canada — https://commons.wikimedia.org/wiki/File:%27Fly_Agaric%27,_Amanita_muscaria_var._muscaria.jpg
+- **mushroom/red_poison/04.jpg** — CC BY-SA 2.0 — Peter D. Tillman from USA — https://commons.wikimedia.org/wiki/File:Amanita_muscaria,_fly_agaric_-_Flickr_-_Pete_Tillman.jpg
+- **mushroom/red_safe/01.jpg** — Public domain — George Chernilevsky — https://commons.wikimedia.org/wiki/File:Lactarius_deliciosus_2010_G1.jpg
+- **mushroom/red_safe/02.jpg** — Public domain — Elisha Mitchell Scientific Society (Chapel Hill, N.C.) North Carolina Academy of — https://commons.wikimedia.org/wiki/File:Journal_of_the_Elisha_Mitchell_Scientific_Society_(IA_journalofelisham3435elis).pdf
+- **mushroom/red_safe/03.jpg** — Public domain — George Chernilevsky — https://commons.wikimedia.org/wiki/File:Edible_fungi_in_basket_2009_G1.jpg
+- **mushroom/red_safe/04.jpg** — Public domain — George Chernilevsky — https://commons.wikimedia.org/wiki/File:Edible_fungi_in_bucket_2011_G1.jpg
+- **mushroom/brown_poison/01.jpg** — CC BY 4.0 — Nikolay Kashpor — https://commons.wikimedia.org/wiki/File:Flammulina_velutipes.Mushrooms_of_Russia.jpg
+- **mushroom/brown_poison/02.jpg** — CC BY-SA 4.0 — Achim Lammerts (Syntaxys) — https://commons.wikimedia.org/wiki/File:2025-11-22_D500-1800_Achim-Lammerts_Agaricales-spec.jpg
+- **mushroom/brown_poison/03.jpg** — Public domain — Peck, Charles H. (Charles Horton), 1833-1917 New York (State). State Botanist — https://commons.wikimedia.org/wiki/File:Annual_report_of_the_State_Botanist_of_the_State_of_New_York_(IA_annualreportofst1894peck).pdf
+- **mushroom/brown_poison/04.jpg** — Public domain — Peck, Charles H. (Charles Horton), 1833-1917 House, Homer D. (Homer Doliver), 18 — https://commons.wikimedia.org/wiki/File:Report_of_the_State_Botanist_(IA_reportofstatebot1912peck).pdf
+- **mushroom/brown_safe/01.jpg** — Public domain — Bernie — https://commons.wikimedia.org/wiki/File:AD2009Sep13_Boletus_edulis_01.jpg
+- **mushroom/brown_safe/02.jpg** — Public domain — George Chernilevsky — https://commons.wikimedia.org/wiki/File:Edible_fungi_in_basket_2012_G1.jpg
+- **mushroom/brown_safe/03.jpg** — CC BY-SA 2.0 — Philip Halling — https://commons.wikimedia.org/wiki/File:Field_mushroom_at_Staunton_on_Wye_-_geograph.org.uk_-_604849.jpg
+- **mushroom/brown_safe/04.jpg** — Public domain — Taylor, Thomas — https://commons.wikimedia.org/wiki/File:Student%27s_hand-book_of_mushrooms_of_America_edible_and_poisonous_(Plate_A)_(9245540075).jpg
+- **trash/good/01.jpg** — CC BY-SA 3.0 de — F. Kesselring, FKuR Willich — https://commons.wikimedia.org/wiki/File:Shampoo_Bottle_made_of_PLA-Blend_Bio-Flex.jpg
+- **trash/good/02.jpg** — CC BY-SA 4.0 — Фарммаш — https://commons.wikimedia.org/wiki/File:%D0%9A%D1%80%D1%8B%D1%88%D0%BA%D0%B0_1.4%D0%BA.jpg
+- **trash/good/03.jpg** — CC BY-SA 4.0 — Benjamin Ikuta — https://commons.wikimedia.org/wiki/File:Glaceau_Smartwater_20oz_bottle.jpg
+- **trash/good/04.jpg** — CC0 — Fourteenzerozero — https://commons.wikimedia.org/wiki/File:Recyclable_finnish_aluminium_can.jpg
+- **trash/good/05.jpg** — CC0 — [Tycho] talk , http://shansov.net — https://commons.wikimedia.org/wiki/File:Compressed_aluminium_cans.jpg
+- **trash/bad/01.jpg** — Public domain — U.S. Fish and Wildlife Service — https://commons.wikimedia.org/wiki/File:Road_damaged_by_debris_due_to_flooding.jpg
+- **trash/bad/02.jpg** — CC BY-SA 4.0 — Kskhh — https://commons.wikimedia.org/wiki/File:Garbage_dump_in_Karachi.jpg
+- **trash/bad/03.jpg** — CC0 — Syced — https://commons.wikimedia.org/wiki/File:Beach_on_Ishigakijima_-_Garbage_from_Japan_and_China_(or_Taiwan).jpg
+- **trash/bad/04.jpg** — CC BY-SA 2.0 — Robin Stott — https://commons.wikimedia.org/wiki/File:Heathfield_landfill_site_(3-7)_-_geograph.org.uk_-_1742250.jpg
+- **trash/bad/05.jpg** — Public domain — Bledsoe, Denise United States. Department of Agriculture. Natural Resource Econo — https://commons.wikimedia.org/wiki/File:Sanitary_landfill_as_a_land_use_(IA_CAT77684031).pdf
+- **signs/01.png** — Public domain — first upload: Cfaerber; new upload with original datas by Mediatus — https://commons.wikimedia.org/wiki/File:Zeichen_131_-_Lichtzeichenanlage,_StVO_1970.svg
+- **signs/02.png** — Public domain — MarianSigler {bla}, Mediatus — https://commons.wikimedia.org/wiki/File:Zeichen_125_-_Gegenverkehr,_StVO_1992.svg
+- **signs/03.png** — Public domain — first version: Andreas 06; nach den authentischen Vorgaben 2017 komplett neu gez — https://commons.wikimedia.org/wiki/File:Zeichen_103-20_-_Kurve_(rechts),_StVO_1992.svg
+- **signs/04.png** — Public domain — vectorized by — https://commons.wikimedia.org/wiki/File:Zeichen_124_-_Stau,_StVO_1992.svg
+- **signs/05.png** — Public domain — Andreas 06 and Chris828; nach den offiziellen Vorgaben 2017 neu interpretiert un — https://commons.wikimedia.org/wiki/File:Zeichen_353_-_Einbahnstra%C3%9Fe_(600x600),_StVO_1992.svg
+- **wildlife/endangered/01.jpg** — CC BY-SA 4.0 — Stephenekka — https://commons.wikimedia.org/wiki/File:Panthera_tigris_tigris_Tidoba_20150306.jpg
+- **wildlife/endangered/02.jpg** — CC BY-SA 4.0 — Charles J. Sharp — https://commons.wikimedia.org/wiki/File:Bengal_tiger_(Panthera_tigris_tigris)_female_3.jpg
+- **wildlife/endangered/03.jpg** — CC BY-SA 4.0 — Rohitjahnavi — https://commons.wikimedia.org/wiki/File:Wild_Asian_Elephant_feeding_DSCN1057_02.jpg
+- **wildlife/endangered/04.jpg** — CC BY-SA 4.0 — Rohitjahnavi — https://commons.wikimedia.org/wiki/File:Wild_Asian_Elephant_feeding_DSCN1057_03.jpg
+- **wildlife/common/01.jpg** — CC BY-SA 3.0 — Von.grzanka — https://commons.wikimedia.org/wiki/File:Felis_catus-cat_on_snow.jpg
+- **wildlife/common/02.jpg** — CC BY 2.0 fr — Dimitri “Diti” Torterat — https://commons.wikimedia.org/wiki/File:Tired_20-year-old_cat.jpg
+- **wildlife/scene/01.jpg** — CC BY-SA 4.0 — Garst, Warren, 1922-2016, photographer — https://commons.wikimedia.org/wiki/File:Plains_zebra_standing_close_up_-_DPLA_-_5a17abfc936af2a7cad34115b462e9a3.jpg
+- **wildlife/scene/02.jpg** — CC BY-SA 2.0 — Bernard DUPONT from FRANCE — https://commons.wikimedia.org/wiki/File:African_Elephants(Loxodonta_africana)_surrounding_an_African_Buffalo_(Syncerus_caffer)_old_bull_at_waterhole_..._(46331644605).jpg
+- **wildlife/scene/03.jpg** — CC BY-SA 2.0 — Martin Addison — https://commons.wikimedia.org/wiki/File:Herd_of_Cows_-_geograph.org.uk_-_196650.jpg
+- **handwriting/01.jpg** — Public domain — Bonaparte, Charles Lucian, 1803-1857 Baird, Spencer Fullerton, 1823-1887, former — https://commons.wikimedia.org/wiki/File:Iconografia_della_fauna_italica_-_per_le_quattro_classi_degli_animali_vertebrati_(IA_IconografiadellIIBona).pdf
+- **handwriting/02.jpg** — Public domain — Bonaparte, Charles Lucian, 1803-1857 Baird, Spencer Fullerton, 1823-1887, former — https://commons.wikimedia.org/wiki/File:Iconografia_della_fauna_italica_-_per_le_quattro_classi_degli_animali_vertebrati_(IA_Iconografiadellt2c1Bona).pdf
+- **handwriting/03.jpg** — Public domain — Grother, Patrick J. Candela, Gerald T. — https://commons.wikimedia.org/wiki/File:Comparison_of_handprinted_digit_classifiers_(IA_comparisonofhand5209grot).pdf
+- **edge/01.jpg** — CC BY-SA 3.0 — Jürgen Matern — https://commons.wikimedia.org/wiki/File:Reichstag_building_Berlin_view_from_west_before_sunset.jpg
+- **edge/02.jpg** — CC BY-SA 4.0 — Martin Falbisoner — https://commons.wikimedia.org/wiki/File:Umeda_Sky_Building,_Osaka,_November_2016_-02.jpg
+- **edge/03.jpg** — CC BY-SA 4.0 — Basile Morin — https://commons.wikimedia.org/wiki/File:Lighted_polyhedral_building_Louis_Vuitton_in_Singapore.jpg

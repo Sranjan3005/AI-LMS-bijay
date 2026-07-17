@@ -1,5 +1,6 @@
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { Bot } from 'lucide-react';
+import NodeResultFooter from './NodeResultFooter';
 
 export default function CustomizerNode({ id, data }) {
   const { updateNodeData } = useReactFlow();
@@ -21,6 +22,7 @@ export default function CustomizerNode({ id, data }) {
         value={data.prompt || ''}
         onChange={handleChange}
       />
+      <NodeResultFooter result={data.__result} />
       <Handle type="source" position={Position.Right} />
     </div>
   );

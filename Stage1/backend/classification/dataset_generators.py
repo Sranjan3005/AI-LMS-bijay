@@ -157,9 +157,14 @@ def spam_catcher_sarcasm() -> bytes:
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 3. THE SMART TRASH CAN
-# Features: material_code, is_wet, is_crushed, weight_g
+# Features: material_code, is_wet, is_crushed, size_cm
 # Label: Recycle (0) / Compost (1) / Trash (2)
 # material_code: plastic=0, paper=1, food=2, metal=3
+#
+# NOTE: every feature here must be readable BY A CAMERA — the scenario's whole
+# story is "show the bin your waste". (This used to carry weight_g, which a
+# camera cannot possibly measure; size_cm is the honest stand-in, since a camera
+# can estimate an object's apparent size from its bounding box.)
 # ═══════════════════════════════════════════════════════════════════════════
 
 def smart_trash_can_pristine() -> bytes:
@@ -167,13 +172,13 @@ def smart_trash_can_pristine() -> bytes:
     records = []
     # Clean, predictable data
     for _ in range(80):
-        records.append([0, 0, 0, rng.uniform(10, 50),  0])   # Dry plastic → Recycle
-        records.append([1, 0, 0, rng.uniform(5, 30),   0])   # Dry paper → Recycle
-        records.append([2, 1, 0, rng.uniform(50, 200), 1])   # Wet food → Compost
-        records.append([3, 0, 0, rng.uniform(20, 100), 0])   # Metal → Recycle
+        records.append([0, 0, 0, rng.uniform(10, 30), 0])   # Dry plastic bottle → Recycle
+        records.append([1, 0, 0, rng.uniform(5, 25),  0])   # Dry paper → Recycle
+        records.append([2, 1, 0, rng.uniform(4, 18),  1])   # Wet food → Compost
+        records.append([3, 0, 0, rng.uniform(8, 16),  0])   # Metal can → Recycle
     rng.shuffle(records)
-    df = pd.DataFrame(records[:200], columns=['material_code', 'is_wet', 'is_crushed', 'weight_g', 'label'])
-    df['weight_g'] = df['weight_g'].round(1)
+    df = pd.DataFrame(records[:200], columns=['material_code', 'is_wet', 'is_crushed', 'size_cm', 'label'])
+    df['size_cm'] = df['size_cm'].round(1)
     return _to_csv_bytes(df)
 
 
@@ -182,12 +187,12 @@ def smart_trash_can_realworld() -> bytes:
     rng = np.random.default_rng(seed=301)
     records = []
     for _ in range(50):
-        records.append([1, 1, 0, rng.uniform(5, 30),   2])   # Wet/greasy paper → Trash
-        records.append([0, 0, 1, rng.uniform(10, 50),  0])   # Crushed plastic → still Recycle
-        records.append([2, 1, 0, rng.uniform(50, 200), 1])   # Food → Compost
-        records.append([1, 0, 0, rng.uniform(5, 30),   0])   # Dry paper → Recycle
-    df = pd.DataFrame(records, columns=['material_code', 'is_wet', 'is_crushed', 'weight_g', 'label'])
-    df['weight_g'] = df['weight_g'].round(1)
+        records.append([1, 1, 0, rng.uniform(5, 25),  2])   # Wet/greasy paper → Trash
+        records.append([0, 0, 1, rng.uniform(6, 20),  0])   # Crushed plastic → still Recycle
+        records.append([2, 1, 0, rng.uniform(4, 18),  1])   # Food → Compost
+        records.append([1, 0, 0, rng.uniform(5, 25),  0])   # Dry paper → Recycle
+    df = pd.DataFrame(records, columns=['material_code', 'is_wet', 'is_crushed', 'size_cm', 'label'])
+    df['size_cm'] = df['size_cm'].round(1)
     return _to_csv_bytes(df.sample(frac=1, random_state=6).reset_index(drop=True))
 
 
@@ -197,12 +202,12 @@ def smart_trash_can_biased() -> bytes:
     # 170 plastic recycle, 15 compost, 15 trash
     records = []
     for _ in range(170):
-        records.append([0, 0, 0, rng.uniform(10, 50), 0])   # Plastic → Recycle
+        records.append([0, 0, 0, rng.uniform(10, 30), 0])   # Plastic → Recycle
     for _ in range(15):
-        records.append([2, 1, 0, rng.uniform(50, 200), 1])  # Food → Compost
-        records.append([1, 1, 0, rng.uniform(5, 30),   2])  # Greasy paper → Trash
-    df = pd.DataFrame(records, columns=['material_code', 'is_wet', 'is_crushed', 'weight_g', 'label'])
-    df['weight_g'] = df['weight_g'].round(1)
+        records.append([2, 1, 0, rng.uniform(4, 18), 1])    # Food → Compost
+        records.append([1, 1, 0, rng.uniform(5, 25), 2])    # Greasy paper → Trash
+    df = pd.DataFrame(records, columns=['material_code', 'is_wet', 'is_crushed', 'size_cm', 'label'])
+    df['size_cm'] = df['size_cm'].round(1)
     return _to_csv_bytes(df.sample(frac=1, random_state=7).reset_index(drop=True))
 
 

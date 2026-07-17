@@ -47,6 +47,7 @@ export const FLOW = {
     theory: { view: 'computer_vision_lesson' },
     demo:   { view: 'cv_playground' },       // in-browser object detection / edges / digit reader
     hands:  { view: 'lab', params: { modelType: 'COMPUTER_VISION' } },   // draw/upload & train (canvas input)
+    hands2: { view: 'teach_machine' },       // few-shot transfer learning: 6 photos, webcam/upload, live predict
   },
   'Agentic Flow Studio': {
     theory: { content: 'agentic' },

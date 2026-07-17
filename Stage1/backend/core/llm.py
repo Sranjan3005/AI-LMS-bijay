@@ -40,6 +40,9 @@ _SYSTEM_CONTEXT = {
         "- Read data from /app/data/input.csv using pandas\n"
         "- The last column is always the target label\n"
         "- Train a classifier (prefer DecisionTreeClassifier or GaussianNB from scikit-learn)\n"
+        "- Train on ALL feature columns (every column except the last) so the saved "
+        "model accepts the same columns for later predictions\n"
+        "- Save the trained model to /app/data/model.pkl using joblib\n"
         "- Save a confusion matrix plot to /app/data/output.jpg using matplotlib\n"
         "- Print accuracy, a classification report to stdout\n"
         "Use clear variable names suitable for a 12-14 year old. "
@@ -128,7 +131,10 @@ def generate_code(
         user_message += f"Student's additional instruction: {student_prompt}\n"
 
     # Create a unique hash based on all inputs
-    cache_string = f"code_v3_{model_type}_{scenario_title}_{variant_label}_{student_prompt}_{data_columns}"
+    # NOTE: bump this version whenever the system prompts above change — the
+    # prompt itself is not part of the key, so stale code would be served for
+    # 30 days otherwise. (v4: classification now saves model.pkl for predictions.)
+    cache_string = f"code_v4_{model_type}_{scenario_title}_{variant_label}_{student_prompt}_{data_columns}"
     cache_key = hashlib.md5(cache_string.encode('utf-8')).hexdigest()
     
     # Check cache first

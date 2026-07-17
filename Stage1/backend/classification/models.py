@@ -31,6 +31,9 @@ class ClassificationExperiment(models.Model):
     stderr_log     = models.TextField(blank=True)
     output_image   = models.TextField(blank=True)
     explanation    = models.TextField(blank=True)
+    # base64 of the sandbox's model.pkl — lets students predict on new inputs
+    # after training (same mechanism as RegressionExperiment.model_b64).
+    model_b64      = models.TextField(blank=True)
 
     data_source  = models.CharField(max_length=20, choices=DATA_SOURCE_CHOICES, default='PRELOADED')
     uploaded_csv = models.FileField(upload_to='uploads/classification/', null=True, blank=True)

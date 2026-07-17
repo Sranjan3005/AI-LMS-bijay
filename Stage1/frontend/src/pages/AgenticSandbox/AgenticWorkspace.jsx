@@ -22,6 +22,20 @@ const WS_ORIGIN = API_BASE_URL
   .replace(/\/api\/v1\/?$/, ''); // strip the REST path, keep scheme+host
 
 import Sidebar from './Sidebar';
+import WildlifeExecutionAnimation from './WildlifeExecutionAnimation';
+import FakeNewsExecutionAnimation from './FakeNewsExecutionAnimation';
+import { GuideProvider } from '../../components/guide/GuideProvider';
+import { loadDetector, detect } from '../../lib/cv/detector';
+
+// Chiti's walkthrough of the agentic canvas — explains the pipeline, then guides
+// the run order: Save → Run → read results → See it in action.
+const AGENTIC_STEPS = [
+  { target: '[data-guide="canvas"]', mood: 'point', say: "Hi, I'm Chiti! 🤖 This is your AI pipeline. Each block is a NODE that does one job, and data flows left → right along the arrows." },
+  { target: '[data-guide="save"]', mood: 'think', say: 'Step 1 — Save your workflow so the computer can run it.' },
+  { target: '[data-guide="run"]', mood: 'think', say: 'Step 2 — hit “Test Pipeline”. Your data now travels through every node, one by one.' },
+  { target: '[data-guide="run"]', mood: 'point', say: 'Step 3 — the results stream into the log panel that pops up here. Each node reports what it did, and the final answer lands in the Display node.' },
+  { target: '[data-guide="canvas"]', mood: 'cheer', say: "That's it — you built and ran an AI pipeline! 🎉 For camera flows like the Wildlife Drone, a “See it in action” button also appears so you can watch it play out visually." },
+];
 
 // Input
 import TextInputNode from './nodes/TextInputNode';
@@ -29,6 +43,7 @@ import DocumentReaderNode from './nodes/DocumentReaderNode';
 import VisionScannerNode from './nodes/VisionScannerNode';
 // Processing
 import CustomizerNode from './nodes/CustomizerNode';
+import ObjectDetectionNode from './nodes/ObjectDetectionNode';
 import SummarizerNode from './nodes/SummarizerNode';
 import SentimentRadarNode from './nodes/SentimentRadarNode';
 import WebSearchNode from './nodes/WebSearchNode';
@@ -38,6 +53,7 @@ import MergerNode from './nodes/MergerNode';
 // Output
 import DisplayNode from './nodes/DisplayNode';
 import ChartGeneratorNode from './nodes/ChartGeneratorNode';
+import MessengerNode from './nodes/MessengerNode';
 
 // Register all custom nodes
 const nodeTypes = {
@@ -45,6 +61,7 @@ const nodeTypes = {
   documentReader: DocumentReaderNode,
   visionScanner: VisionScannerNode,
   customizer: CustomizerNode,
+  objectDetection: ObjectDetectionNode,
   summarizer: SummarizerNode,
   sentimentRadar: SentimentRadarNode,
   webSearch: WebSearchNode,
@@ -52,18 +69,46 @@ const nodeTypes = {
   merger: MergerNode,
   display: DisplayNode,
   chartGenerator: ChartGeneratorNode,
+  messenger: MessengerNode,
 };
 
 const initialNodes = [];
 let id = 0;
 const getId = () => `node_${id++}`;
 
+// Drop any edge whose source/target node is missing — prevents "broken" edges
+// left dangling after a node is removed (in a template or a saved workflow).
+const pruneEdges = (nodes, edges) => {
+  const ids = new Set((nodes || []).map((n) => n.id));
+  return (edges || []).filter((e) => ids.has(e.source) && ids.has(e.target));
+};
+
+// Guarantee every Object-Detection node with an image has real client-side
+// detections before we save/run. The detector is async, so we AWAIT it here
+// rather than relying on the user to wait for the on-node chips to appear.
+async function ensureDetections(nodes) {
+  const pending = nodes.filter((n) => n.type === 'objectDetection' && n.data?.fileBase64 && !Array.isArray(n.data?.detections));
+  if (!pending.length) return nodes;
+  try { await loadDetector(); } catch { return nodes; }
+  const results = {};
+  for (const n of pending) {
+    try {
+      const img = new Image();
+      img.src = n.data.fileBase64;
+      await img.decode();
+      const preds = await detect(img, 20, null); // all coco classes (incl. animals)
+      results[n.id] = preds.map((p) => ({ label: p.class, score: Math.round(p.score * 100) }));
+    } catch { results[n.id] = []; }
+  }
+  return nodes.map((n) => (results[n.id] ? { ...n, data: { ...n.data, detections: results[n.id] } } : n));
+}
+
 function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
   const reactFlowWrapper = useRef(null);
   const { getNodes, getEdges, screenToFlowPosition } = useReactFlow();
   
   const [nodes, setNodes, onNodesChange] = useNodesState(presetFlow?.nodes || initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(presetFlow?.edges || []);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(pruneEdges(presetFlow?.nodes, presetFlow?.edges));
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [workflowName, setWorkflowName] = useState(presetFlow?.name || 'My Awesome Flow');
   const [workflowId, setWorkflowId] = useState(null);
@@ -72,6 +117,9 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiExplanation, setAiExplanation] = useState(null);
   const [dailyPoints, setDailyPoints] = useState(null);
+  const [showWildlife, setShowWildlife] = useState(false);
+  const [showFakeNews, setShowFakeNews] = useState(false);
+  const [hasRunResult, setHasRunResult] = useState(false);
   
   useEffect(() => {
     // Fetch user points on load
@@ -127,8 +175,11 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Make sure any Object-Detection node has run its detector before saving.
+      const nodes = await ensureDetections(getNodes());
+      setNodes(nodes);
       const flowData = {
-        nodes: getNodes(),
+        nodes,
         edges: getEdges(),
       };
       
@@ -161,7 +212,7 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
     try {
       const res = await api.post('/agentic/workflows/generate_flow/', { prompt: presetFlow.userPrompt });
       setNodes(res.data.nodes || []);
-      setEdges(res.data.edges || []);
+      setEdges(pruneEdges(res.data.nodes, res.data.edges));
       setAiExplanation(res.data.explanation || 'Flow generated successfully!');
       // Re-fetch quota since 30 points were deducted
       api.get('/agentic/quota/').then(res => setDailyPoints(res.data.daily_points));
@@ -181,7 +232,9 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
     setIsRunning(true);
     setShowLogs(true);
     setLogs([]); // Clear previous logs
-    
+    // Reset per-node execution visuals from any previous run
+    setNodes((nds) => nds.map((node) => ({ ...node, style: { ...node.style, boxShadow: undefined, border: undefined }, data: { ...node.data, __result: undefined } })));
+
     try {
       // Connect to WebSocket using the Django Channels endpoint (env-derived origin)
       const wsUrl = `${WS_ORIGIN}/ws/agentic/${workflowId}/`;
@@ -205,10 +258,27 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
             }));
         }
 
+        // LIVE per-node result: light up the node green and show its output snippet
+        if (data.status === 'node_done' && data.node_id) {
+          const nid = data.node_id;
+          const out = data.output && data.output[nid];
+          const snippet = out == null ? '' : (typeof out === 'string' ? out : JSON.stringify(out));
+          setNodes((nds) => nds.map((node) => node.id === nid ? {
+            ...node,
+            style: { ...node.style, boxShadow: '0 0 14px rgba(48,209,88,.65)', border: '2px solid #30D158' },
+            data: {
+              ...node.data,
+              __result: snippet,
+              ...((node.type === 'display' || node.type === 'chartGenerator') && snippet ? { output: snippet } : {}),
+            },
+          } : node));
+        }
+
         // If execution is finished, re-enable the Run button and inject output into the Display Node
         if (data.status === 'completed' || data.status === 'failed') {
           setIsRunning(false);
-          
+          if (data.status === 'completed') setHasRunResult(true);
+
           // Re-fetch points
           api.get('/agentic/quota/').then(res => setDailyPoints(res.data.daily_points));
 
@@ -297,6 +367,11 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
   );
 
   return (
+    <GuideProvider
+      steps={presetFlow?.guide?.length ? presetFlow.guide : AGENTIC_STEPS}
+      autoStartKey={isExploreMode ? `agentic-${presetFlow?.id || 'default'}` : undefined}
+      launcherStyle={{ top: 74, bottom: 'auto', right: 24 }}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
       {/* Top Bar */}
       <div className="agentic-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'rgba(15, 17, 26, 0.95)', borderBottom: '1px solid var(--glass-border)' }}>
@@ -353,7 +428,7 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
             </button>
           )}
 
-          <button className="btn-secondary" onClick={handleSave} disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button data-guide="save" className="btn-secondary" onClick={handleSave} disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Save size={16} /> {isSaving ? 'Saving...' : 'Save'}
           </button>
           
@@ -389,7 +464,7 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
 
       <div className="agentic-container" style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <Sidebar />
-        <div className="agentic-canvas-wrapper" ref={reactFlowWrapper} style={{ flex: 1, height: '100%', position: 'relative' }}>
+        <div data-guide="canvas" className="agentic-canvas-wrapper" ref={reactFlowWrapper} style={{ flex: 1, height: '100%', position: 'relative' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -453,11 +528,49 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
           </div>
         )}
 
+        {/* End-product demo — appears for vision/drone flows, but only becomes
+            clickable AFTER a pipeline run has produced a result, so students see
+            it as the visualised outcome of their own flow. */}
+        {(() => {
+          const hasVision = nodes.some((n) => n.type === 'objectDetection' || n.type === 'visionScanner');
+          const hasTextCheck = !hasVision && nodes.some((n) => n.type === 'webSearch');
+          return (hasVision || hasTextCheck) && (
+          <button
+            data-guide="demo"
+            onClick={() => hasRunResult && (hasVision ? setShowWildlife(true) : setShowFakeNews(true))}
+            disabled={!hasRunResult}
+            title={hasRunResult ? 'Watch the pipeline execute visually' : 'Save & run the pipeline first — then watch it in action'}
+            style={{
+              position: 'fixed', bottom: '84px', right: '30px', zIndex: 150,
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 22px',
+              fontSize: '1rem', borderRadius: '30px', border: '1px solid rgba(100,210,255,.4)',
+              cursor: hasRunResult ? 'pointer' : 'not-allowed', color: '#fff', fontFamily: 'inherit', fontWeight: 600,
+              background: 'linear-gradient(135deg,#5e5ce6,#bf5af2)', boxShadow: '0 10px 25px rgba(94,92,230,.4)',
+              opacity: hasRunResult ? 1 : 0.45,
+            }}
+          >
+            🎬 See it in action
+          </button>
+          );
+        })()}
+
+        {showWildlife && (
+          <WildlifeExecutionAnimation
+            onClose={() => setShowWildlife(false)}
+            initialImage={nodes.find((n) => (n.type === 'objectDetection' || n.type === 'visionScanner') && n.data?.fileBase64)?.data?.fileBase64}
+          />
+        )}
+
+        {showFakeNews && (
+          <FakeNewsExecutionAnimation onClose={() => setShowFakeNews(false)} nodes={nodes} />
+        )}
+
         {/* Floating Run Button */}
-        <button 
-          className="btn-primary" 
-          onClick={handleRun} 
-          disabled={isRunning} 
+        <button
+          data-guide="run"
+          className="btn-primary"
+          onClick={handleRun}
+          disabled={isRunning}
           style={{ 
             position: 'fixed', 
             bottom: '30px', 
@@ -506,6 +619,7 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
         )}
       </div>
     </div>
+    </GuideProvider>
   );
 }
 

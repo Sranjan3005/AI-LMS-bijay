@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import DataCanvas from '../components/workspace/DataCanvas';
 import ResultsOverlay from '../components/workspace/ResultsOverlay';
 import CVPipelineOverlay from '../components/workspace/CVPipelineOverlay';
+import ScenarioPreviewStrip from '../components/workspace/ScenarioPreviewStrip';
 import api from '../api';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -134,6 +135,7 @@ const LabWorkspace = ({ onBackToDashboard, modelType, initialCategory, initialSc
                   <div style={{ ...cardIcon, background: `${meta.accent}22` }}>{sc.icon}</div>
                   <h3 style={{ fontSize: '1.35rem', margin: '0 0 8px' }}>{sc.title}</h3>
                   <p style={{ color: '#9aa0b5', lineHeight: 1.55, fontSize: '0.95rem', flex: 1, margin: 0 }}>{sc.challenge}</p>
+                  <ScenarioPreviewStrip title={sc.title} accent={meta.accent} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: meta.accent, fontWeight: 600, marginTop: 16 }}>
                     Start this scenario <ArrowRight size={16} />
                   </div>

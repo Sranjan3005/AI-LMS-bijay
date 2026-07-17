@@ -6,6 +6,9 @@ import Plot from 'react-plotly.js';
 import api from '../../api';
 import trainingVideo from '../../assets/training_video.mp4';
 import DrawingCanvas from './DrawingCanvas';
+import ScenarioImageShowcase, { hasImageShowcase } from './ScenarioImageShowcase';
+import PhotoPredictPanel from './PhotoPredictPanel';
+import { hasPhotoTraining } from './PhotoTrainingLab';
 import { runDigitPipeline } from '../../lib/cv/digit';
 import { runEdgePipeline } from '../../lib/cv/edge';
 import { runOcrPipeline } from '../../lib/cv/ocr';
@@ -74,6 +77,7 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
   }, [animationStep]);
 
   const isCV = scenario?.model_type === 'COMPUTER_VISION';
+  const isImageShowcase = hasImageShowcase(scenario?.title);
 
   const runCvPrediction = async () => {
     if (!cvInputImage) { alert('Please draw something on the canvas first!'); return; }
@@ -519,7 +523,11 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                   
                   {/* Graph Area / Sample-data Area */}
                   <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
-                    {isCV ? (
+                    {isImageShowcase ? (
+                      <div style={{ width: '100%' }}>
+                        <ScenarioImageShowcase scenario={scenario} variant={selectedVariant} />
+                      </div>
+                    ) : isCV ? (
                       <div style={{ padding: '10px 0 4px', width: '100%' }}>
                         <h3 style={{ fontSize: '1.3rem', color: 'white', textAlign: 'center', marginBottom: '18px' }}>What this data looks like</h3>
                         <CVSampleGallery scenario={scenario} />
@@ -838,6 +846,9 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                       </div>
                     ) : (
                       <>
+                        {/* Photo-capable scenarios: test with a real picture using the vision model */}
+                        {hasPhotoTraining(scenario.title) && <PhotoPredictPanel scenario={scenario} />}
+
                         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
                           {featureCols.map(col => (
                             <input 

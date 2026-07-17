@@ -25,13 +25,7 @@ export async function loadDetector(onProgress) {
   return _modelPromise;
 }
 
-/** Detect objects in a video/image/canvas element. Returns [{bbox:[x,y,w,h], class, score}]. */
-export async function detect(el, maxObjects = 20) {
-  const model = await loadDetector();
-  return model.detect(el, maxObjects);
-}
-
-/** The 80 COCO classes coco-ssd can recognise (for the teaching panel). */
+/** The 80 COCO classes coco-ssd can recognise. */
 export const COCO_CLASSES = [
   'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
   'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
@@ -44,3 +38,30 @@ export const COCO_CLASSES = [
   'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator',
   'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush',
 ];
+
+/**
+ * The practical classroom/household subset of COCO we surface to students —
+ * things actually likely to appear on a webcam at a desk or at home. We drop
+ * vehicles (bus/train/truck…), outdoor/traffic objects, big animals and sports
+ * gear. NOTE: coco-ssd is fixed to the 80 COCO classes, so we can only *filter*
+ * this list — items outside COCO (e.g. "pen", "eraser") can't be added without
+ * swapping in a different model.
+ */
+export const HOUSEHOLD_CLASSES = [
+  'person', 'backpack', 'umbrella', 'handbag', 'tie', 'bottle', 'cup', 'fork', 'knife',
+  'spoon', 'bowl', 'banana', 'apple', 'orange', 'chair', 'couch', 'potted plant',
+  'dining table', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'book',
+  'clock', 'vase', 'scissors', 'teddy bear', 'toothbrush', 'cat', 'dog',
+];
+const HOUSEHOLD_SET = new Set(HOUSEHOLD_CLASSES);
+
+/**
+ * Detect objects in a video/image/canvas element.
+ * Returns [{bbox:[x,y,w,h], class, score}], filtered to `allowed` classes
+ * (defaults to the classroom/household set; pass null to get all 80).
+ */
+export async function detect(el, maxObjects = 20, allowed = HOUSEHOLD_SET) {
+  const model = await loadDetector();
+  const preds = await model.detect(el, maxObjects);
+  return allowed ? preds.filter((p) => allowed.has(p.class)) : preds;
+}
