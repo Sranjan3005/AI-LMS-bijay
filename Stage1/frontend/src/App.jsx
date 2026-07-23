@@ -10,6 +10,10 @@ import ProfilePage from './pages/ProfilePage';
 import ExplainerPage from './pages/ExplainerPage';
 import AssignmentsView from './pages/AssignmentsView';
 import SchoolAdminPanel from './pages/SchoolAdminPanel';
+import ParentReport from './pages/ParentReport';
+import CaseFile from './components/story/CaseFile';
+import StoryBeat from './components/story/StoryBeat';
+import { subTarget } from './content/flowTargets';
 import { EXPLAINERS } from './content/explainers';
 import LabWorkspace from './pages/LabWorkspace';
 import DataLabWorkspace from './pages/DataLabWorkspace';
@@ -47,6 +51,12 @@ const AppContent = () => {
   const [lastModule, setLastModule] = useState(null);        // module to re-open on return to home
   const [viewParams, setViewParams] = useState({});          // deep-link props for the current view
   const [classFilter, setClassFilter] = useState(null);      // { cls, modules } — CBSE "Open learning flow" filter
+  const [caseFileModule, setCaseFileModule] = useState(null); // module whose case file is open
+  const [storyCtx, setStoryCtx] = useState(null);            // { moduleTitle, subType, m } for the StoryBeat reveal
+  const [activity, setActivity] = useState({});              // {module_key: [subtypes opened]} — for case file / story beat
+
+  const refreshActivity = () => api.get('/assignments/activity/').then((r) => setActivity(r.data || {})).catch(() => {});
+  useEffect(() => { if (user && !user.is_staff && user.role !== 'school_admin') refreshActivity(); }, [user]);
 
   // Opening a new full-page view should start at the top, not wherever the
   // previous (e.g. scrolled-down dashboard) view left the window.
@@ -77,48 +87,71 @@ const AppContent = () => {
   // Open a real module workspace from the Sutra learning flow.
   const openModule = (key) => {
     const labCats = { regression: 'REGRESSION', classification: 'CLASSIFICATION', neural: 'NEURAL_NETWORK', vision: 'COMPUTER_VISION' };
+    setReturnView('dashboard');   // opening a module's own workspace → Back goes home
     if (key === 'agentic') { setViewParams({}); setCurrentView('agentic'); }
     else if (key === 'ethics') { setViewParams({}); setCurrentView('ethics_hub'); }
     else if (labCats[key]) { setViewParams({ modelType: labCats[key] }); setCurrentView('lab'); }
   };
 
+  // Open a module's case file (the in-story intro that lists its chapters).
+  const openCaseFile = (m) => { refreshActivity(); setCaseFileModule(m); window.scrollTo(0, 0); setCurrentView('casefile'); };
+
+  // Open one chapter as part of the story flow: its Back returns to a StoryBeat
+  // reveal (via returnView) instead of dumping the student on the dashboard.
+  const openChapter = (m, subType) => {
+    const sub = m.subs.find((s) => s.ty === subType);
+    if (!sub) return;
+    const isStory = ['theory', 'demo', 'hands'].includes(subType);
+    if (isStory) setStoryCtx({ moduleTitle: m.t, subType, m });
+    openSub(subTarget(m, sub), sub, m, isStory ? 'storybeat' : 'dashboard');
+  };
+
   // Open a submodule (theory explainer / lesson / workspace / assignments).
   // Records the module so returning to home re-opens & scrolls to it, and makes
   // every activity's Back return to the Sutra home flow.
-  const openSub = (target, _sub, m) => {
+  const openSub = (target, _sub, m, returnTo = 'dashboard') => {
     if (!target) return;
     if (m) setLastModule(m.t);
     // Opening a theory/demo/hands activity counts as completing it. Opening all
     // three of a module auto-unlocks that module's task (server-side).
     if (m?.open && _sub && ['theory', 'demo', 'hands'].includes(_sub.ty)) {
-      api.post('/assignments/activity-complete/', { module_key: m.open, sub_type: _sub.ty }).catch(() => {});
+      api.post('/assignments/activity-complete/', { module_key: m.open, sub_type: _sub.ty })
+        .catch(() => {}).finally(refreshActivity);
     }
     if (target.view) {
       setViewParams(target.params || {});
-      setReturnView('dashboard');
+      setReturnView(returnTo);
       return setCurrentView(target.view);
     }
-    if (target.open) return openModule(target.open);
-    if (target.content) { setExplainerData(EXPLAINERS[target.content]); return setCurrentView('explainer'); }
+    if (target.open) { setReturnView(returnTo); return openModule(target.open); }
+    if (target.content) { setReturnView(returnTo); setExplainerData(EXPLAINERS[target.content]); return setCurrentView('explainer'); }
     if (target.assignments) { setAssignFilter(target.assignments); setAssignFocused(true); return setCurrentView('assignments'); }
   };
 
-  const backToFlow = () => setCurrentView(returnView);
+  // Back from an activity. In the story flow (returnView === 'storybeat') this
+  // lands on the reveal screen; otherwise it returns to the learning flow home.
+  const backToFlow = () => {
+    if (returnView === 'storybeat') refreshActivity();
+    setCurrentView(returnView);
+  };
 
   // Student-facing pages that share the Sutra shell (nav + background + footer).
-  const shellViews = ['dashboard', 'cbse', 'contact', 'profile', 'explainer', 'assignments'];
+  const shellViews = ['dashboard', 'cbse', 'contact', 'profile', 'explainer', 'assignments', 'parent'];
   if (shellViews.includes(currentView)) {
     return (
       <SutraShell currentView={currentView} user={user}
         onNavigate={(v) => { if (v === 'assignments') { setAssignFilter(null); setAssignFocused(false); } if (v === 'dashboard') setClassFilter(null); setCurrentView(v); }}>
-        {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenSub={openSub} onNavigate={setCurrentView}
+        {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenSub={openSub}
+                                          onOpenCaseFile={openCaseFile} onOpenChapter={openChapter}
+                                          onNavigate={setCurrentView}
                                           classFilter={classFilter} onClearClassFilter={() => setClassFilter(null)} />}
+        {currentView === 'parent' && <ParentReport />}
         {currentView === 'cbse' && <CBSECurriculum onOpenLearningFlow={(cls, modules) => {
           setClassFilter({ cls, modules }); setLastModule(null); window.scrollTo(0, 0); setCurrentView('dashboard');
         }} />}
         {currentView === 'contact' && <ContactInstructor />}
         {currentView === 'profile' && <ProfilePage />}
-        {currentView === 'explainer' && <ExplainerPage data={explainerData} onOpenModule={openModule} onBack={() => setCurrentView('dashboard')} />}
+        {currentView === 'explainer' && <ExplainerPage data={explainerData} onOpenModule={openModule} onBack={backToFlow} />}
         {currentView === 'assignments' && <AssignmentsView moduleFilter={assignFilter} focused={assignFocused}
           onBack={() => setCurrentView('dashboard')}
           onOpenAgentStudio={(item) => {
@@ -139,14 +172,14 @@ const AppContent = () => {
     return <LabWorkspace
              modelType={viewParams.modelType}
              initialScenarioId={viewParams.scenarioId}
-             onBackToDashboard={() => setCurrentView('dashboard')}
+             onBackToDashboard={backToFlow}
            />;
   }
 
   if (currentView === 'data_lab') {
     return <DataLabWorkspace
              modelType={viewParams.modelType}
-             onBackToDashboard={() => setCurrentView('dashboard')}
+             onBackToDashboard={backToFlow}
              onOpenDemonstration={(scenario) => {
                setViewParams({ modelType: scenario.model_type, scenarioId: scenario.id });
                setCurrentView('lab');
@@ -160,6 +193,28 @@ const AppContent = () => {
              autoLaunchId={viewParams.autoLaunchId}
              assignment={viewParams.assignment}
              onBackToDashboard={() => setCurrentView(viewParams.assignment ? 'assignments' : 'dashboard')}
+           />;
+  }
+
+  // ── Story layer: case file (module intro) + story beat (post-activity reveal) ──
+  if (currentView === 'casefile' && caseFileModule) {
+    return <CaseFile
+             m={caseFileModule}
+             activity={activity}
+             onOpenChapter={(subType) => openChapter(caseFileModule, subType)}
+             onBack={() => setCurrentView('dashboard')}
+           />;
+  }
+
+  if (currentView === 'storybeat' && storyCtx) {
+    return <StoryBeat
+             moduleTitle={storyCtx.moduleTitle}
+             subType={storyCtx.subType}
+             m={storyCtx.m}
+             activity={activity}
+             onNextChapter={(subType) => openChapter(storyCtx.m, subType)}
+             onOpenCaseFile={() => openCaseFile(storyCtx.m)}
+             onBackToMissions={() => { setCurrentView('dashboard'); }}
            />;
   }
 
@@ -193,7 +248,7 @@ const AppContent = () => {
   }
 
   if (currentView === 'chart_picker') {
-    return <ChartPicker onBack={backToFlow} onOpenDataLab={() => setCurrentView('data_lab')} />;
+    return <ChartPicker onBack={backToFlow} onOpenDataLab={() => { setReturnView('dashboard'); setCurrentView('data_lab'); }} />;
   }
 
   if (currentView === 'term_match') {
@@ -209,6 +264,7 @@ const AppContent = () => {
       <LinearRegressionLesson
         onBackToSupervised={backToFlow}
         onNavigateToPredictionEngine={(category) => {
+          setReturnView('dashboard');
           setViewParams({ modelType: category });
           setCurrentView('lab');
         }}
@@ -221,6 +277,7 @@ const AppContent = () => {
       <ComputerVisionLesson
         onBackToSupervised={backToFlow}
         onNavigateToPredictionEngine={(category) => {
+          setReturnView('dashboard');
           setViewParams({ modelType: category });
           setCurrentView('lab');
         }}

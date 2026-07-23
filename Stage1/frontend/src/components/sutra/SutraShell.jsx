@@ -9,6 +9,7 @@ const NAV = [
   { key: 'dashboard', label: 'Home' },
   { key: 'assignments', label: 'Assignments' },
   { key: 'cbse', label: 'CBSE Curriculum' },
+  { key: 'parent', label: 'For Parents' },
   { key: 'contact', label: 'Contact Instructor' },
 ];
 

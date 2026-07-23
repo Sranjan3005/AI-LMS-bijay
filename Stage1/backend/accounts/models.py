@@ -55,6 +55,15 @@ class Student(AbstractBaseUser, PermissionsMixin):
     email      = models.EmailField(unique=True)
     grade      = models.IntegerField(choices=GRADE_CHOICES)
     role       = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student', db_index=True)
+    # Parent / guardian contact — used for the daily WhatsApp progress report.
+    parent_name  = models.CharField(max_length=100, blank=True, default='')
+    parent_phone = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text='Guardian WhatsApp number in international format, e.g. 919876543210',
+    )
+    daily_report_opt_in = models.BooleanField(
+        default=True, help_text='Send a daily progress report to the guardian.',
+    )
     school     = models.ForeignKey(
         'schools.School', on_delete=models.SET_NULL, null=True, blank=True, related_name='members'
     )

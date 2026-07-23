@@ -11,6 +11,7 @@ urlpatterns = [
     path('activity/', views.ActivityView.as_view(),      name='assignment-activity'),
     path('activity-complete/', views.ActivityCompleteView.as_view(), name='assignment-activity-complete'),
     path('summary/',  views.SummaryView.as_view(),       name='assignment-summary'),
+    path('daily-report/', views.DailyReportView.as_view(), name='assignment-daily-report'),
     path('<int:placement_id>/submit/', views.SubmitView.as_view(), name='assignment-submit'),
     # School admin
     path('templates/', views.TemplatesView.as_view(), name='assignment-templates'),

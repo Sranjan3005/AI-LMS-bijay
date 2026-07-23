@@ -3,13 +3,16 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Ico } from '../components/sutra/icons';
 import { firstName, initials } from '../components/sutra/SutraShell';
 import { subTarget, moduleOpenTarget } from '../content/flowTargets';
+import TodayMission from '../components/story/TodayMission';
 import api from '../api';
 
+// In-fiction chapter names — same four activity types, but framed as steps in
+// Chiti's story (Briefing → watch Chiti try → your turn → the verdict).
 const TYPE = {
-  theory: { label: 'Theory', color: 'var(--s-theory)', icon: 'read' },
-  demo: { label: 'Demonstration', color: 'var(--s-demo)', icon: 'play' },
-  hands: { label: 'Hands-on', color: 'var(--s-hands)', icon: 'terminal' },
-  assign: { label: 'Assignment', color: 'var(--s-assign)', icon: 'edit' },
+  theory: { label: 'Briefing', color: 'var(--s-theory)', icon: 'read' },
+  demo: { label: 'Watch Chiti try', color: 'var(--s-demo)', icon: 'play' },
+  hands: { label: 'Your turn', color: 'var(--s-hands)', icon: 'terminal' },
+  assign: { label: 'The verdict', color: 'var(--s-assign)', icon: 'edit' },
 };
 const STLABEL = { done: 'Completed', live: 'Ongoing', soon: 'Upcoming' };
 
@@ -125,7 +128,7 @@ const SubRow = ({ s, m, onOpenSub, locked }) => {
   );
 };
 
-const ModuleRow = ({ m, st, open, onToggle, onOpenSub, ringP, completion, unlocked, perf }) => (
+const ModuleRow = ({ m, st, open, onToggle, onOpenSub, onOpenCaseFile, ringP, completion, unlocked, perf }) => (
   <div className={`mrow${open ? ' is-open' : ''}`} id={`mod-${m.t}`} style={{ '--m': m.m, '--mg': m.mg }}>
     <div className="mrow-head" role="button" tabIndex={0} aria-expanded={open}
          onClick={onToggle}
@@ -151,7 +154,12 @@ const ModuleRow = ({ m, st, open, onToggle, onOpenSub, ringP, completion, unlock
         </div>
       </div>
       {m.subs.map((s, i) => <SubRow key={i} s={s} m={m} onOpenSub={onOpenSub} locked={s.ty === 'assign' && !unlocked} />)}
-      <div className="mopen">
+      <div className="mopen" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {onOpenCaseFile && (
+          <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); onOpenCaseFile(m); }}>
+            <Ico name="book" w={2.2} />Read the case file
+          </button>
+        )}
         <button className="btn btn-thread btn-sm" onClick={(e) => { e.stopPropagation(); onOpenSub(moduleOpenTarget(m), null, m); }}>
           Open {m.t}<Ico name="arrowR" w={2.2} />
         </button>
@@ -160,7 +168,9 @@ const ModuleRow = ({ m, st, open, onToggle, onOpenSub, ringP, completion, unlock
   </div>
 );
 
-const StudentHome = ({ initialOpen, onOpenSub, onNavigate, classFilter, onClearClassFilter }) => {
+const CHAPTER_ORDER = ['theory', 'demo', 'hands', 'assign'];
+
+const StudentHome = ({ initialOpen, onOpenSub, onOpenCaseFile, onOpenChapter, onNavigate, classFilter, onClearClassFilter }) => {
   const { user } = useContext(AuthContext);
   // Re-open the module the student last visited (else the first in-progress one).
   const [openId, setOpenId] = useState(initialOpen || 'Data & Analysis');
@@ -210,6 +220,36 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate, classFilter, onClearC
   const doneCount = allMods.filter(m => statusFor(m) === 'done').length;
   const trackPct = Math.round(allMods.reduce((a, m) => a + ringOf(m), 0) / allMods.length);
 
+  // The single "next chapter" that drives the Today's-mission card: the first
+  // not-yet-opened chapter, walking the flow in order. Assignments only count
+  // once their module's three core chapters are done.
+  const nextChapter = (() => {
+    for (const m of allMods) {
+      const opened = activity[m.open] || [];
+      const coreDone = ['theory', 'demo', 'hands'].every(c => opened.includes(c));
+      for (const ty of CHAPTER_ORDER) {
+        if (ty === 'assign' && !coreDone) continue;
+        if (!opened.includes(ty)) {
+          const sub = m.subs.find(s => s.ty === ty);
+          return { moduleTitle: m.t, subType: ty, moduleKey: m.open, m, sub };
+        }
+      }
+    }
+    return null;
+  })();
+  const resumeChapter = () => {
+    if (!nextChapter?.sub) return;
+    if (onOpenChapter) onOpenChapter(nextChapter.m, nextChapter.subType);
+    else onOpenSub(subTarget(nextChapter.m, nextChapter.sub), nextChapter.sub, nextChapter.m);
+  };
+
+  // Core chapters (theory/demo/hands) go through the story flow so their Back
+  // lands on the StoryBeat reveal; everything else uses the plain sub opener.
+  const openSubOrChapter = (target, s, m) => {
+    if (onOpenChapter && s && ['theory', 'demo', 'hands'].includes(s.ty)) return onOpenChapter(m, s.ty);
+    return onOpenSub(target, s, m);
+  };
+
   // On return from a lesson/explainer, scroll the last-opened module into view.
   useEffect(() => {
     if (!initialOpen) return;
@@ -221,116 +261,15 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate, classFilter, onClearC
 
   return (
     <>
-      <section className="hero hero-xl">
-        <div className="hero-mesh" aria-hidden="true" />
-
-        {/* ── the pitch ── */}
-        <div className="hero-core">
-          <span className="eyebrow hero-eyebrow">
-            <Ico name="spark" />The AI-building school · CBSE CT &amp; AI aligned
-          </span>
-          <h1>AI literacy,<br /><span className="grad">taught through building.</span></h1>
-          <p className="sub">Sutra is a hands-on AI curriculum for Classes 6–8. You don't watch AI — you train real models, wire live agents, and argue the ethics.</p>
-          <div className="hero-cta">
-            <a className="btn btn-thread btn-lg" href="#flow"
-               onClick={(e) => { e.preventDefault(); document.getElementById('flow')?.scrollIntoView({ behavior: 'smooth' }); }}>
-              Go to my learning flow<Ico name="arrowDown" w={2.2} />
-            </a>
-            <a className="btn btn-ghost btn-lg" onClick={() => onNavigate('cbse')}>See the CBSE curriculum</a>
-          </div>
-        </div>
-
-        {/* ── left rail ── */}
-        <div className="hc hc-grid" style={{ '--uc': '#64D2FF' }}>
-          <span className="hc-tag">Data lab</span>
-          <div className="hcg">
-            {Array.from({ length: 20 }).map((_, i) => <i key={i} className={i % 5 === 0 ? 'on' : ''} />)}
-          </div>
-          <div className="hc-cap">Collect it. Clean it. Question it.</div>
-        </div>
-
-        <div className="hc hc-sched" style={{ '--uc': '#7C7AFF' }}>
-          <span className="hc-tag">CBSE CT &amp; AI · aligned</span>
-          <div className="hc-h">This week</div>
-          <div className="hcs-row" style={{ '--rc': '#7C7AFF' }}>
-            <span className="t">8:30</span>
-            <span className="n"><b>Maths for AI</b><i>The auto-rickshaw fare meter</i></span>
-          </div>
-          <div className="hcs-row" style={{ '--rc': '#64D2FF' }}>
-            <span className="t">9:30</span>
-            <span className="n"><b>Data &amp; Analysis</b><i>Chart Detective</i></span>
-          </div>
-          <div className="hcs-row" style={{ '--rc': '#FF9F0A' }}>
-            <span className="t">11:30</span>
-            <span className="n"><b>Computer Vision</b><i>Read handwritten digits</i></span>
-          </div>
-        </div>
-
-        <div className="hc hc-asn" style={{ '--uc': '#30D158' }}>
-          <span className="hc-tag">Assignments you earn</span>
-          <div className="hca-row"><Ico name="tick" />Theory — What is AI, really?</div>
-          <div className="hca-row"><Ico name="tick" />Demonstration — when rules break</div>
-          <div className="hca-row"><Ico name="tick" />Hands-on — Spot the AI</div>
-          <div className="hca-unlock"><Ico name="spark" />Task unlocked · due in 5 days</div>
-        </div>
-
-        {/* ── inner accents ── */}
-        <span className="hc-tile t1" style={{ '--uc': '#30D158' }}><Ico name="lab" /></span>
-        <span className="hc-tile t2" style={{ '--uc': '#FF375F' }}><Ico name="eye" /></span>
-        <span className="hc-tile t3" style={{ '--uc': '#BF5AF2' }}><Ico name="sigma" /></span>
-
-        <div className="hc hc-pill p1" style={{ '--uc': '#64D2FF' }}><Ico name="bolt" />0 installs — runs in your browser</div>
-        <div className="hc hc-pill p2" style={{ '--uc': '#FF375F' }}><Ico name="nodes" />Wire real AI agents, node by node</div>
-
-        <div className="hc hc-avs" style={{ '--uc': '#7C7AFF' }}>
-          {['AR', 'PK', 'SM', 'DI'].map((x, i) => <span key={x} className={`a a${i}`}>{x}</span>)}
-          <i>+24 building today</i>
-        </div>
-
-        {/* ── right rail ── */}
-        <div className="hc hc-ana" style={{ '--uc': '#BF5AF2' }}>
-          <span className="hc-tag">Teacher dashboards</span>
-          <div className="hca-item on"><Ico name="trend" />Track progress</div>
-          <div className="hca-item"><Ico name="bars" />Module performance</div>
-          <div className="hca-item"><Ico name="check" />Assignment scores</div>
-          <div className="hca-item"><Ico name="shield" />Ethics arena levels</div>
-        </div>
-
-        <div className="hc hc-fb" style={{ '--uc': '#FF9F0A' }}>
-          <span className="hc-tag">AI-graded, with feedback</span>
-          <div className="hcf-head">
-            <span className="hcf-av"><Ico name="spark" /></span>
-            <span className="n"><b>Sutra tutor</b><i>graded your task · just now</i></span>
-            <span className="hcf-score">9/10</span>
-          </div>
-          <p>“Great reasoning on the best-fit line — your lemonade example nails why error matters.”</p>
-        </div>
-
-        {/* ── centre band ── */}
-        <div className="hc hc-chart" style={{ '--uc': '#30D158' }}>
-          <span className="hc-tag">Train real AI models</span>
-          <div className="hc-h">Your model, learning live</div>
-          <div className="hcc-leg">
-            <span style={{ '--c': '#64D2FF' }}>Your model</span>
-            <span style={{ '--c': '#FF9F0A' }}>Random guessing</span>
-          </div>
-          <svg viewBox="0 0 320 92" preserveAspectRatio="none" aria-hidden="true">
-            <line x1="0" y1="24" x2="320" y2="24" />
-            <line x1="0" y1="52" x2="320" y2="52" />
-            <line x1="0" y1="80" x2="320" y2="80" />
-            <path className="guess" d="M0 74 H320" />
-            <path className="acc" d="M0 82 C 48 76, 76 62, 112 50 C 150 37, 190 28, 232 20 C 264 14, 296 11, 320 9" />
-          </svg>
-        </div>
-
-        <div className="hc hc-chat" style={{ '--uc': '#64D2FF' }}>
-          <div className="hcc-msg">
-            <span className="hcc-av"><Ico name="spark" /></span>
-            <span className="n"><b>Hi! Stuck on slope, spam filters or pixels?</b><i>Sutra AI tutor · always on</i></span>
-          </div>
-          <div className="hcc-input">Ask me anything…<span className="hcc-send"><Ico name="arrowR" /></span></div>
-        </div>
-      </section>
+      <div className="wrap">
+        <TodayMission
+          user={user}
+          activity={activity}
+          current={nextChapter}
+          onStartMission={() => nextChapter && onOpenCaseFile?.(nextChapter.m)}
+          onResumeChapter={resumeChapter}
+        />
+      </div>
 
       <div className="wrap"><div className="divider" /></div>
 
@@ -370,11 +309,11 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate, classFilter, onClearC
           </div>
 
           <div className="legend">
-            <b>Every module:</b>
-            <span className="lg"><i style={{ background: 'var(--s-theory)' }} />Theory</span>
-            <span className="lg"><i style={{ background: 'var(--s-demo)' }} />Demonstration</span>
-            <span className="lg"><i style={{ background: 'var(--s-hands)' }} />Hands-on</span>
-            <span className="lg"><i style={{ background: 'var(--s-assign)' }} />Assignment</span>
+            <b>Every mission:</b>
+            <span className="lg"><i style={{ background: 'var(--s-theory)' }} />Briefing</span>
+            <span className="lg"><i style={{ background: 'var(--s-demo)' }} />Watch Chiti try</span>
+            <span className="lg"><i style={{ background: 'var(--s-hands)' }} />Your turn</span>
+            <span className="lg"><i style={{ background: 'var(--s-assign)' }} />The verdict</span>
           </div>
 
           {modFilter && (
@@ -399,7 +338,8 @@ const StudentHome = ({ initialOpen, onOpenSub, onNavigate, classFilter, onClearC
                     <ModuleRow key={m.t} m={m} st={statusFor(m)}
                       open={openId === m.t}
                       onToggle={() => setOpenId(openId === m.t ? null : m.t)}
-                      onOpenSub={onOpenSub}
+                      onOpenSub={openSubOrChapter}
+                      onOpenCaseFile={onOpenCaseFile}
                       ringP={ringOf(m)}
                       completion={openedCount(m)}
                       unlocked={isUnlocked(m)}

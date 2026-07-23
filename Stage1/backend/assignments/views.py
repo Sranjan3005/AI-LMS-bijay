@@ -26,6 +26,7 @@ from .models import (Assignment, StudentAssignment, AssignmentSubmission,
 from .serializers import (AssignmentSerializer, StudentAssignmentSerializer,
                           SubmissionSerializer, sanitize_questions)
 from .grading import grade_submission_obj, module_progress_for
+from .reports import build_daily_report, report_to_whatsapp_text
 
 REQUIRED_SUBS = {'theory', 'demo', 'hands'}   # opening all three unlocks the module task
 UNLOCK_DAYS = 5                               # how long the auto-placed task is due in
@@ -107,6 +108,27 @@ class SubmitView(APIView):
 class ProgressView(APIView):
     def get(self, request):
         return Response(module_progress_for(request.user))
+
+
+class DailyReportView(APIView):
+    """GET /api/v1/assignments/daily-report/  → today's parent-facing progress
+    report for the logged-in student, plus a ready-to-send WhatsApp message and a
+    wa.me deep link (works with zero third-party setup)."""
+
+    def get(self, request):
+        report = build_daily_report(request.user)
+        text = report_to_whatsapp_text(report)
+        phone = (getattr(request.user, 'parent_phone', '') or '').strip()
+        wa_number = ''.join(ch for ch in phone if ch.isdigit())
+        from urllib.parse import quote
+        wa_link = f"https://wa.me/{wa_number}?text={quote(text)}" if wa_number else f"https://wa.me/?text={quote(text)}"
+        return Response({
+            'report': report,
+            'whatsapp_text': text,
+            'whatsapp_link': wa_link,
+            'parent_phone': phone,
+            'parent_name': getattr(request.user, 'parent_name', ''),
+        })
 
 
 class ActivityCompleteView(APIView):
