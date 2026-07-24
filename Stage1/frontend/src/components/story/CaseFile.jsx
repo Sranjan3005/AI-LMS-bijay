@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Ico } from '../sutra/icons';
-import ChitiRobot from './ChitiRobot';
 import { storyFor } from '../../content/moduleStory';
-import { abilityState } from '../../utils/chitiProgress';
+import { useChiti } from '../chiti/ChitiProvider';
 import './story.css';
 
 // CaseFile — the module intro. Opens BEFORE the first chapter: sets the scene
@@ -21,8 +20,15 @@ export default function CaseFile({ m, activity = {}, onOpenChapter, onBack }) {
   const story = storyFor(m.t);
   const opened = activity[m.open] || [];
   const coreDone = CORE.every(c => opened.includes(c));
-  const abilities = abilityState(activity).filter(a => a.unlocked).map(a => a.id);
   const cc = m.rc || '#64D2FF';
+  const chiti = useChiti();
+
+  // Chiti delivers the mission briefing full-screen, out loud, then shrinks to
+  // the corner and stays with the student while they pick a chapter.
+  useEffect(() => {
+    chiti.present({ say: story.hook, action: 'think', mood: 'neutral', holdMs: 6000 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [m.t]);
 
   const isDone = (ty) => opened.includes(ty);
   const isLocked = (ty) => ty === 'assign' && !coreDone;
@@ -34,11 +40,14 @@ export default function CaseFile({ m, activity = {}, onOpenChapter, onBack }) {
 
         <div className="st-casefile">
           <div className="st-casefile-head">
-            <ChitiRobot abilities={abilities} mood="think" size={92} />
             <div>
               <div className="st-casefile-tag">Case file · {m.cls}</div>
               <h1>{story.codename}</h1>
             </div>
+            <button className="st-btn ghost" style={{ marginLeft: 'auto' }}
+                    onClick={() => chiti.present({ say: story.hook, action: 'think', holdMs: 6000 })}>
+              <Ico name="play" size={16} />Replay briefing
+            </button>
           </div>
 
           <p className="st-hook">{story.hook}</p>

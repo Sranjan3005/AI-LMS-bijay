@@ -1,0 +1,74 @@
+/* landing.css — the character-led sign-in page. Replaces the old marketing
+   collage: Chiti greets the student and invites them in. */
+
+.lp-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 40px;
+  align-items: center;
+  padding: 40px clamp(20px, 5vw, 72px);
+  position: relative;
+  overflow: hidden;
+}
+.lp-mesh {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 60% at 18% 25%, rgba(94,92,230,.30), transparent 60%),
+    radial-gradient(55% 55% at 82% 75%, rgba(100,210,255,.18), transparent 60%),
+    radial-gradient(50% 50% at 60% 10%, rgba(191,90,242,.16), transparent 60%);
+}
+
+/* ── left: the character ── */
+.lp-stage { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.lp-figure { width: min(420px, 76vw); height: min(460px, 52vh); }
+.lp-bubble {
+  position: relative; margin-top: 4px; width: min(460px, 88%);
+  background: rgba(18,21,38,.94);
+  border: 1px solid rgba(120,160,255,.32);
+  border-radius: 20px; padding: 20px 24px;
+  box-shadow: 0 22px 60px rgba(0,0,0,.5);
+  text-align: center;
+}
+.lp-bubble::before {
+  content: ''; position: absolute; top: -9px; left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 16px; height: 16px; background: rgba(18,21,38,.94);
+  border-left: 1px solid rgba(120,160,255,.32); border-top: 1px solid rgba(120,160,255,.32);
+}
+.lp-name {
+  font-size: .7rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: #64D2FF; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.lp-line { margin: 0; font-size: clamp(1rem, 1.9vw, 1.2rem); line-height: 1.6; color: #eef1fb; min-height: 3.2em; }
+.lp-caret { display: inline-block; width: 2px; height: 1.05em; background: #64D2FF; vertical-align: -2px; margin-left: 3px; }
+.lp-hint { margin-top: 14px; font-size: .84rem; color: #8b93b4; }
+.lp-mute {
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
+  color: #dfe3f2; border-radius: 9px; width: 30px; height: 30px; cursor: pointer;
+  display: grid; place-items: center; font-size: .85rem;
+}
+
+/* ── right: the sign-in card ── */
+.lp-auth { position: relative; z-index: 1; display: flex; justify-content: center; }
+.lp-card {
+  width: min(420px, 100%);
+  background: rgba(16,18,32,.9);
+  border: 1px solid rgba(120,130,190,.28);
+  border-radius: 24px; padding: 30px;
+  box-shadow: 0 26px 70px rgba(0,0,0,.5);
+  backdrop-filter: blur(12px);
+}
+.lp-brand {
+  display: flex; align-items: center; gap: 10px; justify-content: center;
+  font-weight: 800; font-size: 1.3rem; color: #fff; margin-bottom: 4px;
+}
+.lp-brand span { color: #64D2FF; }
+.lp-tag { text-align: center; color: #9aa2c0; font-size: .86rem; margin-bottom: 22px; }
+
+@media (max-width: 940px) {
+  .lp-page { grid-template-columns: 1fr; gap: 18px; padding: 28px 18px 48px; }
+  .lp-figure { width: min(300px, 66vw); height: 300px; }
+  .lp-bubble { width: min(520px, 96%); }
+  .lp-line { min-height: 0; }
+}

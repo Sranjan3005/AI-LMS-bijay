@@ -13,6 +13,8 @@ import SchoolAdminPanel from './pages/SchoolAdminPanel';
 import ParentReport from './pages/ParentReport';
 import CaseFile from './components/story/CaseFile';
 import StoryBeat from './components/story/StoryBeat';
+import { ChitiProvider, useChiti } from './components/chiti/ChitiProvider';
+import ChitiStage from './components/chiti/ChitiStage';
 import { subTarget } from './content/flowTargets';
 import { EXPLAINERS } from './content/explainers';
 import LabWorkspace from './pages/LabWorkspace';
@@ -41,8 +43,13 @@ import { markEthicsComplete } from './utils/ethicsProgress';
 import api from './api';
 import './index.css';
 
+// Views that already run something heavy (TensorFlow.js, webcam, big canvases).
+// Chiti steps off-screen there so we never stack a WebGL context on top of ML work.
+const HEAVY_VIEWS = new Set(['lab', 'data_lab', 'agentic', 'cv_playground', 'teach_machine', 'chart_detective']);
+
 const AppContent = () => {
   const { user, loading } = useContext(AuthContext);
+  const chiti = useChiti();
   const [currentView, setCurrentView] = useState('dashboard');
   const [explainerData, setExplainerData] = useState(null);
   const [assignFilter, setAssignFilter] = useState(null);
@@ -61,6 +68,12 @@ const AppContent = () => {
   // Opening a new full-page view should start at the top, not wherever the
   // previous (e.g. scrolled-down dashboard) view left the window.
   useEffect(() => { window.scrollTo(0, 0); }, [currentView]);
+
+  // Send Chiti off-screen on compute-heavy views (see HEAVY_VIEWS).
+  useEffect(() => {
+    if (HEAVY_VIEWS.has(currentView)) chiti.dismiss();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView]);
 
   if (loading) {
     return (
@@ -336,7 +349,12 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ChitiProvider>
+        <AppContent />
+        {/* Mounted once at the root so Chiti persists across views and the 3D
+            model is loaded a single time. */}
+        <ChitiStage />
+      </ChitiProvider>
     </AuthProvider>
   );
 }

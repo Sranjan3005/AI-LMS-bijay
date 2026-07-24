@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Ico } from '../sutra/icons';
 import { firstName } from '../sutra/SutraShell';
-import ChitiRobot from './ChitiRobot';
+import ChitiCharacter from '../chiti/ChitiCharacter';
+import { useChiti } from '../chiti/ChitiProvider';
 import { storyFor, beatFor } from '../../content/moduleStory';
 import { abilityState } from '../../utils/chitiProgress';
 import './story.css';
@@ -16,18 +17,43 @@ import './story.css';
 //   onStartMission()      open the case file for `current.moduleTitle`
 //   onResumeChapter()     jump straight into the next chapter's activity
 export default function TodayMission({ user, activity = {}, current, onStartMission, onResumeChapter }) {
-  const abilities = abilityState(activity).filter(a => a.unlocked).map(a => a.id);
   const rail = abilityState(activity);
   const story = current ? storyFor(current.moduleTitle) : null;
   const beat = current ? (beatFor(current.moduleTitle, current.subType) || story?.hook) : '';
 
   const KIND = { theory: 'Briefing', demo: 'Watch Chiti try', hands: 'Your turn', assign: 'The verdict' };
+  const chiti = useChiti();
+
+  // Chiti welcomes the student back and names the next mission — once per visit
+  // to the dashboard, not on every re-render.
+  useEffect(() => {
+    chiti.dismiss();   // he's inline here, so no corner companion
+    const line = current
+      ? `Welcome back, ${firstName(user?.name)}! Next up is ${story.codename}. Ready when you are.`
+      : `We did it, ${firstName(user?.name)}! I'm fully built — thanks to you.`;
+    const t = setTimeout(() => {
+      chiti.perform(current ? 'wave' : 'dance', { mood: 'happy', say: line, holdMs: 3200 });
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.moduleTitle, current?.subType]);
+
+  // Clicking Chiti gets a reaction — kids will try it immediately.
+  const poke = () => {
+    const lines = current
+      ? [`We're on ${story.codename}. ${beat}`, "Come on, let's get this one done!", "I can't learn this by myself, you know."]
+      : ['Look at me now! Brain, eyes, hands — the lot.', 'Want to run a mission again for practice?'];
+    chiti.perform('jump', { mood: 'happy', say: lines[Math.floor(Math.random() * lines.length)], holdMs: 2600 });
+  };
 
   return (
     <section className="st-mission" aria-label="Today's mission">
       <div className="st-mission-grid">
-        <div style={{ justifySelf: 'center' }}>
-          <ChitiRobot abilities={abilities} mood={current ? 'point' : 'cheer'} size={150} />
+        <div style={{ justifySelf: 'center', width: 160, height: 190, cursor: 'pointer' }}
+             onClick={poke} role="button" tabIndex={0} aria-label="Chiti — click to talk to him"
+             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); poke(); } }}>
+          <ChitiCharacter renderer={chiti.renderer} action={chiti.action} mood={chiti.mood}
+                          speaking={chiti.speaking} intensity={chiti.intensity} />
         </div>
         <div>
           <span className="st-mission-eyebrow"><Ico name="spark" size={14} />Today · raising Chiti</span>

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Ico } from '../sutra/icons';
-import ChitiRobot from './ChitiRobot';
+import ChitiCharacter from '../chiti/ChitiCharacter';
+import { useChiti } from '../chiti/ChitiProvider';
 import { storyFor } from '../../content/moduleStory';
-import { abilityState } from '../../utils/chitiProgress';
 import './story.css';
 
 // StoryBeat — the reveal after finishing a chapter. Instead of dumping the
@@ -29,15 +29,34 @@ export default function StoryBeat({ moduleTitle, subType, m, activity = {}, onNe
     // the completing chapter was the last of the three
     CORE.filter(c => opened.includes(c)).length === 3;
 
-  const abilities = abilityState(activity).filter(a => a.unlocked).map(a => a.id);
   const nextBeat = next ? story.chapters.find(c => c.ty === next)?.beat : null;
+  const chiti = useChiti();
+
+  // Chiti reacts to what just happened — a dance for a completed mission, a
+  // thumbs-up for a finished chapter — and says it out loud.
+  useEffect(() => {
+    chiti.dismiss();   // no corner companion; he's the centrepiece here
+    const line = justUnlockedAbility && story.ability
+      ? `${story.reward} I just unlocked ${story.ability.name}!`
+      : `Nice work! That's the ${KIND[subType]} done. I'm one step closer.`;
+    const t = setTimeout(() => {
+      chiti.perform(justUnlockedAbility ? 'dance' : 'thumbsup', {
+        mood: 'happy', say: line, holdMs: justUnlockedAbility ? 6000 : 3000,
+      });
+    }, 260);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleTitle, subType]);
 
   return (
     <div className="st-page">
       <motion.div className="st-beatcard"
         initial={{ opacity: 0, y: 24, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 220, damping: 24 }}>
-        <ChitiRobot abilities={abilities} mood="cheer" size={130} />
+        <div style={{ width: 210, height: 240, margin: '0 auto' }}>
+          <ChitiCharacter renderer={chiti.renderer} action={chiti.action} mood={chiti.mood}
+                          speaking={chiti.speaking} intensity={chiti.intensity} big />
+        </div>
 
         {justUnlockedAbility && story.ability ? (
           <>
