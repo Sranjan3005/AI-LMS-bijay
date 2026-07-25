@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import SutraBackground from './SutraBackground';
 import { BrandMark } from './icons';
+import MobileTabBar from './MobileTabBar';
 import { AuthContext } from '../../contexts/AuthContext';
 import '../../styles/sutra.css';
 
@@ -16,10 +17,25 @@ const NAV = [
 const initials = (name) => (name || 'Student').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 const firstName = (name) => (name || 'Student').trim().split(/\s+/)[0];
 
-const SutraShell = ({ currentView, onNavigate, user, children }) => {
+const SutraShell = ({ currentView, onNavigate, user, children, mobileTab = 'today', onMobileTab }) => {
   const [scrolled, setScrolled] = useState(false);
   const { logout } = useContext(AuthContext);
   const year = new Date().getFullYear();
+
+  // Which bottom tab is lit. Today/Path are two modes of the dashboard.
+  const activeTab =
+    currentView === 'dashboard' ? (mobileTab === 'path' ? 'path' : 'today')
+    : currentView === 'assignments' ? 'tasks'
+    : currentView === 'parent' ? 'parent'
+    : currentView === 'profile' ? 'you'
+    : null;
+
+  const selectTab = (key) => {
+    if (key === 'today' || key === 'path') { onMobileTab?.(key); onNavigate('dashboard'); }
+    else if (key === 'tasks') onNavigate('assignments');
+    else if (key === 'parent') onNavigate('parent');
+    else if (key === 'you') onNavigate('profile');
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -90,6 +106,8 @@ const SutraShell = ({ currentView, onNavigate, user, children }) => {
           </div>
         </footer>
       </div>
+
+      <MobileTabBar active={activeTab} onSelect={selectTab} />
     </div>
   );
 };

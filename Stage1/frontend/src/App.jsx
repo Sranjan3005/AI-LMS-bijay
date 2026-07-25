@@ -58,6 +58,7 @@ const AppContent = () => {
   const [lastModule, setLastModule] = useState(null);        // module to re-open on return to home
   const [viewParams, setViewParams] = useState({});          // deep-link props for the current view
   const [classFilter, setClassFilter] = useState(null);      // { cls, modules } — CBSE "Open learning flow" filter
+  const [mobileTab, setMobileTab] = useState('today');       // Today | Path — mobile dashboard mode
   const [caseFileModule, setCaseFileModule] = useState(null); // module whose case file is open
   const [storyCtx, setStoryCtx] = useState(null);            // { moduleTitle, subType, m } for the StoryBeat reveal
   const [activity, setActivity] = useState({});              // {module_key: [subtypes opened]} — for case file / story beat
@@ -153,10 +154,11 @@ const AppContent = () => {
   if (shellViews.includes(currentView)) {
     return (
       <SutraShell currentView={currentView} user={user}
+        mobileTab={mobileTab} onMobileTab={setMobileTab}
         onNavigate={(v) => { if (v === 'assignments') { setAssignFilter(null); setAssignFocused(false); } if (v === 'dashboard') setClassFilter(null); setCurrentView(v); }}>
         {currentView === 'dashboard' && <StudentHome initialOpen={lastModule} onOpenSub={openSub}
                                           onOpenCaseFile={openCaseFile} onOpenChapter={openChapter}
-                                          onNavigate={setCurrentView}
+                                          onNavigate={setCurrentView} mobileTab={mobileTab}
                                           classFilter={classFilter} onClearClassFilter={() => setClassFilter(null)} />}
         {currentView === 'parent' && <ParentReport />}
         {currentView === 'cbse' && <CBSECurriculum onOpenLearningFlow={(cls, modules) => {

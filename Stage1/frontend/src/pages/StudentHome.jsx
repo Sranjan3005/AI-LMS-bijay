@@ -170,7 +170,7 @@ const ModuleRow = ({ m, st, open, onToggle, onOpenSub, onOpenCaseFile, ringP, co
 
 const CHAPTER_ORDER = ['theory', 'demo', 'hands', 'assign'];
 
-const StudentHome = ({ initialOpen, onOpenSub, onOpenCaseFile, onOpenChapter, onNavigate, classFilter, onClearClassFilter }) => {
+const StudentHome = ({ initialOpen, onOpenSub, onOpenCaseFile, onOpenChapter, onNavigate, classFilter, onClearClassFilter, mobileTab = 'today' }) => {
   const { user } = useContext(AuthContext);
   // Re-open the module the student last visited (else the first in-progress one).
   const [openId, setOpenId] = useState(initialOpen || 'Data & Analysis');
@@ -260,17 +260,22 @@ const StudentHome = ({ initialOpen, onOpenSub, onOpenCaseFile, onOpenChapter, on
   }, [initialOpen]);
 
   return (
-    <>
-      <div className="wrap">
-        <TodayMission
-          user={user}
-          activity={activity}
-          current={nextChapter}
-          onStartMission={() => nextChapter && onOpenCaseFile?.(nextChapter.m)}
-          onResumeChapter={resumeChapter}
-        />
+    <div data-mtab={mobileTab}>
+      {/* Today — the focused mission (one thing per screen on mobile) */}
+      <div className="mpane mpane-today">
+        <div className="wrap">
+          <TodayMission
+            user={user}
+            activity={activity}
+            current={nextChapter}
+            onStartMission={() => nextChapter && onOpenCaseFile?.(nextChapter.m)}
+            onResumeChapter={resumeChapter}
+          />
+        </div>
       </div>
 
+      {/* Path — the full learning journey (its own tab on mobile) */}
+      <div className="mpane mpane-path">
       <div className="wrap"><div className="divider" /></div>
 
       <section className="jour" id="flow">
@@ -362,7 +367,8 @@ const StudentHome = ({ initialOpen, onOpenSub, onOpenCaseFile, onOpenChapter, on
           </div>
         </div>
       </section>
-    </>
+      </div>{/* /mpane-path */}
+    </div>
   );
 };
 

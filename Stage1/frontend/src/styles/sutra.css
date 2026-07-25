@@ -546,3 +546,46 @@
 .planner-done-ic svg{width:28px;height:28px}
 
 @media(prefers-reduced-motion:reduce){.sutra *{animation:none!important}}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Mobile app shell — bottom tab bar + Today/Path panes.
+   Shown only ≤900px, exactly where .nav-links is hidden, so the app always
+   has navigation in the thumb zone. Desktop is untouched.
+   ───────────────────────────────────────────────────────────────────────── */
+.sutra .mtabbar{display:none}
+
+/* Today/Path are two modes of the dashboard. On desktop both panes show
+   (normal full page); on mobile the bottom bar switches between them. */
+.sutra .mpane{display:block}
+
+@media(max-width:900px){
+  /* keep content clear of the fixed bar */
+  .sutra .s-content{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+
+  .sutra .mtabbar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));
+    background:rgba(6,8,14,.86);backdrop-filter:var(--blur);
+    border-top:1px solid var(--line-2);
+  }
+  .sutra .mtab{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    background:none;border:0;cursor:pointer;font-family:inherit;
+    padding:7px 2px 5px;color:var(--t3);border-radius:12px;transition:color .2s;
+    min-height:52px;
+  }
+  .sutra .mtab-ic{width:24px;height:24px;display:grid;place-items:center}
+  .sutra .mtab-ic svg{width:22px;height:22px}
+  .sutra .mtab-lbl{font-size:.68rem;font-weight:600;letter-spacing:.01em}
+  .sutra .mtab.is-active{color:var(--cyan)}
+  .sutra .mtab.is-active .mtab-ic{
+    background:rgba(100,210,255,.14);border-radius:10px;
+    box-shadow:0 0 0 1px rgba(100,210,255,.28) inset;
+  }
+
+  /* the Today/Path split — driven by data-mtab on the dashboard root */
+  .sutra [data-mtab="today"] .mpane-path{display:none}
+  .sutra [data-mtab="path"]  .mpane-today{display:none}
+  /* on the focused Today screen, drop the big top margin so Chiti sits high */
+  .sutra [data-mtab="today"] .mpane-today .st-mission{margin-top:8px}
+}

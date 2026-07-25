@@ -78,6 +78,10 @@
   .ch-companion-figure { width: 88px; height: 104px; }
   .ch-companion .ch-mini-bubble { max-width: 62vw; font-size: .88rem; }
 }
+/* clear the mobile bottom tab bar so the corner companion isn't hidden behind it */
+@media (max-width: 900px) {
+  .ch-companion { bottom: 80px; }
+}
 
 /* respect reduced motion — the SVG rig already gets picked, but calm the rest */
 @media (prefers-reduced-motion: reduce) {
