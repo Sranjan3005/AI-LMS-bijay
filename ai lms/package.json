@@ -1,0 +1,11 @@
+{
+  "name": "machines-that-learn",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive machine learning lessons for students with no maths background.",
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "test": "node tests/run-all.mjs"
+  }
+}

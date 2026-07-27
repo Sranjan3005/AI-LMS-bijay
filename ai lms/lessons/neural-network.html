@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a machine learns a curved boundary</title>
+<meta name="description" content="An interactive lesson on neural networks: when no straight line can separate the data, stack simple line-detectors and bend them into a curve.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Ccircle cx='7' cy='16' r='2.3' fill='%23fcfcfb'/%3E%3Ccircle cx='16' cy='9' r='2.3' fill='%23fcfcfb'/%3E%3Ccircle cx='16' cy='23' r='2.3' fill='%23fcfcfb'/%3E%3Ccircle cx='25' cy='16' r='2.3' fill='%23eb6834'/%3E%3Cpath d='M7 16L16 9M7 16L16 23M16 9L25 16M16 23L25 16' stroke='%23fcfcfb' stroke-width='1' opacity='0.6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../src/styles/theme.css">
+<link rel="stylesheet" href="../src/styles/app.css">
+</head>
+<body>
+
+<div class="lesson">
+
+  <header class="masthead">
+    <a class="masthead__back" href="../index.html">&larr; Lessons</a>
+    <div class="masthead__title">
+      How a machine learns a curved boundary
+      <span>Neural networks, built from parts you have met</span>
+    </div>
+    <div class="masthead__spacer"></div>
+    <button class="table-toggle" id="themeBtn" type="button">Dark</button>
+  </header>
+
+  <nav class="steps" id="steps" aria-label="Lesson steps"></nav>
+
+  <div class="lesson__body">
+
+    <aside class="rail">
+
+      <!-- the slide: one beat at a time -->
+      <div class="slide">
+        <div class="slide__dots" id="beatDots" role="img" aria-label="Slide progress"></div>
+        <h3 class="slide__head" id="briefHead"></h3>
+        <div class="slide__body" id="briefBody"></div>
+        <div class="quiz" id="quiz" hidden></div>
+        <button class="btn btn--primary slide__go" id="advanceBtn" type="button">Continue &rarr;</button>
+      </div>
+
+      <!-- act 1: a straight line by hand -->
+      <div class="card" id="panel-line" hidden>
+        <div class="card__label">Your straight line</div>
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Angle</span>
+            <span class="field__val"><span id="angVal">45</span>°</span>
+          </div>
+          <input id="ang" type="range" min="0" max="180" step="1" value="45"
+                 aria-label="Angle of the straight line">
+        </div>
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Position</span>
+            <span class="field__val" id="offVal">0.0</span>
+          </div>
+          <input id="off" type="range" min="-5" max="5" step="0.1" value="0"
+                 aria-label="Offset of the straight line">
+        </div>
+        <div class="tiles tiles--1" style="margin-top:6px">
+          <div class="tile tile--hero tile--accent">
+            <div class="tile__k">Best you can do</div>
+            <div class="tile__v"><span id="lineAcc">—</span><small>% right</small></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- act 2: one detector -->
+      <div class="card" id="panel-unit" hidden>
+        <div class="card__label">One line-detector</div>
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Which detector</span>
+            <span class="field__val" id="unitVal">1 of 8</span>
+          </div>
+          <input id="unit" type="range" min="1" max="8" step="1" value="1"
+                 aria-label="Which hidden unit to highlight">
+          <p class="field__hint">Each one is a soft line: bright on one side, dark on the other. Just like the S-curve, but in 2-D.</p>
+        </div>
+      </div>
+
+      <!-- training -->
+      <div class="card" id="panel-train" hidden>
+        <div class="card__label">Let the machine learn</div>
+        <button class="btn btn--primary" id="playBtn" type="button">Start learning</button>
+        <div class="btn-row">
+          <button class="btn" id="stepBtn" type="button">10 steps</button>
+          <button class="btn" id="restartBtn" type="button">Restart</button>
+        </div>
+        <div class="tiles" style="margin-top:14px">
+          <div class="tile tile--hero tile--accent">
+            <div class="tile__k">Got right</div>
+            <div class="tile__v"><span id="accVal">—</span><small>%</small></div>
+          </div>
+          <div class="tile">
+            <div class="tile__k">Wrongness</div>
+            <div class="tile__v" id="lossVal" style="font-size:var(--step-2)">—</div>
+          </div>
+          <div class="tile">
+            <div class="tile__k">Steps</div>
+            <div class="tile__v" id="stepVal" style="font-size:var(--step-2)">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- architecture -->
+      <div class="card" id="panel-arch" hidden>
+        <div class="card__label">How many detectors?</div>
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Hidden units</span>
+            <span class="field__val" id="hVal">8</span>
+          </div>
+          <input id="hcount" type="range" min="1" max="12" step="1" value="8"
+                 aria-label="Number of hidden units">
+          <p class="field__hint">More units bend more sharply — but too many is overkill.</p>
+        </div>
+        <div class="tiles">
+          <div class="tile tile--hero tile--accent">
+            <div class="tile__k">Got right</div>
+            <div class="tile__v"><span id="archAcc">—</span><small>%</small></div>
+          </div>
+          <div class="tile">
+            <div class="tile__k" id="archFitKey">Fit</div>
+            <div class="tile__v" id="archFit" style="font-size:var(--step-2)">—</div>
+          </div>
+        </div>
+        <button class="btn" id="archTrain" type="button" style="margin-top:10px">Train this size</button>
+      </div>
+
+      <!-- recap -->
+      <div class="card" id="panel-recap" hidden></div>
+
+    </aside>
+
+    <section class="stage">
+      <div class="stage__head">
+        <h2 class="stage__title" id="stageTitle"></h2>
+        <p class="stage__sub" id="stageSub"></p>
+        <div class="masthead__spacer"></div>
+        <button class="table-toggle" id="tableBtn" type="button" aria-expanded="false">
+          Show the numbers
+        </button>
+      </div>
+
+      <div class="stage__canvas-wrap" id="canvasWrap">
+        <canvas id="canvas" role="img" aria-label="A ring of one class around a cluster of another"></canvas>
+        <div class="tip" id="tip" role="status"></div>
+        <div class="cands" id="cands" hidden></div>
+      </div>
+
+      <p class="stage__note" id="note" role="status" hidden></p>
+
+      <div class="legend" id="legend"></div>
+
+      <div class="data-table" id="tableView" hidden></div>
+    </section>
+  </div>
+
+  <footer class="lesson__foot">
+    <button class="btn" id="prevBtn" type="button">&larr; Back</button>
+    <span class="lesson__progress" id="progress"></span>
+    <span class="lesson__score" id="score"></span>
+    <span class="lesson__foot-spacer"></span>
+    <button class="btn btn--primary" id="nextBtn" type="button">Next &rarr;</button>
+  </footer>
+
+</div>
+
+<script type="module" src="./neural-network.js"></script>
+</body>
+</html>

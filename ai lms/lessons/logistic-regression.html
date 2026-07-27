@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a machine learns to draw a boundary</title>
+<meta name="description" content="An interactive lesson: teach a computer to judge who will pass an exam, and watch it learn a smooth S-curve of confidence one student at a time.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M5 23C11 23 12 10 27 10' stroke='%23fcfcfb' stroke-width='3.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='9' cy='21' r='2.4' fill='%23eb6834'/%3E%3Ccircle cx='23' cy='12' r='2.4' fill='%231baf7a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../src/styles/theme.css">
+<link rel="stylesheet" href="../src/styles/app.css">
+</head>
+<body>
+
+<div class="lesson">
+
+  <header class="masthead">
+    <a class="masthead__back" href="../index.html">&larr; Lessons</a>
+    <div class="masthead__title">
+      How a machine learns to draw a boundary
+      <span>Logistic regression, one student at a time</span>
+    </div>
+    <div class="masthead__spacer"></div>
+    <button class="table-toggle" id="themeBtn" type="button">Dark</button>
+  </header>
+
+  <nav class="steps" id="steps" aria-label="Lesson steps"></nav>
+
+  <div class="lesson__body">
+
+    <aside class="rail">
+
+      <!-- the slide: one beat at a time -->
+      <div class="slide">
+        <div class="slide__dots" id="beatDots" role="img" aria-label="Slide progress"></div>
+        <h3 class="slide__head" id="briefHead"></h3>
+        <div class="slide__body" id="briefBody"></div>
+        <div class="quiz" id="quiz" hidden></div>
+        <button class="btn btn--primary slide__go" id="advanceBtn" type="button">Continue &rarr;</button>
+      </div>
+
+      <!-- running score -->
+      <div class="card" id="panel-score" hidden>
+        <div class="card__label" id="scoreLabel">How good is the guess?</div>
+        <div class="tiles">
+          <div class="tile tile--hero tile--accent">
+            <div class="tile__k" id="heroKey">Got right</div>
+            <div class="tile__v"><span id="statMain">—</span> <small id="statMainUnit">/ 40</small></div>
+          </div>
+          <div class="tile">
+            <div class="tile__k" id="statAKey">Your best</div>
+            <div class="tile__v" id="statA">—</div>
+          </div>
+          <div class="tile tile--good">
+            <div class="tile__k">Best possible</div>
+            <div class="tile__v" id="statB">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- act 2: hard cutoff -->
+      <div class="card" id="panel-cutoff" hidden>
+        <div class="card__label">Your cutoff</div>
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Pass everyone past</span>
+            <span class="field__val"><span id="cutVal">5.0</span> h</span>
+          </div>
+          <input id="cut" type="range" min="0" max="10" step="0.1" value="5"
+                 aria-label="Cutoff: hours past which we predict a pass">
+          <p class="field__hint">One hard line: pass to the right, fail to the left.</p>
+        </div>
+        <button class="btn" id="cutBest" type="button">Show the best cutoff</button>
+      </div>
+
+      <!-- acts 3+: the S-curve by hand -->
+      <div class="card" id="panel-curve" hidden>
+        <div class="card__label">Your S-curve</div>
+
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Tipping point</span>
+            <span class="field__val"><span id="tipVal">5.0</span> h</span>
+          </div>
+          <input id="tip_" type="range" min="0" max="10" step="0.1" value="5"
+                 aria-label="Tipping point: hours at which passing is a coin-flip">
+          <p class="field__hint">Where a student is a 50/50 bet.</p>
+        </div>
+
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Sharpness</span>
+            <span class="field__val" id="sharpVal">1.0</span>
+          </div>
+          <input id="sharp" type="range" min="0.1" max="4" step="0.1" value="1"
+                 aria-label="Sharpness: how abruptly the curve turns over">
+          <p class="field__hint">Gentle guess, or a confident snap.</p>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn" id="resetCurve" type="button">Reset</button>
+          <button class="btn" id="snapBest" type="button">Show me</button>
+        </div>
+      </div>
+
+      <!-- training -->
+      <div class="card" id="panel-train" hidden>
+        <div class="card__label">Let the machine try</div>
+        <button class="btn btn--primary" id="playBtn" type="button">Start learning</button>
+        <div class="btn-row">
+          <button class="btn" id="stepBtn" type="button">One student</button>
+          <button class="btn" id="restartBtn" type="button">Restart</button>
+        </div>
+
+        <div class="field" style="margin-top:18px">
+          <div class="field__top"><span class="field__name">Pace</span></div>
+          <div class="seg" id="paceSeg">
+            <button type="button" data-value="600">Slow</button>
+            <button type="button" data-value="220" aria-pressed="true">Steady</button>
+            <button type="button" data-value="60">Fast</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- the valley (act 5) -->
+      <div class="card" id="panel-valley" hidden>
+        <div class="card__label">Turn the one knob</div>
+        <div class="field">
+          <div class="field__top">
+            <span class="field__name">Tipping point</span>
+            <span class="field__val"><span id="vTipVal">2.0</span> h</span>
+          </div>
+          <input id="vTip" type="range" min="0" max="10" step="0.1" value="2"
+                 aria-label="Tipping point">
+          <p class="field__hint">Drag it and watch the ball climb or fall.</p>
+        </div>
+        <button class="btn btn--primary" id="rollBtn" type="button">Let it roll downhill</button>
+        <div class="btn-row">
+          <button class="btn" id="vLeft" type="button">◀ Nudge</button>
+          <button class="btn" id="vRight" type="button">Nudge ▶</button>
+        </div>
+      </div>
+
+      <!-- recap -->
+      <div class="card" id="panel-recap" hidden></div>
+
+    </aside>
+
+    <section class="stage">
+      <div class="stage__head">
+        <h2 class="stage__title" id="stageTitle"></h2>
+        <p class="stage__sub" id="stageSub"></p>
+        <div class="masthead__spacer"></div>
+        <button class="table-toggle" id="tableBtn" type="button" aria-expanded="false">
+          Show the numbers
+        </button>
+      </div>
+
+      <div class="stage__canvas-wrap" id="canvasWrap">
+        <canvas id="canvas" role="img" aria-label="Interactive chart of revision hours against pass or fail"></canvas>
+        <div class="tip" id="tip" role="status"></div>
+        <div class="cands" id="cands" hidden></div>
+      </div>
+
+      <p class="stage__note" id="note" role="status" hidden></p>
+
+      <div class="legend" id="legend"></div>
+
+      <div class="data-table" id="tableView" hidden></div>
+    </section>
+  </div>
+
+  <footer class="lesson__foot">
+    <button class="btn" id="prevBtn" type="button">&larr; Back</button>
+    <span class="lesson__progress" id="progress"></span>
+    <span class="lesson__score" id="score"></span>
+    <span class="lesson__foot-spacer"></span>
+    <button class="btn btn--primary" id="nextBtn" type="button">Next &rarr;</button>
+  </footer>
+
+</div>
+
+<script type="module" src="./logistic-regression.js"></script>
+</body>
+</html>
