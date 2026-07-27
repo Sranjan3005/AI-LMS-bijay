@@ -115,9 +115,18 @@ const AppContent = () => {
   const openChapter = (m, subType) => {
     const sub = m.subs.find((s) => s.ty === subType);
     if (!sub) return;
-    const isStory = ['theory', 'demo', 'hands'].includes(subType);
-    if (isStory) setStoryCtx({ moduleTitle: m.t, subType, m });
-    openSub(subTarget(m, sub), sub, m, isStory ? 'storybeat' : 'dashboard');
+    // The StoryBeat "mission complete" reveal should fire ONCE — only when the
+    // final core chapter (theory/demo/hands) is completed, since that's what
+    // unlocks the module's assignment. Intermediate chapters, and revisits to an
+    // already-complete module, go straight back to the dashboard, so Chiti stops
+    // popping the achievement on every Back.
+    const CORE = ['theory', 'demo', 'hands'];
+    const opened = activity[m.open] || [];
+    const alreadyComplete = CORE.every((c) => opened.includes(c));
+    const completesModule = CORE.includes(subType) && !alreadyComplete &&
+      CORE.every((c) => c === subType || opened.includes(c));
+    if (completesModule) setStoryCtx({ moduleTitle: m.t, subType, m });
+    openSub(subTarget(m, sub), sub, m, completesModule ? 'storybeat' : 'dashboard');
   };
 
   // Open a submodule (theory explainer / lesson / workspace / assignments).
