@@ -1,9 +1,11 @@
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { Camera, Upload, File as FileIcon, Image as ImageIcon } from 'lucide-react';
 import { useRef } from 'react';
+import NodeInfo from "./NodeInfo.jsx";
+import AutoGrowTextarea from './AutoGrowTextarea';
 
 export default function VisionScannerNode({ id, data }) {
-  const { setNodes } = useReactFlow();
+  const { setNodes, updateNodeData } = useReactFlow();
   const fileInputRef = useRef(null);
   
   const handleUploadClick = () => {
@@ -40,7 +42,8 @@ export default function VisionScannerNode({ id, data }) {
   return (
     <div className="custom-node" style={{ borderTop: '4px solid var(--accent-cyan)' }}>
       <div className="custom-node-header" style={{ color: 'var(--accent-cyan)' }}>
-        <Camera size={16} /> <span>Vision Scanner</span>
+        <Camera size={16} /> <span>{data.label || 'Vision Scanner'}</span>
+        <NodeInfo type="visionScanner" />
       </div>
       <div className="custom-node-box" style={{ cursor: 'pointer', padding: '15px' }} onClick={handleUploadClick}>
         <input 
@@ -61,9 +64,22 @@ export default function VisionScannerNode({ id, data }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
             <Upload size={20} />
             <span style={{ fontSize: '0.8rem' }}>Click to Upload</span>
+            <span style={{ fontSize: '0.7rem', opacity: 0.75 }}>…or drag one in from the Data Library</span>
           </div>
         )}
       </div>
+
+      {/* What to look for. Left blank the scanner just describes the picture;
+          filled in, it can pull out a specific thing (e.g. read a register). */}
+      <AutoGrowTextarea
+        className="custom-node-input"
+        minHeight={38}
+        placeholder="What should it look for? (optional)"
+        value={data.prompt || ''}
+        onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
+        style={{ marginTop: 8, fontSize: '0.78rem' }}
+      />
+
       <Handle type="source" position={Position.Right} />
     </div>
   );

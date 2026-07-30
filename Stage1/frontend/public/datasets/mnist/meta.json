@@ -1,0 +1,18 @@
+{
+  "clean": {
+    "source": "real",
+    "count": 700
+  },
+  "messy": {
+    "source": "derived",
+    "count": 700,
+    "from": "clean",
+    "method": "make_messy"
+  },
+  "noisy": {
+    "source": "derived",
+    "count": 700,
+    "from": "clean",
+    "method": "make_noisy"
+  }
+}

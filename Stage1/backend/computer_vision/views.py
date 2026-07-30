@@ -60,12 +60,16 @@ class CVPreviewView(APIView):
 
         stage_metadata = get_stage_metadata(scenario.title)
 
+        input_type = 'canvas'
+        if scenario.title.lower() not in ['the digit detective', 'the handwriting decoder']:
+            input_type = 'upload'
+
         return Response({
             'scenario_title': scenario.title,
             'variant_label':  variant.label,
             'sample_image':   sample_image_b64,
             'stage_metadata': stage_metadata,
-            'input_type':     'canvas',  # Tells frontend to show drawing canvas
+            'input_type':     input_type,
         })
 
 

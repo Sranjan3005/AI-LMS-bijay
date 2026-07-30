@@ -79,8 +79,11 @@
   border: 1px solid var(--glass-border);
   border-radius: 10px;
   padding: 15px;
-  min-width: 200px;
-  max-width: 340px;
+  min-width: 220px;
+  max-width: 380px;
+  /* Height is driven by content: auto-growing inputs + the result footer let a
+     node size itself instead of trapping text in a fixed, tiny scroll box. */
+  height: auto;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;

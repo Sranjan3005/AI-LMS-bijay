@@ -82,11 +82,15 @@ const Login = () => {
     try {
       await login(email, password, false);
     } catch (err) {
-      const data = err.response && err.response.data;
-      if (data?.email) setError('Email: ' + data.email[0]);
-      else if (data?.password) setError('Password: ' + data.password[0]);
-      else if (data?.detail) setError(data.detail);
-      else setError('Invalid credentials. Please try again.');
+      if (!err.response) {
+        setError('Could not connect to server. Is the backend running?');
+      } else {
+        const data = err.response.data;
+        if (data?.email) setError('Email: ' + data.email[0]);
+        else if (data?.password) setError('Password: ' + data.password[0]);
+        else if (data?.detail) setError(data.detail);
+        else setError('Invalid credentials. Please try again.');
+      }
       chiti.perform('no', { mood: 'sad', say: "Hmm, that didn't work. Want to try again?" });
     } finally {
       setIsLoading(false);

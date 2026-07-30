@@ -1,26 +1,31 @@
 import { 
-  Type, FileText, Camera,
+  Type, FileText, Camera, Mic,
   Bot, Minimize2, Smile, Globe,
   GitBranch, Merge,
-  MonitorPlay, BarChart3, ScanSearch, Send
+  MonitorPlay, BarChart3, ScanSearch, Send, Info
 } from 'lucide-react';
+import { nodeInfoFor } from './nodes/nodeInfo';
 import './AgenticFlow.css';
 
 const DraggableItem = ({ type, label, icon: Icon, colorClass, points, onDragStart }) => (
-  <div 
+  <div
     className={`agentic-draggable-node ${colorClass}`}
     onDragStart={(event) => onDragStart(event, type, label)}
     draggable
+    title={nodeInfoFor(type)}
     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
   >
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
       <Icon size={18} /> <span>{label}</span>
     </div>
-    {points !== undefined && (
-      <span style={{ fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', color: '#fbbf24' }}>
-        {points} pts
-      </span>
-    )}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {points !== undefined && (
+        <span style={{ fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', color: '#fbbf24' }}>
+          {points} pts
+        </span>
+      )}
+      <Info size={14} style={{ color: 'var(--text-secondary)', opacity: 0.8 }} />
+    </div>
   </div>
 );
 
@@ -40,6 +45,8 @@ export default function Sidebar() {
         <DraggableItem type="textInput" label="Text Input" icon={Type} colorClass="node-input" points={0} onDragStart={onDragStart} />
         <DraggableItem type="documentReader" label="Document Reader" icon={FileText} colorClass="node-input" points={0} onDragStart={onDragStart} />
         <DraggableItem type="visionScanner" label="Vision Scanner" icon={Camera} colorClass="node-input" points={0} onDragStart={onDragStart} />
+        <DraggableItem type="speechToText" label="Speech to Text" icon={Mic} colorClass="node-input" points={0} onDragStart={onDragStart} />
+        <DraggableItem type="webScraper" label="Web Scraper" icon={Globe} colorClass="node-input" points={0} onDragStart={onDragStart} />
       </div>
 
       <div>

@@ -1,0 +1,16 @@
+RESTAURANT INTERNAL RECORDS - CAFE CHITI
+
+Menu:
+- Spicy Chicken Sandwich: $8.50
+- Vegan Burger: $9.00
+- Cold Brew Coffee: $4.00
+- Fries: $3.00
+
+Policies:
+- Wait times average 15 minutes during lunch rush (12pm-2pm).
+- We do not accept reservations.
+- Refund policy: Full refund if the food is cold or incorrect.
+
+Staff on duty (last 7 days):
+- Manager: Sarah
+- Server: Alex, Jamie

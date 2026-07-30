@@ -31,7 +31,7 @@ def execute_langgraph_pipeline(workflow_id, initial_input="Please provide an inp
         # Stream the graph node-by-node so the UI can light each one up live.
         async def run_and_stream():
             outputs = {}
-            inputs = {"outputs": {"__initial__": initial_input}, "final_display": ""}
+            inputs = {"outputs": {"__initial__": initial_input}, "images": {}, "final_display": ""}
             async for chunk in app.astream(inputs, stream_mode="updates"):
                 # chunk = { node_id: <that node's return dict> } (one or more per step)
                 for node_id, delta in chunk.items():

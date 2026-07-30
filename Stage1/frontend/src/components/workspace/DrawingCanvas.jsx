@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Eraser, Undo2, Paintbrush, Download } from 'lucide-react';
+import { Eraser, Undo2, Paintbrush, Download, Upload } from 'lucide-react';
 
 const DrawingCanvas = ({ onImageReady, width = 280, height = 280, scenario }) => {
   const canvasRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [brushSize, setBrushSize] = useState(12);
   const [history, setHistory] = useState([]);
@@ -109,6 +110,38 @@ const DrawingCanvas = ({ onImageReady, width = 280, height = 280, scenario }) =>
       emitImage();
     };
     img.src = prev;
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Fill background black
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Scale and center the image
+        const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+        const x = (canvas.width - img.width * scale) / 2;
+        const y = (canvas.height - img.height * scale) / 2;
+        
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        
+        setHasContent(true);
+        saveToHistory();
+        emitImage();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = null; // Reset input so same file can be chosen again
   };
 
   return (
@@ -251,6 +284,34 @@ const DrawingCanvas = ({ onImageReady, width = 280, height = 280, scenario }) =>
           }}
         >
           <Undo2 size={16} /> Undo
+        </button>
+
+        {/* Upload Button */}
+        <input 
+          type="file" 
+          accept="image/*" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          onChange={handleFileUpload} 
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            border: '1px solid rgba(0, 240, 255, 0.3)',
+            background: 'rgba(0, 240, 255, 0.1)',
+            color: '#00F0FF',
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            transition: 'all 0.2s',
+          }}
+        >
+          <Upload size={16} /> Upload
         </button>
 
         {/* Clear Button */}

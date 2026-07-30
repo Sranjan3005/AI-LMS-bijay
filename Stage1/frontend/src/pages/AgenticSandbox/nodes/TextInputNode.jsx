@@ -1,5 +1,7 @@
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { Type } from 'lucide-react';
+import AutoGrowTextarea from './AutoGrowTextarea';
+import NodeInfo from "./NodeInfo.jsx";
 
 export default function TextInputNode({ id, data }) {
   const { updateNodeData } = useReactFlow();
@@ -16,10 +18,11 @@ export default function TextInputNode({ id, data }) {
     <div className="custom-node" style={{ borderTop: '4px solid var(--accent-cyan)', borderColor: isOverLimit ? 'var(--accent-red)' : '' }}>
       <div className="custom-node-header" style={{ color: 'var(--accent-cyan)' }}>
         <Type size={16} /> <span>Text Input</span>
+        <NodeInfo type="textInput" />
       </div>
-      <textarea 
+      <AutoGrowTextarea
         className="custom-node-input"
-        rows={3} 
+        minHeight={60}
         placeholder="Type starting prompt here..."
         value={text}
         onChange={handleChange}

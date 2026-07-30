@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as voice from '../chiti/voice';
 
 /**
  * ChitiGuide — a character-led, step-by-step walkthrough (Clash-of-Clans style).
@@ -95,9 +96,15 @@ function GuideLayer({ run, onNext, onStop }) {
   useEffect(() => {
     if (seenStep.current === run.i) return;
     seenStep.current = run.i;
+    
+    // Speak the current step text
+    if (step.say) {
+      voice.speak(step.say, { pitch: 1.0, rate: 1.0 });
+    }
+
     if (!step.target) return;
     document.querySelector(step.target)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }, [run.i, step.target]);
+  }, [run.i, step.target, step.say]);
 
   // Place Chiti next to the highlighted section (below it, or above if no room);
   // for target-less steps he tucks into the corner. Runs every render so it
@@ -241,7 +248,7 @@ function GuideLauncher({ onClick, style }) {
 
 /* ---------- Chiti: a placeholder robot mascot (swap for real art later) ---------- */
 
-function ChitiAvatar({ mood = 'idle', size = 84 }) {
+export function ChitiAvatar({ mood = 'idle', size = 84 }) {
   const eyeShift = mood === 'point' ? 3 : 0;
   return (
     <svg width={size} height={size} viewBox="0 0 72 72" aria-label="Chiti the robot" role="img" style={{ filter: 'drop-shadow(0 8px 18px rgba(94,92,230,.5))' }}>

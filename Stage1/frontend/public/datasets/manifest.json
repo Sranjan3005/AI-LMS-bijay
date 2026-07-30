@@ -59,14 +59,49 @@
     "wildlife/scene/02.jpg",
     "wildlife/scene/03.jpg"
   ],
-  "handwriting": [
-    "handwriting/01.jpg",
-    "handwriting/02.jpg",
-    "handwriting/03.jpg"
+  "handwriting/clean": [
+    "handwriting/clean/01.jpg",
+    "handwriting/clean/02.jpg",
+    "handwriting/clean/03.jpg",
+    "handwriting/clean/04.jpg",
+    "handwriting/clean/05.jpg"
   ],
-  "edge": [
-    "edge/01.jpg",
-    "edge/02.jpg",
-    "edge/03.jpg"
+  "handwriting/messy": [
+    "handwriting/messy/01.jpg",
+    "handwriting/messy/02.jpg",
+    "handwriting/messy/03.jpg",
+    "handwriting/messy/04.jpg",
+    "handwriting/messy/05.jpg",
+    "handwriting/messy/06.jpg"
+  ],
+  "handwriting/noisy": [
+    "handwriting/noisy/01.jpg",
+    "handwriting/noisy/02.jpg",
+    "handwriting/noisy/03.jpg",
+    "handwriting/noisy/04.jpg",
+    "handwriting/noisy/05.jpg"
+  ],
+  "edge/shapes": [
+    "edge/shapes/01.png",
+    "edge/shapes/02.png",
+    "edge/shapes/03.png"
+  ],
+  "edge/complex": [
+    "edge/complex/01.png",
+    "edge/complex/02.png",
+    "edge/complex/03.png"
+  ],
+  "edge/gradient": [
+    "edge/gradient/01.png",
+    "edge/gradient/02.png",
+    "edge/gradient/03.png"
+  ],
+  "attendance/arrivals": [
+    "attendance/arrivals/01.png",
+    "attendance/arrivals/02.png",
+    "attendance/arrivals/03.png",
+    "attendance/arrivals/04.png",
+    "attendance/arrivals/05.png",
+    "attendance/arrivals/06.png"
   ]
 }

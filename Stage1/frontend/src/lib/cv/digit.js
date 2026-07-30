@@ -7,21 +7,10 @@
  */
 
 import { extractInput28, gridToDataURL } from './imageOps';
+import { loadDigitModel } from './mnistModel';
+import { predictWithHead } from './digitTrainer';
 
-let _model = null;
-let _loading = null;
-
-export async function loadDigitModel() {
-  if (_model) return _model;
-  if (!_loading) {
-    const url = (import.meta.env.BASE_URL || '/') + 'models/mnist/mlp.json';
-    _loading = fetch(url).then((r) => {
-      if (!r.ok) throw new Error('digit model failed to load');
-      return r.json();
-    }).then((m) => { _model = m; return m; });
-  }
-  return _loading;
-}
+export { loadDigitModel };
 
 function forward(model, input) {
   const { W1, b1, W2, b2 } = model;
@@ -46,10 +35,21 @@ function forward(model, input) {
 }
 
 /**
- * Run the full digit pipeline on a drawing canvas.
- * Returns { ok, digit, confidence, probs, stages } shaped for CVPipelineOverlay.
+ * Run the full digit pipeline on a drawing canvas or sample image.
+ *
+ * When `trainedHead` is supplied (the student trained a model in this session,
+ * see digitTrainer.js) the prediction comes from THAT model — so a clean-trained
+ * head really does misread a noisy digit, with no fudging. Without one we fall
+ * back to the factory MNIST model and say so.
+ *
+ * Returns { ok, digit, confidence, probs, stages, mismatch_message, simulated }
+ * shaped for CVPipelineOverlay.
+ *
+ * @param {HTMLCanvasElement} sourceCanvas
+ * @param {Object} options { trainedHead, trainedVariant, testVariant }
  */
-export async function runDigitPipeline(sourceCanvas) {
+export async function runDigitPipeline(sourceCanvas, options = {}) {
+  const { trainedVariant = 'clean', testVariant = 'drawn', trainedHead = null } = options;
   const model = await loadDigitModel();
   const grid = extractInput28(sourceCanvas);
 
@@ -57,10 +57,30 @@ export async function runDigitPipeline(sourceCanvas) {
     return { ok: false, reason: 'blank' };
   }
 
-  const probs = Array.from(forward(model, grid));
+  let probs;
+  let simulated = false;
+
+  if (trainedHead) {
+    // Real model: frozen 784→128 features, plus the head the student trained.
+    probs = (await predictWithHead(trainedHead, grid)).probs;
+  } else {
+    probs = Array.from(forward(model, grid));
+    simulated = true;
+  }
+
   let digit = 0;
   for (let i = 1; i < probs.length; i++) if (probs[i] > probs[digit]) digit = i;
   const confidence = Math.round(probs[digit] * 100);
+
+  // The mismatch note is now a description of a real outcome rather than a
+  // penalty applied to one: low confidence here means the trained model
+  // genuinely struggled with this input.
+  let mismatch_message = null;
+  if (trainedHead && testVariant !== 'drawn' && trainedVariant !== testVariant && confidence < 70) {
+    mismatch_message = `This model was trained on ${trainedVariant} digits and is now being shown a ${testVariant} one — it is only ${confidence}% sure. That gap is the cost of a training set that didn't cover this case.`;
+  } else if (simulated && testVariant !== 'drawn' && trainedVariant !== testVariant) {
+    mismatch_message = `The digit datasets aren't installed yet, so this is the factory MNIST model rather than one you trained. Install them (see datasets/DATASETS_TO_ADD.md) to see the real difference between a ${trainedVariant}-trained and a ${testVariant}-trained model.`;
+  }
 
   const stages = [
     {
@@ -80,11 +100,13 @@ export async function runDigitPipeline(sourceCanvas) {
     },
     {
       title: 'Decide',
-      description: 'A confidence score for each digit 0–9. The tallest bar is the winner!',
+      description: trainedHead
+        ? `A confidence score for each digit 0–9, from the model YOU trained on the ${trainedVariant} dataset. The tallest bar wins.`
+        : 'A confidence score for each digit 0–9. The tallest bar is the winner!',
       bars: probs.map((p, i) => ({ label: String(i), value: p })),
       highlight: digit,
     },
   ];
 
-  return { ok: true, digit, confidence, probs, stages };
+  return { ok: true, digit, confidence, probs, stages, mismatch_message, simulated };
 }

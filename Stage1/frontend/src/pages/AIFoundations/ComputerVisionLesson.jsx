@@ -1,26 +1,48 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ChevronRight, ChevronLeft, Eye, Cpu, Layers, Zap, Grid3x3, Scan, Microscope, Sparkles, Play, MonitorSmartphone, Stethoscope, Car, Satellite, Factory, GraduationCap, Leaf } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, Eye, Cpu, Layers, Zap, Scan, Sparkles, Play, Stethoscope, Car, Satellite, Factory, GraduationCap, Leaf } from 'lucide-react';
 import styles from './ComputerVisionLesson.module.css';
+import { useChiti } from '../../components/chiti/ChitiProvider';
 
 const ComputerVisionLesson = ({ onBackToSupervised, onNavigateToPredictionEngine }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const totalSteps = 4;
+  
+  const chiti = useChiti();
+  
+  useEffect(() => {
+    switch (currentStep) {
+      case 0:
+        chiti.react('greet', { say: "Welcome to the Computer Vision lesson! A machine receives pixel values first; let's see how meaning is built layer-by-layer." });
+        break;
+      case 1:
+        chiti.react('point', { say: "This is how CNN layers work! Watch how the filter slides over the pixels to find edges and shapes." });
+        break;
+      case 2:
+        chiti.react('think', { say: "Computer Vision is everywhere. From healthcare to self-driving cars! Try the interactive lab filters here." });
+        break;
+      case 3:
+        chiti.react('celebrate', { say: "Now it's your turn! Head to the Prediction Engine and see the AI process your own images." });
+        break;
+      default:
+        break;
+    }
+  }, [currentStep, chiti]);
 
   // ── Step 0: Pixel Grid Interactive ──
   const [highlightedPixel, setHighlightedPixel] = useState(null);
-  const pixelGrid = useMemo(() => {
+  const [pixelGrid] = useState(() => {
     // 8x8 grid showing a simplified "7" digit
     const grid = Array(8).fill(null).map(() => Array(8).fill(0));
     // Draw a "7" pattern
-    [0,1,2,3,4,5,6,7].forEach(x => { grid[0][x] = 200 + Math.floor(Math.random()*55); });
-    [1,2,3].forEach(y => { grid[y][6] = 180 + Math.floor(Math.random()*75); });
+    [0,1,2,3,4,5,6,7].forEach(x => { grid[0][x] = 200 + ((x * 17) % 55); });
+    [1,2,3].forEach(y => { grid[y][6] = 180 + ((y * 23) % 75); });
     grid[4][5] = 220; grid[4][4] = 160;
     grid[5][4] = 200; grid[5][3] = 140;
     grid[6][3] = 220; grid[6][2] = 160;
     grid[7][2] = 240; grid[7][1] = 180;
     return grid;
-  }, []);
+  });
 
   // ── Step 1: Convolution Animation ──
   const [kernelPos, setKernelPos] = useState({ row: 0, col: 0 });
@@ -371,10 +393,10 @@ const ComputerVisionLesson = ({ onBackToSupervised, onNavigateToPredictionEngine
                       {Array.from({ length: 64 }, (_, i) => (
                         <div key={i} className={styles.filterCell} style={{
                           background: activeFilterDemo === 'edges'
-                            ? `rgba(0, 240, 255, ${Math.random() * 0.8})`
+                            ? `rgba(0, 240, 255, ${((i * 17) % 80) / 100})`
                             : activeFilterDemo === 'texture'
-                            ? `rgba(178, 0, 255, ${Math.random() * 0.6})`
-                            : `hsl(${i * 5}, 80%, ${30 + Math.random() * 40}%)`,
+                            ? `rgba(178, 0, 255, ${((i * 23) % 60) / 100})`
+                            : `hsl(${i * 5}, 80%, ${30 + ((i * 31) % 40)}%)`,
                         }} />
                       ))}
                     </div>

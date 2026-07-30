@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { BarChart3 } from 'lucide-react';
+import NodeInfo from "./NodeInfo.jsx";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -10,7 +11,7 @@ export default function ChartGeneratorNode({ data }) {
   if (data.output) {
     try {
       chartData = JSON.parse(data.output);
-    } catch (e) {
+    } catch {
       // Raw text if not JSON
     }
   }
@@ -68,6 +69,7 @@ export default function ChartGeneratorNode({ data }) {
       <Handle type="target" position={Position.Left} />
       <div className="custom-node-header" style={{ color: 'var(--accent-green)' }}>
         <BarChart3 size={16} /> <span>Chart Generator</span>
+        <NodeInfo type="chartGenerator" />
       </div>
       <div className="custom-node-box" style={{ borderColor: 'var(--accent-green)', padding: '10px' }}>
         {data.output && !chartData ? (

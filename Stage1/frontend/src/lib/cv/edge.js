@@ -76,7 +76,7 @@ function overlayURL(sourceCanvas, mag, w, h, threshold = 40) {
   return c.toDataURL('image/png');
 }
 
-export async function runEdgePipeline(sourceCanvas) {
+export async function runEdgePipeline(sourceCanvas, { trainedVariant, testVariant } = {}) {
   const { gray, w, h } = readGray(sourceCanvas);
   const threshold = 40;
   const mag = sobel(gray, w, h);
@@ -86,8 +86,15 @@ export async function runEdgePipeline(sourceCanvas) {
   if (edgePixels < 20) return { ok: false, message: 'Draw a shape first — try a circle, square, or star!' };
 
   const pct = Math.round((edgePixels / (w * h)) * 100);
+  
+  let mismatch_message = null;
+  if (trainedVariant === 'shapes' && testVariant && testVariant !== 'shapes') {
+    mismatch_message = `This edge model is "trained" on simple geometric shapes. Now you're feeding it ${testVariant} data. Look at the magenta outlines—it finds too many edges and can't tell what's important! A model trained on simple data fails when faced with real-world complexity.`;
+  }
+
   return {
     ok: true,
+    mismatch_message,
     prediction: `Found the outlines! ${edgePixels.toLocaleString()} edge pixels (${pct}% of the image).`,
     stages: [
       { title: 'Capture', description: 'Your drawing — just a grid of coloured pixels to the computer.', image: sourceCanvas.toDataURL('image/png') },

@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Merge } from 'lucide-react';
+import NodeInfo from "./NodeInfo.jsx";
 import NodeResultFooter from './NodeResultFooter';
 
 export default function MergerNode({ data }) {
@@ -12,6 +13,7 @@ export default function MergerNode({ data }) {
 
       <div className="custom-node-header" style={{ color: '#F59E0B' }}>
         <Merge size={16} /> <span>The Merger</span>
+        <NodeInfo type="merger" />
       </div>
       <div className="custom-node-box" style={{ padding: '5px' }}>
         Combines flows

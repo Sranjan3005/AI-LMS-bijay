@@ -6,7 +6,7 @@ let _manifest = null;
 
 export function loadManifest() {
   if (!_manifest) {
-    _manifest = fetch('/datasets/manifest.json')
+    _manifest = fetch('/datasets/manifest.json?v=' + Date.now())
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({}));
   }
@@ -18,9 +18,10 @@ export const SCENARIO_PREVIEWS = {
   'The Forest Forager':      ['mushroom/red_poison', 'mushroom/brown_safe', 'mushroom/red_safe', 'mushroom/brown_poison'],
   'The Smart Trash Can':     ['trash/good', 'trash/bad'],
   'The Self-Driving Eye':    ['signs'],
-  'The Handwriting Decoder': ['handwriting'],
-  'The Digit Detective':     ['handwriting'],
-  'The Edge Explorer':       ['edge'],
+  'The Handwriting Decoder': ['handwriting/clean', 'handwriting/messy'],
+  // The Digit Detective previews come from the MNIST sprites it trains on, not
+  // from a folder of loose files — see lib/cv/digitData.js:previewTiles().
+  'The Edge Explorer':       ['edge/shapes', 'edge/complex', 'edge/gradient'],
 };
 
 export const previewFolders = (title) => SCENARIO_PREVIEWS[title] || [];

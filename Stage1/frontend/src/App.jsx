@@ -15,6 +15,7 @@ import CaseFile from './components/story/CaseFile';
 import StoryBeat from './components/story/StoryBeat';
 import { ChitiProvider, useChiti } from './components/chiti/ChitiProvider';
 import ChitiStage from './components/chiti/ChitiStage';
+import DataLibrary from './components/DataLibrary';
 import { subTarget } from './content/flowTargets';
 import { EXPLAINERS } from './content/explainers';
 import LabWorkspace from './pages/LabWorkspace';
@@ -365,6 +366,9 @@ function App() {
         {/* Mounted once at the root so Chiti persists across views and the 3D
             model is loaded a single time. */}
         <ChitiStage />
+        {/* Same reason: the Data Library must be reachable from the homepage,
+            any lesson, and the agentic canvas alike. It portals into <body>. */}
+        <DataLibrary />
       </ChitiProvider>
     </AuthProvider>
   );

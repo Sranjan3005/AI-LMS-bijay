@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Radar, MapPin, Send, ShieldAlert, Leaf, Upload, RotateCcw, ArrowRight, ArrowLeft } from 'lucide-react';
-import { loadDetector, detect } from '../../lib/cv/detector';
+import api from '../../api';
 
 /**
  * WildlifeExecutionAnimation — the "end product" of the Wildlife Rescue Drone
@@ -14,8 +14,7 @@ import { loadDetector, detect } from '../../lib/cv/detector';
  * `object-fit: contain` transform so they sit exactly on each animal.
  */
 
-const ANIMALS = new Set(['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe']);
-const ENDANGERED = new Set(['elephant', 'zebra', 'giraffe', 'bear']);
+const ENDANGERED = ['elephant', 'zebra', 'giraffe', 'bear', 'tiger', 'rhino', 'lion', 'leopard', 'cheetah', 'hippopotamus'];
 
 const SAMPLES = [
   { url: '/datasets/wildlife/scene/01.jpg', label: '🦓 Savanna' },
@@ -52,21 +51,49 @@ export default function WildlifeExecutionAnimation({ onClose, initialImage }) {
     if (!img || !wrap) return;
     setErr(''); setScanning(true);
     try {
-      await loadDetector();
-      const preds = await detect(img, 20, ANIMALS);
+      // 1. Get base64 of the image
+      let base64Image = '';
+      if (imgUrl.startsWith('data:')) {
+        base64Image = imgUrl;
+      } else {
+        const response = await fetch(imgUrl);
+        const blob = await response.blob();
+        base64Image = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      // 2. Call Azure OpenAI vision endpoint
+      const res = await api.post('/agentic/workflows/object_detect/', { image: base64Image });
+      const preds = res.data.detections || [];
+
+      // 3. Map bounding boxes
       const cW = wrap.clientWidth, cH = wrap.clientHeight;
       const nW = img.naturalWidth || cW, nH = img.naturalHeight || cH;
       const scale = Math.min(cW / nW, cH / nH);
       const offX = (cW - nW * scale) / 2, offY = (cH - nH * scale) / 2;
+      
       const boxed = preds.map((p, i) => {
-        const [x, y, w, h] = p.bbox;
-        const cls = p.class;
+        // OpenAI normalized coords: [x, y, w, h] (0 to 1)
+        const [nx, ny, nw, nh] = p.bbox || [0.1, 0.1, 0.2, 0.2]; // fallback
+        const cls = (p.class || 'unknown').toLowerCase();
+        
+        // Convert normalized to natural pixels
+        const x = nx * nW;
+        const y = ny * nH;
+        const w = nw * nW;
+        const h = nh * nH;
+        
+        const endangered = ENDANGERED.some(e => cls.includes(e));
         return {
-          id: i, cls, score: p.score, endangered: ENDANGERED.has(cls),
+          id: i, cls, score: p.score || 0.9, endangered: endangered,
           left: x * scale + offX, top: y * scale + offY, width: w * scale, height: h * scale,
           color: BOX_COLORS[i % BOX_COLORS.length],
         };
       });
+      
       setScanning(false);
       if (!boxed.length) { setErr('No animals spotted in this frame — try another sample or upload a clearer photo.'); return; }
       setDets(boxed);
@@ -76,7 +103,7 @@ export default function WildlifeExecutionAnimation({ onClose, initialImage }) {
       setScanning(false);
       setErr('Could not load the detection model — check your connection and try again.');
     }
-  }, []);
+  }, [imgUrl]);
 
   const endangeredList = dets.filter((d) => d.endangered);
   const normalList = dets.filter((d) => !d.endangered);
@@ -195,17 +222,56 @@ export default function WildlifeExecutionAnimation({ onClose, initialImage }) {
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                 <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem' }}>3 · Alert dispatched</h3>
-                <div style={{ padding: 16, borderRadius: 14, border: `1px solid ${endangeredList.length ? 'rgba(255,69,58,.45)' : 'rgba(48,209,88,.45)'}`, background: endangeredList.length ? 'rgba(255,69,58,.08)' : 'rgba(48,209,88,.08)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, color: endangeredList.length ? '#ff6b6b' : '#4ade80' }}>
-                    <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.2 }}><Send size={18} /></motion.span>
-                    {endangeredList.length ? 'Automated alert sent to Forest Rangers' : 'Logged — no action needed'}
+                
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+                  {/* Left Side: System Log */}
+                  <div style={{ flex: 1, minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ padding: 16, borderRadius: 14, border: `1px solid ${endangeredList.length ? 'rgba(255,69,58,.45)' : 'rgba(48,209,88,.45)'}`, background: endangeredList.length ? 'rgba(255,69,58,.08)' : 'rgba(48,209,88,.08)', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, color: endangeredList.length ? '#ff6b6b' : '#4ade80' }}>
+                        <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.2 }}><Send size={18} /></motion.span>
+                        {endangeredList.length ? 'Automated alert sent to Forest Rangers' : 'Logged — no action needed'}
+                      </div>
+                      <p style={{ margin: '8px 0 0', color: '#cdd1e0', fontSize: '.92rem', lineHeight: 1.55 }}>
+                        {endangeredList.length
+                          ? `🚨 ${endangeredList.length} endangered ${endangeredList.length === 1 ? 'animal' : 'animals'} detected (${endangeredList.map((d) => d.cls).join(', ')}). Coordinates ${endangeredList.map((d) => coordFor(d.id)).join(' · ')} sent to the ranger station.`
+                          : 'Only common wildlife in frame — the drone quietly logs it and keeps patrolling.'}
+                      </p>
+                    </div>
                   </div>
-                  <p style={{ margin: '8px 0 0', color: '#cdd1e0', fontSize: '.92rem', lineHeight: 1.55 }}>
-                    {endangeredList.length
-                      ? `🚨 ${endangeredList.length} endangered ${endangeredList.length === 1 ? 'animal' : 'animals'} detected (${endangeredList.map((d) => d.cls).join(', ')}). Coordinates ${endangeredList.map((d) => coordFor(d.id)).join(' · ')} sent to the ranger station.`
-                      : 'Only common wildlife in frame — the drone quietly logs it and keeps patrolling.'}
-                  </p>
+
+                  {/* Right Side: Ranger Phone UI */}
+                  {endangeredList.length > 0 && (
+                    <div style={{ width: '260px', flexShrink: 0, background: '#000', borderRadius: '24px', border: '6px solid #222', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative', overflow: 'hidden' }}>
+                      {/* Notch */}
+                      <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100px', height: '18px', background: '#222', borderBottomLeftRadius: '10px', borderBottomRightRadius: '10px' }} />
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '0.7rem', padding: '0 8px', marginTop: '6px' }}>
+                        <span>14:32</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <span style={{ fontSize: '0.6rem' }}>📶</span>
+                          <span style={{ fontSize: '0.6rem' }}>🔋</span>
+                        </div>
+                      </div>
+
+                      <div style={{ flex: 1, padding: '10px 4px' }}>
+                        {endangeredList.map((d, idx) => (
+                          <motion.div key={d.id} initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 + (idx * 0.2), type: 'spring' }} style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', borderRadius: '12px', padding: '10px', marginBottom: '8px', borderLeft: '3px solid #ff6b6b' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px' }}>
+                              <ShieldAlert size={14} color="#ff6b6b" /> ENDANGERED ALERT
+                            </div>
+                            <div style={{ color: '#e2e8f0', fontSize: '0.75rem', textTransform: 'capitalize' }}>
+                              <b>{d.cls}</b> spotted!
+                            </div>
+                            <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <MapPin size={10} /> {coordFor(d.id)}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
+
                 <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                   <button onClick={() => setStep(1)} style={ghost}><ArrowLeft size={15} /> Back</button>
                   <button onClick={resetToPick} style={{ ...primary, flex: 1 }}><RotateCcw size={15} /> Run another frame</button>

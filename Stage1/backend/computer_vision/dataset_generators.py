@@ -8,6 +8,7 @@ For 'Handwriting Decoder': provides sample handwriting images.
 """
 
 import io
+import os
 import numpy as np
 
 
@@ -135,27 +136,56 @@ def generate_sample_smiley_face() -> bytes:
 def get_sample_image(scenario_title: str, variant_name: str) -> bytes:
     """
     Return sample image bytes for a CV scenario + variant.
-    This is analogous to get_dataset() in regression/neural_network apps.
+    This reads from public/datasets/ if available, else falls back to generated images.
     """
     slug = _title_to_slug(scenario_title)
 
+    # Base path for frontend datasets
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../frontend/public/datasets'))
+
+    # Map slug to dataset folder
+    folder = None
+    if slug in ['the_digit_detective', 'the_handwriting_decoder']:
+        folder = 'handwriting'
+    elif slug == 'the_edge_explorer':
+        folder = 'edge'
+    elif slug in ['the_self_driving_eye', 'the_self-driving_eye']:
+        folder = 'signs'
+    elif 'wildlife' in slug:
+        folder = 'wildlife'
+    elif 'mushroom' in slug:
+        folder = 'mushroom'
+    elif 'trash' in slug:
+        folder = 'trash'
+
+    if folder:
+        # Check for variant subfolder first
+        variant_safe = variant_name.lower().replace(' ', '_')
+        paths_to_try = [
+            os.path.join(base_dir, folder, variant_safe, '01.jpg'),
+            os.path.join(base_dir, folder, variant_safe, '01.png'),
+            os.path.join(base_dir, folder, '01.jpg'),
+            os.path.join(base_dir, folder, '01.png'),
+        ]
+        
+        for p in paths_to_try:
+            if os.path.exists(p):
+                with open(p, 'rb') as f:
+                    return f.read()
+
+    # Fallbacks if real dataset files not found
     if slug == 'the_digit_detective':
         digit_map = {'clean': 5, 'messy': 3, 'noisy': 7}
         digit = digit_map.get(variant_name, 5)
         return generate_sample_digit_image(digit)
-
     elif slug == 'the_edge_explorer':
         return generate_sample_gradient_image()
-
     elif slug == 'the_handwriting_decoder':
         return generate_sample_digit_image(8)
-
     elif slug == 'the_self-driving_eye' or slug == 'the_self_driving_eye':
         return generate_sample_traffic_sign()
-
     elif slug == 'the_emotion_reader':
         return generate_sample_smiley_face()
-
     else:
         return generate_sample_digit_image(0)
 

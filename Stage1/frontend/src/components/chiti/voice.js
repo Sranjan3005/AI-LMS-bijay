@@ -35,8 +35,11 @@ function pickVoice() {
   const voices = s.getVoices() || [];
   if (!voices.length) return null;
   return (
+    voices.find(v => v.name.includes('Neerja') && v.name.includes('Online')) ||
+    voices.find(v => v.name.includes('Neerja') && v.name.includes('Neural')) ||
+    voices.find(v => v.name.includes('Neerja')) ||
+    voices.find(v => v.lang === 'en-IN' && v.name.includes('Neural')) ||
     voices.find(v => v.lang === 'en-IN') ||
-    voices.find(v => /en[-_]IN/i.test(v.lang)) ||
     voices.find(v => v.lang === 'en-GB') ||
     voices.find(v => v.lang?.startsWith('en')) ||
     voices[0]
@@ -47,6 +50,18 @@ export function stop() {
   const s = synth();
   try { s?.cancel(); } catch { /* ignore */ }
   currentUtterance = null;
+}
+
+function sanitizeForSpeech(text) {
+  if (!text) return '';
+  let s = text;
+  // Remove emojis and common symbols that shouldn't be spoken
+  s = s.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}👆👇👉👈🤖✨]/gu, '');
+  // Fix AI pronunciation (read as "A I" instead of "aaai")
+  s = s.replace(/\bAI\b/g, 'A I');
+  // Remove common markdown formatting
+  s = s.replace(/[\*\_~`]/g, '');
+  return s.trim();
 }
 
 /**
@@ -65,11 +80,14 @@ export function speak(text, opts = {}) {
   const s = synth();
   try { s.cancel(); } catch { /* ignore */ }
 
-  const u = new SpeechSynthesisUtterance(text);
+  const cleanText = sanitizeForSpeech(text);
+  if (!cleanText) { opts.onEnd?.(); return () => {}; }
+
+  const u = new SpeechSynthesisUtterance(cleanText);
   const v = pickVoice();
   if (v) { u.voice = v; u.lang = v.lang; }
-  u.rate = opts.rate ?? 0.98;   // a touch slower — these are 11-15 year olds
-  u.pitch = opts.pitch ?? 1.08; // slightly bright, friendly-robot
+  u.rate = opts.rate ?? 1.0;    // Standard rate
+  u.pitch = opts.pitch ?? 1.0;  // Standard pitch to avoid talkback robot effect
   u.volume = 1;
 
   u.onstart = () => opts.onStart?.();

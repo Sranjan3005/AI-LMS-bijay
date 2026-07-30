@@ -1,0 +1,8 @@
+Review 1 (Good):
+"Had the Vegan Burger and it was amazing! Server Alex was super friendly. Highly recommend."
+
+Review 2 (Bad - factually wrong):
+"Waited 45 minutes for a Spicy Chicken Sandwich that cost $15! Outrageous prices and slow service."
+
+Review 3 (Bad - needs management):
+"Found a piece of plastic in my fries. I asked for a refund and the manager Sarah ignored me. Unacceptable hygiene and service!"

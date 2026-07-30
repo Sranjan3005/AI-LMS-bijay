@@ -1,16 +1,16 @@
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { ScanSearch, Upload, Loader2 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { loadDetector, detect } from '../../../lib/cv/detector';
+import api from '../../../api';
+import NodeInfo from "./NodeInfo.jsx";
 
 /**
- * ObjectDetectionNode — runs a REAL object-detection model (TensorFlow.js
- * coco-ssd) right in the browser when you upload an image. The detections are
- * stored on the node, so the backend pipeline just forwards them — no LLM is
- * used for detection (unlike the Vision Scanner, which asks an LLM to describe).
+ * ObjectDetectionNode — upgraded to use Azure OpenAI Vision via the backend.
+ * This ensures it can detect a vast array of objects and endangered animals
+ * properly during pipeline building, matching the final scenario capabilities.
  */
 export default function ObjectDetectionNode({ id, data }) {
-  const { updateNodeData } = useReactFlow();
+  const { updateNodeData, getNodes, setNodes } = useReactFlow();
   const fileInputRef = useRef(null);
   const [status, setStatus] = useState('idle'); // idle | loading | detecting | done | error
 
@@ -20,21 +20,52 @@ export default function ObjectDetectionNode({ id, data }) {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const dataUrl = event.target.result;
+      
+      // Clear execution results from all nodes since input changed
+      setNodes((nds) => nds.map(n => ({
+        ...n,
+        style: { ...n.style, boxShadow: undefined, border: undefined },
+        data: { ...n.data, __result: undefined, output: undefined }
+      })));
       updateNodeData(id, { fileName: file.name, fileType: file.type, fileBase64: dataUrl, detections: null });
+
       try {
-        setStatus('loading');
-        await loadDetector();
         setStatus('detecting');
+        
+        // Resize the image using a canvas to prevent sending massive payloads to the backend
         const img = new Image();
-        img.src = dataUrl;
-        await img.decode();
-        const preds = await detect(img, 20, null); // null = detect ALL coco classes (incl. animals)
-        const detections = preds.map((p) => ({ label: p.class, score: Math.round(p.score * 100) }));
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = dataUrl;
+        });
+        
+        const MAX_SIZE = 800;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX_SIZE || h > MAX_SIZE) {
+          const ratio = Math.min(MAX_SIZE / w, MAX_SIZE / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        
+        // Convert back to a much smaller base64 string
+        const smallDataUrl = canvas.toDataURL(file.type || 'image/jpeg', 0.8);
+        
+        const res = await api.post('/agentic/workflows/object_detect/', { image: smallDataUrl });
+        const preds = res.data.detections || [];
+        const detections = preds.map((p) => ({ label: p.class || p.label, score: Math.round(p.score * 100) }));
         updateNodeData(id, { detections });
         setStatus('done');
       } catch (err) {
         console.error('object detection failed', err);
-        setStatus('error');
+        const errormsg = err.response ? `${err.response.status} ${err.response.statusText}` : err.message;
+        setStatus(`error: ${errormsg}`);
       }
     };
     reader.readAsDataURL(file);
@@ -47,6 +78,7 @@ export default function ObjectDetectionNode({ id, data }) {
       <Handle type="target" position={Position.Left} />
       <div className="custom-node-header" style={{ color: '#30D158' }}>
         <ScanSearch size={16} /> <span>Object Detection</span>
+        <NodeInfo type="objectDetection" />
       </div>
 
       <div className="custom-node-box" style={{ cursor: 'pointer', padding: '14px' }} onClick={() => fileInputRef.current?.click()}>
@@ -61,15 +93,15 @@ export default function ObjectDetectionNode({ id, data }) {
         )}
       </div>
 
-      {/* live detection feedback (runs client-side, no LLM) */}
+      {/* live detection feedback (runs via backend LLM now) */}
       <div style={{ padding: '2px 10px 8px', minHeight: 22 }}>
-        {(status === 'loading' || status === 'detecting') && (
+        {status === 'detecting' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#30D158', fontSize: '0.75rem' }}>
             <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-            {status === 'loading' ? 'Loading detector…' : 'Detecting objects…'}
+            Detecting objects…
           </div>
         )}
-        {status === 'error' && <span style={{ color: '#ff6b6b', fontSize: '0.75rem' }}>Detection failed — try another image.</span>}
+        {status.startsWith('error') && <span style={{ color: '#ff6b6b', fontSize: '0.75rem' }}>{status === 'error' ? 'Detection failed — try another image.' : status}</span>}
         {dets && dets.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {dets.map((d, i) => (

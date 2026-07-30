@@ -22,10 +22,14 @@ const WS_ORIGIN = API_BASE_URL
   .replace(/\/api\/v1\/?$/, ''); // strip the REST path, keep scheme+host
 
 import Sidebar from './Sidebar';
-import WildlifeExecutionAnimation from './WildlifeExecutionAnimation';
+
 import FakeNewsExecutionAnimation from './FakeNewsExecutionAnimation';
+import WildlifeExecutionAnimation from './WildlifeExecutionAnimation';
+import ReviewReplyExecutionAnimation from './ReviewReplyExecutionAnimation';
+import AttendanceExecutionAnimation from './AttendanceExecutionAnimation';
 import { GuideProvider } from '../../components/guide/GuideProvider';
 import { loadDetector, detect } from '../../lib/cv/detector';
+import { DATASET_DRAG_TYPE, urlToDataUrl } from '../../lib/dataLibrary';
 
 // Chiti's walkthrough of the agentic canvas — explains the pipeline, then guides
 // the run order: Save → Run → read results → See it in action.
@@ -41,12 +45,14 @@ const AGENTIC_STEPS = [
 import TextInputNode from './nodes/TextInputNode';
 import DocumentReaderNode from './nodes/DocumentReaderNode';
 import VisionScannerNode from './nodes/VisionScannerNode';
+import SpeechToTextNode from './nodes/SpeechToTextNode';
 // Processing
 import CustomizerNode from './nodes/CustomizerNode';
 import ObjectDetectionNode from './nodes/ObjectDetectionNode';
 import SummarizerNode from './nodes/SummarizerNode';
 import SentimentRadarNode from './nodes/SentimentRadarNode';
 import WebSearchNode from './nodes/WebSearchNode';
+import WebScraperNode from './nodes/WebScraperNode';
 // Routing
 import DeciderNode from './nodes/DeciderNode';
 import MergerNode from './nodes/MergerNode';
@@ -60,11 +66,13 @@ const nodeTypes = {
   textInput: TextInputNode,
   documentReader: DocumentReaderNode,
   visionScanner: VisionScannerNode,
+  speechToText: SpeechToTextNode,
   customizer: CustomizerNode,
   objectDetection: ObjectDetectionNode,
   summarizer: SummarizerNode,
   sentimentRadar: SentimentRadarNode,
   webSearch: WebSearchNode,
+  webScraper: WebScraperNode,
   decider: DeciderNode,
   merger: MergerNode,
   display: DisplayNode,
@@ -73,8 +81,7 @@ const nodeTypes = {
 };
 
 const initialNodes = [];
-let id = 0;
-const getId = () => `node_${id++}`;
+const getId = () => `node_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
 // Drop any edge whose source/target node is missing — prevents "broken" edges
 // left dangling after a node is removed (in a template or a saved workflow).
@@ -119,6 +126,12 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
   const [dailyPoints, setDailyPoints] = useState(null);
   const [showWildlife, setShowWildlife] = useState(false);
   const [showFakeNews, setShowFakeNews] = useState(false);
+  const [showReviewReply, setShowReviewReply] = useState(false);
+  const [showAttendance, setShowAttendance] = useState(false);
+
+  // Is this flow from a preset? (used to pick which animation to show)
+  const isReviewReply = presetFlow?.id === 'review-reply';
+  const isAttendance = presetFlow?.id === 'auto-attendance';
   const [hasRunResult, setHasRunResult] = useState(false);
   
   useEffect(() => {
@@ -338,30 +351,59 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
 
   const onDrop = useCallback(
     (event) => {
-      try {
-        event.preventDefault();
-        const type = event.dataTransfer.getData('application/reactflow');
-        const label = event.dataTransfer.getData('nodeLabel');
-        
-        if (typeof type === 'undefined' || !type) return;
+      event.preventDefault();
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
-        const position = screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        });
+      // ── Data Library drop: build a node already filled with the dataset ──
+      const datasetRaw = event.dataTransfer.getData(DATASET_DRAG_TYPE);
+      if (datasetRaw) {
+        let payload;
+        try {
+          payload = JSON.parse(datasetRaw);
+        } catch (err) {
+          console.error('Malformed dataset drag payload:', err);
+          return;
+        }
 
-        const newNode = {
-          id: getId(),
-          type,
+        const nodeId = getId();
+        // Text datasets land fully-formed; image datasets need a fetch, so the
+        // node appears immediately in a loading state and fills in after.
+        setNodes((nds) => nds.concat({
+          id: nodeId,
+          type: payload.nodeType,
           position,
-          data: { label: label },
-        };
+          data: {
+            label: payload.label,
+            ...(payload.text ? { text: payload.text, content: payload.text } : {}),
+            ...(payload.url ? { fileName: payload.fileName || 'Loading…', fromLibrary: true } : {}),
+          },
+        }));
 
-        setNodes((nds) => nds.concat(newNode));
-      } catch (err) {
-        console.error("Error on drop:", err);
-        alert("Drop Error: " + err.message);
+        if (payload.url) {
+          urlToDataUrl(payload.url)
+            .then((dataUrl) => {
+              const ext = (payload.fileName || '').split('.').pop().toLowerCase();
+              const fileType = ext === 'png' ? 'image/png' : 'image/jpeg';
+              setNodes((nds) => nds.map((n) => n.id === nodeId ? {
+                ...n,
+                data: { ...n.data, fileName: payload.fileName, fileType, fileBase64: dataUrl },
+              } : n));
+            })
+            .catch((err) => {
+              console.error('Could not load dataset image:', err);
+              setNodes((nds) => nds.map((n) => n.id === nodeId ? {
+                ...n, data: { ...n.data, fileName: 'Could not load — try again' },
+              } : n));
+            });
+        }
+        return;
       }
+
+      // ── Sidebar drop: an empty node of the dragged type ──
+      const type = event.dataTransfer.getData('application/reactflow');
+      if (!type) return;
+      const label = event.dataTransfer.getData('nodeLabel');
+      setNodes((nds) => nds.concat({ id: getId(), type, position, data: { label } }));
     },
     [screenToFlowPosition, setNodes]
   );
@@ -528,20 +570,29 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
           </div>
         )}
 
-        {/* End-product demo — appears for vision/drone flows, but only becomes
+        {/* End-product demo — appears for vision/drone/review flows, but only becomes
             clickable AFTER a pipeline run has produced a result, so students see
             it as the visualised outcome of their own flow. */}
         {(() => {
-          const hasVision = nodes.some((n) => n.type === 'objectDetection' || n.type === 'visionScanner');
+          const hasVision = !isAttendance && nodes.some((n) => n.type === 'objectDetection' || n.type === 'visionScanner');
           const hasTextCheck = !hasVision && nodes.some((n) => n.type === 'webSearch');
-          return (hasVision || hasTextCheck) && (
+          const hasReview = isReviewReply || (!hasVision && !hasTextCheck && nodes.some((n) => n.type === 'sentimentRadar'));
+          const showDemo = isAttendance || hasVision || hasTextCheck || hasReview;
+
+          return showDemo && (
           <button
             data-guide="demo"
-            onClick={() => hasRunResult && (hasVision ? setShowWildlife(true) : setShowFakeNews(true))}
+            onClick={() => {
+              if (!hasRunResult) return;
+              if (isAttendance) setShowAttendance(true);
+              else if (hasVision) setShowWildlife(true);
+              else if (hasReview) setShowReviewReply(true);
+              else setShowFakeNews(true);
+            }}
             disabled={!hasRunResult}
             title={hasRunResult ? 'Watch the pipeline execute visually' : 'Save & run the pipeline first — then watch it in action'}
             style={{
-              position: 'fixed', bottom: '84px', right: '30px', zIndex: 150,
+              position: 'fixed', bottom: '130px', right: '450px', zIndex: 150,
               display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 22px',
               fontSize: '1rem', borderRadius: '30px', border: '1px solid rgba(100,210,255,.4)',
               cursor: hasRunResult ? 'pointer' : 'not-allowed', color: '#fff', fontFamily: 'inherit', fontWeight: 600,
@@ -563,6 +614,14 @@ function Canvas({ onBackToDashboard, presetFlow, isExploreMode, assignment }) {
 
         {showFakeNews && (
           <FakeNewsExecutionAnimation onClose={() => setShowFakeNews(false)} nodes={nodes} />
+        )}
+        
+        {showReviewReply && (
+          <ReviewReplyExecutionAnimation onClose={() => setShowReviewReply(false)} nodes={nodes} />
+        )}
+
+        {showAttendance && (
+          <AttendanceExecutionAnimation onClose={() => setShowAttendance(false)} nodes={nodes} />
         )}
 
         {/* Floating Run Button */}

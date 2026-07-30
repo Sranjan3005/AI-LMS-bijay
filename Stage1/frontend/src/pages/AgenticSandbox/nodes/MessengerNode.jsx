@@ -1,5 +1,6 @@
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { Send } from 'lucide-react';
+import NodeInfo from "./NodeInfo.jsx";
 import NodeResultFooter from './NodeResultFooter';
 
 /**
@@ -13,6 +14,7 @@ export default function MessengerNode({ id, data }) {
       <Handle type="target" position={Position.Left} />
       <div className="custom-node-header" style={{ color: '#FF9F0A' }}>
         <Send size={16} /> <span>Send Message</span>
+        <NodeInfo type="messenger" />
       </div>
       <input
         className="custom-node-input"

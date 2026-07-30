@@ -7,12 +7,37 @@ import api from '../../api';
 import trainingVideo from '../../assets/training_video.mp4';
 import DrawingCanvas from './DrawingCanvas';
 import ScenarioImageShowcase, { hasImageShowcase } from './ScenarioImageShowcase';
+import CVDatasetPreview from './CVDatasetPreview';
+import TrainingReport from './TrainingReport';
 import PhotoPredictPanel from './PhotoPredictPanel';
 import { hasPhotoTraining } from './PhotoTrainingLab';
 import { runDigitPipeline } from '../../lib/cv/digit';
+import { trainAllVariants } from '../../lib/cv/digitTrainer';
+import { previewTiles } from '../../lib/cv/digitData';
 import { runEdgePipeline } from '../../lib/cv/edge';
 import { runOcrPipeline } from '../../lib/cv/ocr';
-import { canvasFromDataURL } from '../../lib/cv/imageOps';
+import { canvasFromDataURL, extractInput28 } from '../../lib/cv/imageOps';
+import { useChiti } from '../chiti/ChitiProvider';
+import { GuideProvider, ChitiAvatar } from '../../components/guide/GuideProvider';
+import AnimatedPipeline from './AnimatedPipeline';
+import GenericCVPipelineViewer from './GenericCVPipelineViewer';
+import CVPresetTests from './CVPresetTests';
+
+const getCVGuideSteps = (canTrainInBrowser) => {
+  const steps = [
+    { target: '[data-guide="cv-canvas"]', say: "Draw a digit or shape here — this is what the AI will try to recognise.", mood: 'point' },
+    { target: '[data-guide="cv-predict"]', say: "Hit Predict Drawing to run your image through the trained model.", mood: 'point' },
+    { target: '[data-guide="cv-pipeline"]', say: "Watch the stages here. Each one transforms the image step by step.", mood: 'think' },
+    { target: '[data-guide="cv-presets"]', say: "Try these preset images to see how the model handles different styles.", mood: 'point' },
+  ];
+  if (canTrainInBrowser) {
+    steps.push({ target: '[data-guide="cv-report"]', say: "This panel shows how well the model performed on different datasets.", mood: 'idle', cta: 'Ready to test!' });
+  } else {
+    steps[steps.length - 1].cta = 'Ready to test!';
+    steps[steps.length - 1].mood = 'idle';
+  }
+  return steps;
+};
 
 // Computer-vision scenarios run fully in the browser (no Docker/Celery/LLM):
 // the same real models used in the CV demonstration playground.
@@ -49,14 +74,57 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
   const [interpretData, setInterpretData] = useState(null);
   const [allPreviews, setAllPreviews] = useState({});
   const [cvInputImage, setCvInputImage] = useState(null);
-  // Client-side CV prediction (runs in-browser, no backend)
   const [cvResult, setCvResult] = useState(null);
   const [cvBusy, setCvBusy] = useState(false);
   const [cvError, setCvError] = useState(null);
+  // Edge detection and grid data for animated pipeline
+  const [cvEdgeImage, setCvEdgeImage] = useState(null);
+  const [cvGridData, setCvGridData] = useState(null);
+  // Real in-browser training (Digit Detective): the trained classifier head, the
+  // measured train-on-X/test-on-Y matrix, and live progress while it runs.
+  const [trainMatrix, setTrainMatrix] = useState(null);
+  const [trainProgress, setTrainProgress] = useState(null);
 
   // Animation states: 'selection', 'data_review', 'feeding_training', 'trained', 'robot_predict', 'error'
   const [animationStep, setAnimationStep] = useState('selection');
   const rootRef = useRef(null);
+
+  const chiti = useChiti();
+
+  // A4: Audio-guided flow using Chiti
+  useEffect(() => {
+    if (scenario?.model_type !== 'COMPUTER_VISION') return;
+
+    if (animationStep === 'selection' || animationStep === 'data_selection') {
+      const greetKey = `cv_greeted_${scenario.id}`;
+      if (!sessionStorage.getItem(greetKey)) {
+        sessionStorage.setItem(greetKey, 'true');
+        chiti.react('greet', { say: `Welcome to the ${scenario.title} scenario!` });
+      }
+    } else if (animationStep === 'data_review') {
+      let story = "Interesting visual patterns here. Ready to train when you are.";
+      if (selectedVariant === 'clean') story = "These are perfectly upright, clean digits. A model trained on this will expect neat handwriting!";
+      else if (selectedVariant === 'messy') story = "These digits are messy and slanted. This teaches the AI to handle real-world, sloppy handwriting.";
+      else if (selectedVariant === 'noisy') story = "These digits are grainy, like a bad scan. The AI has to learn to ignore the noise and focus on the shapes.";
+      else if (selectedVariant === 'normal') story = "These are clean, normal handwriting letters. Great for reading everyday documents.";
+      else if (selectedVariant === 'cursive') story = "These letters are connected and flowing. Much harder for an AI to decode!";
+      else if (selectedVariant === 'sobel_clean') story = "This dataset uses edge detection on clean images to find the outlines.";
+      else if (selectedVariant === 'sobel_noisy') story = "This dataset uses edge detection, but the images are noisy, which might confuse the edge detector!";
+      else if (selectedVariant === 'shapes') story = "Strong, simple outlines! This is exactly what edge detection looks for.";
+      else if (selectedVariant === 'complex') story = "A busy scene with lots of overlapping edges. It might get messy!";
+      else if (selectedVariant === 'gradient') story = "Smooth colors with no sharp boundaries. Edge detection won't see much here.";
+      
+      const reviewKey = `cv_reviewed_${scenario.id}_${selectedVariant}`;
+      if (!sessionStorage.getItem(reviewKey)) {
+        sessionStorage.setItem(reviewKey, 'true');
+        chiti.react('think', { say: story });
+      }
+    } else if (animationStep === 'trained') {
+      chiti.react('celebrate', { say: "Training complete!" });
+    } else if (animationStep === 'robot_predict') {
+      chiti.react('greet', { say: "I've learned the features of the dataset! Use the tools to test me, and I'll break down exactly how I see it." });
+    }
+  }, [animationStep, scenario?.model_type, selectedVariant, chiti.react]);
 
   useEffect(() => {
     if (!selectedVariant) {
@@ -78,18 +146,52 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
 
   const isCV = scenario?.model_type === 'COMPUTER_VISION';
   const isImageShowcase = hasImageShowcase(scenario?.title);
+  // Only the digit scenario has a model that can genuinely be fitted in-browser:
+  // OCR (Tesseract) and edge detection (Sobel) have no weights to learn.
+  const canTrainInBrowser = scenario?.title === 'The Digit Detective';
+  const trainedHead = trainMatrix?.[selectedVariant]?.head || null;
 
-  const runCvPrediction = async () => {
-    if (!cvInputImage) { alert('Please draw something on the canvas first!'); return; }
+  const runCvPrediction = async (testVariant = 'drawn', imageOverride = null) => {
+    const input = imageOverride || cvInputImage;
+    if (!input) { alert('Please provide an image or draw something first!'); return; }
     setCvBusy(true); setCvError(null); setCvResult(null);
+    setCvEdgeImage(null); setCvGridData(null);
     try {
-      const srcCanvas = await canvasFromDataURL(cvInputImage);
+      const srcCanvas = await canvasFromDataURL(input);
       const pipeline = CV_PIPELINES[scenario.title] || runDigitPipeline;
-      const res = await pipeline(srcCanvas);
-      if (res?.ok) setCvResult(res);
-      else setCvError(res?.message || (res?.reason === 'blank'
-        ? 'Draw something bigger and bolder, then try again!'
-        : 'The vision model could not read that — try a clearer drawing.'));
+
+      // trainedHead is the model the student just fitted, so the prediction
+      // reflects the dataset they chose rather than a fixed factory model.
+      const res = await pipeline(srcCanvas, { trainedVariant: selectedVariant, testVariant, trainedHead });
+
+      // Compute edge detection image for the animated pipeline
+      try {
+        const edgeRes = await runEdgePipeline(srcCanvas);
+        if (edgeRes?.ok && edgeRes.stages?.[2]?.image) {
+          setCvEdgeImage(edgeRes.stages[2].image); // neon edge image
+        }
+      } catch (_) { /* edge detection is optional */ }
+
+      // Extract 28x28 grid for the grid animation
+      try {
+        const grid = extractInput28(srcCanvas);
+        if (grid) setCvGridData(Array.from(grid));
+      } catch (_) { /* grid extraction is optional */ }
+      
+      if (res?.ok) {
+        setCvResult(res);
+        if (res.mismatch_message) {
+          chiti.react('surprised', { say: "Whoa, this doesn't match what I learned!" });
+        } else {
+          chiti.react('agree', { say: res.prediction || "Got it! Look at the pipeline steps below." });
+        }
+      }
+      else {
+        setCvError(res?.message || (res?.reason === 'blank'
+          ? 'Draw something bigger and bolder, then try again!'
+          : 'The vision model could not read that — try a clearer drawing.'));
+        chiti.react('wrong', { say: "I couldn't quite see that. Try drawing it a bit clearer." });
+      }
     } catch (err) {
       console.error('Client CV pipeline failed', err);
       setCvError('Something went wrong running the vision pipeline. Please try again.');
@@ -241,19 +343,39 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
     }
   };
 
-  const handleNextToTrain = () => {
+  const handleNextToTrain = async () => {
     setAnimationStep('feeding_training');
-    if (scenario?.model_type === 'COMPUTER_VISION') {
-      // Simulate training for CV since backend trains lazily on prediction
-      setTimeout(() => {
-        setAnimationStep('trained');
-        setTimeout(() => {
-          setAnimationStep('robot_predict');
-        }, 2000);
-      }, 3000);
-    } else {
+
+    if (scenario?.model_type !== 'COMPUTER_VISION') {
       onRunModel();
+      return;
     }
+
+    // The Digit Detective trains for real, in the browser: a fresh classifier
+    // head is fitted to the chosen dataset and then scored against all three.
+    // The other CV scenarios have nothing to fit (Tesseract and Sobel are fixed),
+    // so they keep the short hand-off animation.
+    if (canTrainInBrowser) {
+      setTrainMatrix(null);
+      setTrainProgress({ phase: 'features', done: 0, total: 1 });
+      try {
+        const matrix = await trainAllVariants(setTrainProgress);
+        setTrainMatrix(matrix); // null when the datasets aren't installed yet
+      } catch (err) {
+        console.error('In-browser training failed', err);
+        setTrainMatrix(null);
+      } finally {
+        setTrainProgress(null);
+      }
+      setAnimationStep('trained');
+      setTimeout(() => setAnimationStep('robot_predict'), 1800);
+      return;
+    }
+
+    setTimeout(() => {
+      setAnimationStep('trained');
+      setTimeout(() => setAnimationStep('robot_predict'), 2000);
+    }, 3000);
   };
 
   const featureCols = previewData?.columns ? previewData.columns.slice(0, -1) : [];
@@ -403,16 +525,11 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                     </button>
                   )}
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    {allPreviews[variant.name] ? (
-                      allPreviews[variant.name].input_type === 'canvas' ? (
-                        <div style={{ padding: '10px' }}>
-                          {allPreviews[variant.name].sample_image ? (
-                            <img src={`data:image/png;base64,${allPreviews[variant.name].sample_image}`} alt="Sample" style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', objectFit: 'contain' }} />
-                          ) : (
-                            <div style={{ color: 'var(--text-secondary)' }}>Draw directly on the canvas!</div>
-                          )}
-                        </div>
-                      ) : (
+                    {isCV ? (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CVDatasetPreview scenario={scenario} variant={variant.name} mini={true} />
+                      </div>
+                    ) : allPreviews[variant.name] ? (
                       allPreviews[variant.name].columns?.length === 3 && scenario.model_type.toLowerCase() === 'regression' ? (
                         <Plot
                           data={[
@@ -469,7 +586,6 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                           </ScatterChart>
                         </ResponsiveContainer>
                       )
-                      )
                     ) : (
                       <div style={{ color: 'var(--text-secondary)' }}>Loading...</div>
                     )}
@@ -521,6 +637,28 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
               {previewData && !loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   
+                  {/* Chiti Mascot Guide */}
+                  {isCV && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(12, 10, 24, 0.6)', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '1px solid rgba(100, 210, 255, 0.2)' }}>
+                      <div style={{ background: 'linear-gradient(135deg, #10121a, #1a1c29)', padding: '15px', borderRadius: '50%', border: '2px solid rgba(100,210,255,0.4)', boxShadow: '0 10px 30px rgba(59, 130, 246, 0.2)', flexShrink: 0 }}>
+                        <ChitiAvatar size={60} mood="think" />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: '0 0 5px', color: 'var(--accent-cyan)', fontSize: '1.2rem' }}>Chiti says:</h3>
+                        <p style={{ margin: 0, color: '#e5e8f2', fontSize: '1.15rem', lineHeight: '1.5' }}>
+                          {selectedVariant === 'clean' && "These are perfectly upright, clean digits. A model trained on this will expect neat handwriting!"}
+                          {selectedVariant === 'messy' && "These digits are messy and slanted. This teaches the AI to handle real-world, sloppy handwriting."}
+                          {selectedVariant === 'noisy' && "These digits are grainy, like a bad scan. The AI has to learn to ignore the noise and focus on the shapes."}
+                          {selectedVariant === 'normal' && "These are clean, normal handwriting letters. Great for reading everyday documents."}
+                          {selectedVariant === 'cursive' && "These letters are connected and flowing. Much harder for an AI to decode!"}
+                          {selectedVariant === 'sobel_clean' && "This dataset uses edge detection on clean images to find the outlines."}
+                          {selectedVariant === 'sobel_noisy' && "This dataset uses edge detection, but the images are noisy, which might confuse the edge detector!"}
+                          {['clean', 'messy', 'noisy', 'normal', 'cursive', 'sobel_clean', 'sobel_noisy'].indexOf(selectedVariant) === -1 && "Interesting visual patterns here. Ready to train when you are."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Graph Area / Sample-data Area */}
                   <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
                     {isImageShowcase ? (
@@ -530,7 +668,7 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
                     ) : isCV ? (
                       <div style={{ padding: '10px 0 4px', width: '100%' }}>
                         <h3 style={{ fontSize: '1.3rem', color: 'white', textAlign: 'center', marginBottom: '18px' }}>What this data looks like</h3>
-                        <CVSampleGallery scenario={scenario} />
+                        <CVDatasetPreview scenario={scenario} variant={selectedVariant} />
                       </div>
                     ) : isClassification && featureCols.length > 2 ? (
                       <div style={{ width: '100%' }}>
@@ -728,6 +866,41 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
             </motion.div>
             
             <h2 style={{ position: 'absolute', top: '10%', fontSize: '2rem', color: 'var(--accent-cyan)' }}>Training Model...</h2>
+
+            {/* Real training reports where it actually is. `phase: features` is
+                the frozen 784→128 layer turning images into numbers; `training`
+                is gradient descent on the classifier head. */}
+            {trainProgress && (
+              <div style={{
+                position: 'absolute', bottom: '12%', width: 'min(520px, 88vw)', textAlign: 'center',
+                background: 'rgba(5,7,15,.8)', border: '1px solid rgba(255,255,255,.12)',
+                borderRadius: 14, padding: '18px 22px', zIndex: 30,
+              }}>
+                <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 600, marginBottom: 10 }}>
+                  {trainProgress.phase === 'features'
+                    ? `Reading image ${trainProgress.done} of ${trainProgress.total} from the ${trainProgress.variant} dataset…`
+                    : trainProgress.phase === 'training'
+                      ? `Learning — pass ${trainProgress.epoch} of ${trainProgress.epochs}`
+                      : 'Scoring against every dataset…'}
+                </div>
+                <div style={{ height: 8, borderRadius: 999, background: 'rgba(255,255,255,.09)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 999, background: 'linear-gradient(90deg,#00f0ff,#b200ff)',
+                    transition: 'width .2s linear',
+                    width: `${trainProgress.phase === 'features'
+                      ? (trainProgress.done / Math.max(1, trainProgress.total)) * 100
+                      : trainProgress.phase === 'training'
+                        ? (trainProgress.epoch / Math.max(1, trainProgress.epochs)) * 100
+                        : 100}%`,
+                  }} />
+                </div>
+                {trainProgress.phase === 'training' && trainProgress.loss != null && (
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '.82rem', marginTop: 9, fontFamily: 'monospace' }}>
+                    error: {trainProgress.loss.toFixed(4)} — smaller is better
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -775,138 +948,163 @@ const DataCanvas = ({ scenario, selectedVariant, onSelectVariant, previewData, l
             key="robot_predict" 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
-            style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}
+            style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: '15px' }}
           >
-            <motion.div 
-              layoutId="output-packet"
-              className="glass-panel"
-              style={{ maxWidth: '1040px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', padding: '40px', borderRadius: '24px', background: 'rgba(15, 23, 42, 0.95)' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '30px' }}>
-                <motion.div 
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.3, type: 'spring' }}
-                  style={{ 
-                    width: '100px', height: '100px', borderRadius: '50%', 
-                    background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-green))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    boxShadow: '0 10px 30px rgba(74, 222, 128, 0.3)'
-                  }}>
-                  <Bot size={50} color="#000" />
-                </motion.div>
-
-                <div style={{ flex: 1 }}>
-                  <h2 style={{ marginBottom: '15px', fontSize: '1.8rem', color: 'var(--text-primary)' }}>Hi! I'm your trained model. 🤖</h2>
-                  <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '25px', fontSize: '1.1rem' }}>
-                    I've reviewed the <strong>{scenario.variants.find(v => v.name === selectedVariant)?.label}</strong> dataset and found the underlying patterns. 
-                    Give me some new feature values below, and I'll predict the outcome!
-                  </p>
-
-                  <div style={{ background: 'rgba(0,0,0,0.4)', padding: '25px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                    <h4 style={{ color: 'var(--accent-green)', marginBottom: '15px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem' }}>
-                      {PREDICTION_PROMPTS[scenario.title] || "Ask a Question"}
-                    </h4>
-                    
-                    {isCV ? (
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-                          <DrawingCanvas
-                            scenario={scenario}
-                            onImageReady={(img) => { setCvInputImage(img); setCvResult(null); setCvError(null); }}
-                            width={280}
-                            height={280}
-                          />
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <button
-                            className="btn-primary"
-                            onClick={runCvPrediction}
-                            disabled={cvBusy}
-                            style={{ padding: '12px 30px', fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                          >
-                            {cvBusy ? 'Reading the pixels…' : 'Predict'} <Zap size={18} />
-                          </button>
-                        </div>
-
-                        {cvError && (
-                          <div style={{ marginTop: '20px', padding: '14px 18px', borderRadius: '12px', background: 'rgba(255,159,10,0.1)', border: '1px solid rgba(255,159,10,0.4)', color: '#ffe9c7', textAlign: 'center' }}>
-                            ✏️ {cvError}
-                          </div>
-                        )}
-
-                        {cvResult && (
-                          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: '24px' }}>
-                            <div style={{ padding: '16px 20px', borderRadius: '14px', background: 'linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,240,255,0.08))', border: '1px solid rgba(0,255,136,0.3)', fontSize: '1.15rem', fontWeight: 600, textAlign: 'center', marginBottom: '18px' }}>
-                              🎯 {cvResult.prediction || (cvResult.digit != null ? `It reads: ${cvResult.digit} — ${cvResult.confidence}% confident` : 'Done!')}
-                            </div>
-                            <CVStages stages={cvResult.stages} highlight={cvResult.digit} />
-                          </motion.div>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        {/* Photo-capable scenarios: test with a real picture using the vision model */}
-                        {hasPhotoTraining(scenario.title) && <PhotoPredictPanel scenario={scenario} />}
-
-                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-                          {featureCols.map(col => (
-                            <input 
-                              key={col}
-                              type="number" 
-                              placeholder={`Enter ${col}...`}
-                              id={`predict-input-${col}`}
-                              style={{ padding: '12px 15px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#FFF', flex: 1, minWidth: '130px', fontSize: '1rem' }}
-                            />
-                          ))}
-                          <button 
-                            className="btn-primary"
-                            onClick={async () => {
-                              const features = {};
-                              for (const col of featureCols) {
-                                const val = document.getElementById(`predict-input-${col}`).value;
-                                if (!val) {
-                                  alert(`Please enter a value for ${col}`);
-                                  return;
-                                }
-                                features[col] = Number(val);
-                              }
-
-                              try {
-                                document.getElementById('predict-result').innerText = 'Thinking...';
-                                const res = await api.post(`/${scenario.model_type.toLowerCase()}/predict/`, {
-                                  experiment_id: experimentResult.experiment_id,
-                                  features: features
-                                });
-                                document.getElementById('predict-result').innerText = `Prediction for ${yCol}: ${res.data.prediction.toFixed ? res.data.prediction.toFixed(2) : res.data.prediction}`;
-                              } catch (e) {
-                                document.getElementById('predict-result').innerText = `Error: ${e.response?.data?.error || e.message}`;
-                              }
-                            }}
-                            style={{ padding: '12px 25px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}
-                          >
-                            Predict <Zap size={18} />
-                          </button>
-                        </div>
-                        <div style={{ marginTop: '20px', minHeight: '30px' }}>
-                          <strong id="predict-result" style={{ fontSize: '1.4rem', color: 'var(--accent-green)' }}></strong>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: '25px', textAlign: 'right' }}>
-                    <button 
-                      className="btn-secondary" 
-                      onClick={() => onSelectVariant(null)}
-                      style={{ fontSize: '1rem' }}
-                    >
-                      Start Over
-                    </button>
-                  </div>
-                </div>
+            {/* Compact Chiti Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexShrink: 0 }}>
+              <div style={{ background: 'linear-gradient(135deg, #10121a, #1a1c29)', padding: '6px', borderRadius: '50%', border: '2px solid rgba(100,210,255,0.4)', flexShrink: 0 }}>
+                <ChitiAvatar size={32} mood="cheer" />
               </div>
-            </motion.div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Bot size={20} color="var(--accent-cyan)" />
+                  Trained on <strong style={{ color: 'var(--accent-green)' }}>{scenario.variants.find(v => v.name === selectedVariant)?.label}</strong> — test me!
+                </h2>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <button className="btn-secondary" onClick={() => onSelectVariant(null)} style={{ fontSize: '0.8rem', padding: '5px 12px' }}>Start Over</button>
+              </div>
+            </div>
+
+            {/* Main content area */}
+            <GuideProvider steps={getCVGuideSteps(canTrainInBrowser)} autoStartKey={`cvPredict-${scenario.id}`}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ background: 'rgba(0,0,0,0.4)', padding: '12px', borderRadius: '16px', border: '1px solid var(--glass-border)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <h4 style={{ color: 'var(--accent-green)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.7rem' }}>
+                  {PREDICTION_PROMPTS[scenario.title] || "Ask a Question"}
+                </h4>
+                
+                {isCV ? (
+                  /* ═══════ 2 or 3-COLUMN CV LAYOUT ═══════ */
+                  <div style={{ display: 'grid', gridTemplateColumns: canTrainInBrowser ? '260px 1fr 280px' : '260px 1fr', gap: '15px', flex: 1, minHeight: 0 }}>
+                    
+                    {/* ── LEFT COLUMN: Canvas + Predict + Dataset tests ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
+                      {/* Drawing Canvas */}
+                      <div data-guide="cv-canvas" style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <DrawingCanvas
+                          scenario={scenario}
+                          onImageReady={(img) => { setCvInputImage(img); setCvResult(null); setCvError(null); setCvEdgeImage(null); setCvGridData(null); }}
+                          width={240}
+                          height={240}
+                        />
+                      </div>
+
+                      {/* Predict button — right below the canvas */}
+                      <button
+                        data-guide="cv-predict"
+                        className="btn-primary"
+                        onClick={() => runCvPrediction('drawn', null)}
+                        disabled={cvBusy}
+                        style={{ width: '100%', padding: '10px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '10px' }}
+                      >
+                        {cvBusy ? 'Processing…' : '🔍 Predict Drawing'} <Zap size={16} />
+                      </button>
+
+                      {/* Cross-dataset test buttons with thumbnails */}
+                      <div data-guide="cv-presets">
+                        <CVPresetTests 
+                          scenario={scenario} 
+                          selectedVariant={selectedVariant}
+                          disabled={cvBusy}
+                          onTestPreset={(variantName, imgUrl) => runCvPrediction(variantName, imgUrl)}
+                        />
+                      </div>
+
+                      {cvError && (
+                        <div style={{ padding: '6px 10px', borderRadius: '8px', background: 'rgba(255,159,10,0.1)', border: '1px solid rgba(255,159,10,0.4)', color: '#ffe9c7', textAlign: 'center', fontSize: '0.8rem' }}>
+                          ✏️ {cvError}
+                        </div>
+                      )}
+
+                      {canTrainInBrowser && !trainMatrix && (
+                        <div style={{ padding: '6px 10px', borderRadius: 8, background: 'rgba(255,159,10,.07)', border: '1px solid rgba(255,159,10,.35)', color: '#ffcf70', fontSize: '.7rem', lineHeight: 1.3 }}>
+                          Datasets not installed — using factory model.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── CENTER COLUMN: Animated Pipeline ── */}
+                    <div data-guide="cv-pipeline" style={{
+                      background: 'rgba(0,0,0,0.25)', borderRadius: '14px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      padding: '12px', display: 'flex', flexDirection: 'column', minHeight: 0,
+                    }}>
+                      {scenario.title === 'The Digit Detective' ? (
+                        <AnimatedPipeline cvResult={cvResult} edgeImage={cvEdgeImage} gridData={cvGridData} />
+                      ) : (
+                        <GenericCVPipelineViewer cvResult={cvResult} />
+                      )}
+                    </div>
+
+                    {/* ── RIGHT COLUMN: Compact Training Report ── */}
+                    {canTrainInBrowser && (
+                      <div data-guide="cv-report" style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', paddingRight: '4px' }}>
+                        <TrainingReport variant={selectedVariant} matrix={trainMatrix} compact />
+                      </div>
+                    )}
+                    </div>
+                ) : (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    {/* Photo-capable scenarios: test with a real picture using the vision model */}
+                    {hasPhotoTraining(scenario.title) && <PhotoPredictPanel scenario={scenario} />}
+
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {featureCols.map(col => (
+                        <input 
+                          key={col}
+                          type="number" 
+                          placeholder={`Enter ${col}...`}
+                          id={`predict-input-${col}`}
+                          style={{ padding: '12px 15px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#FFF', flex: 1, minWidth: '130px', fontSize: '1rem' }}
+                        />
+                      ))}
+                      <button 
+                        className="btn-primary"
+                        onClick={async () => {
+                          const features = {};
+                          for (const col of featureCols) {
+                            const val = document.getElementById(`predict-input-${col}`).value;
+                            if (!val) {
+                              alert(`Please enter a value for ${col}`);
+                              return;
+                            }
+                            features[col] = Number(val);
+                          }
+
+                          try {
+                            document.getElementById('predict-result').innerText = 'Thinking...';
+                            const res = await api.post(`/${scenario.model_type.toLowerCase()}/predict/`, {
+                              experiment_id: experimentResult.experiment_id,
+                              features: features
+                            });
+                            document.getElementById('predict-result').innerText = `Prediction for ${yCol}: ${res.data.prediction.toFixed ? res.data.prediction.toFixed(2) : res.data.prediction}`;
+                          } catch (e) {
+                            document.getElementById('predict-result').innerText = `Error: ${e.response?.data?.error || e.message}`;
+                          }
+                        }}
+                        style={{ padding: '12px 25px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        Predict <Zap size={18} />
+                      </button>
+                    </div>
+                    <div style={{ marginTop: '20px', minHeight: '30px' }}>
+                      <strong id="predict-result" style={{ fontSize: '1.4rem', color: 'var(--accent-green)' }}></strong>
+                    </div>
+                    <div style={{ marginTop: '15px', textAlign: 'right' }}>
+                      <button 
+                        className="btn-secondary" 
+                        onClick={() => onSelectVariant(null)}
+                        style={{ fontSize: '0.9rem', padding: '6px 16px' }}
+                      >
+                        Start Over
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            </GuideProvider>
           </motion.div>
         )}
 
@@ -964,114 +1162,6 @@ function CVStages({ stages = [], highlight }) {
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>{st.description}</p>
         </div>
       ))}
-    </div>
-  );
-}
-
-// ── Sample-data gallery: shows what the training data actually looks like ──
-// (varied handwriting / shapes), the CV analogue of showing the chart for
-// regression scenarios.
-function drawShape(ctx, shape, size) {
-  const c = size / 2, r = size * 0.32;
-  ctx.beginPath();
-  if (shape === 'circle') {
-    ctx.arc(c, c, r, 0, Math.PI * 2);
-  } else if (shape === 'square') {
-    ctx.rect(c - r, c - r, r * 2, r * 2);
-  } else if (shape === 'triangle') {
-    ctx.moveTo(c, c - r); ctx.lineTo(c + r, c + r); ctx.lineTo(c - r, c + r); ctx.closePath();
-  } else if (shape === 'star') {
-    for (let i = 0; i < 10; i++) {
-      const rad = i % 2 === 0 ? r : r * 0.45;
-      const a = (Math.PI / 5) * i - Math.PI / 2;
-      const x = c + rad * Math.cos(a), y = c + rad * Math.sin(a);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-  }
-  ctx.stroke();
-}
-
-function SampleTile({ spec, size = 104 }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, size, size);
-    ctx.save();
-    ctx.translate(size / 2, size / 2);
-    if (spec.rotate) ctx.rotate((spec.rotate * Math.PI) / 180);
-    if (spec.type === 'glyph') {
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `${spec.weight || 'bold'} ${spec.fontSize || 58}px ${spec.font}`;
-      ctx.fillText(spec.text, 0, spec.dy || 0);
-    } else {
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 4;
-      ctx.lineJoin = 'round';
-      drawShape(ctx, spec.shape, size);
-    }
-    ctx.restore();
-  }, [spec, size]);
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <canvas ref={ref} width={size} height={size} style={{ width: size, height: size, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: '#000' }} />
-      {spec.caption && <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 6 }}>{spec.caption}</div>}
-    </div>
-  );
-}
-
-function buildSampleSpecs(title) {
-  if (title === 'The Edge Explorer') {
-    return [
-      { type: 'shape', shape: 'circle', caption: 'circle' },
-      { type: 'shape', shape: 'square', caption: 'square', rotate: 8 },
-      { type: 'shape', shape: 'triangle', caption: 'triangle' },
-      { type: 'shape', shape: 'star', caption: 'star', rotate: -6 },
-    ];
-  }
-  if (title === 'The Handwriting Decoder') {
-    const word = 'Sutra';
-    return [
-      { type: 'glyph', text: word, font: "'Courier New', monospace", fontSize: 28, caption: 'neat print' },
-      { type: 'glyph', text: word, font: 'Georgia, serif', fontSize: 30, caption: 'serif', rotate: -3 },
-      { type: 'glyph', text: word, font: "'Comic Sans MS', cursive", fontSize: 28, caption: 'rounded', rotate: 4 },
-      { type: 'glyph', text: word, font: "'Segoe Script', 'Brush Script MT', cursive", weight: 'normal', fontSize: 30, caption: 'cursive', rotate: -5 },
-    ];
-  }
-  // The Digit Detective (default): the same digit in many handwriting styles
-  const fonts = [
-    { font: "'Courier New', monospace", rotate: 0 },
-    { font: 'Georgia, serif', rotate: -10 },
-    { font: "'Comic Sans MS', cursive", rotate: 8 },
-    { font: "'Segoe Script', 'Brush Script MT', cursive", rotate: -6, weight: 'normal' },
-    { font: 'Impact, sans-serif', rotate: 5 },
-    { font: "'Trebuchet MS', sans-serif", rotate: -4 },
-  ];
-  return [3, 7, 2, 5, 8, 4].map((d, i) => ({
-    type: 'glyph', text: String(d), fontSize: 60, ...fonts[i], caption: `style ${i + 1}`,
-  }));
-}
-
-function CVSampleGallery({ scenario }) {
-  const specs = useMemo(() => buildSampleSpecs(scenario?.title), [scenario?.title]);
-  const isDigits = scenario?.title === 'The Digit Detective';
-  const isWords = scenario?.title === 'The Handwriting Decoder';
-  const caption = isDigits
-    ? 'The model learned from 60,000 handwritten digits — every one written by a different hand. Here are a few styles it studied. Yours just joins the collection.'
-    : isWords
-      ? 'OCR grows up on samples like these — from neat print to flowing cursive. Notice how the joined-up styles are the hardest to cut into separate letters.'
-      : 'Edge detection needs no training data at all — it is pure maths. These are the kinds of shapes you can trace: sharp outlines are its favourite food.';
-  return (
-    <div style={{ width: '100%' }}>
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {specs.map((sp, i) => <SampleTile key={i} spec={sp} />)}
-      </div>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, textAlign: 'center', maxWidth: 620, margin: '16px auto 0' }}>{caption}</p>
     </div>
   );
 }

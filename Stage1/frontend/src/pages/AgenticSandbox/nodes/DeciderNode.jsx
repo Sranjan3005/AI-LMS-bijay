@@ -1,6 +1,8 @@
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
 import NodeResultFooter from './NodeResultFooter';
+import AutoGrowTextarea from './AutoGrowTextarea';
+import NodeInfo from "./NodeInfo.jsx";
 
 export default function DeciderNode({ id, data }) {
   const { updateNodeData } = useReactFlow();
@@ -10,11 +12,11 @@ export default function DeciderNode({ id, data }) {
       <Handle type="target" position={Position.Left} />
       <div className="custom-node-header" style={{ color: '#F59E0B' }}>
         <GitBranch size={16} /> <span>The Decider</span>
+        <NodeInfo type="decider" />
       </div>
 
-      <textarea
+      <AutoGrowTextarea
         className="custom-node-input"
-        rows={2}
         placeholder="Condition to check… e.g. “the animal is endangered”"
         value={data.condition || ''}
         onChange={(e) => updateNodeData(id, { condition: e.target.value })}
