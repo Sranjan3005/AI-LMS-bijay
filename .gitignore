@@ -63,3 +63,12 @@ celerybeat.pid
 .pytest_cache/
 .coverage
 htmlcov/
+
+
+# Raw dataset downloads — packed into small sprites by
+# Stage1/scripts/pack_digit_sprites.py; only the packed output is committed.
+Stage1/frontend/public/datasets/mnist/_raw/
+
+DEPLOYMENT*.md
+DEPLOYEMENT*.md
+.claude/
