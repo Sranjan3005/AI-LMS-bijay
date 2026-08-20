@@ -33,6 +33,30 @@ app cannot run without it, and it is the only setup step that is not `npm`.
 
 To get the installed datasets working, see [Building the data](#building-the-data).
 
+### Shortcut: the prebuilt assets zip
+
+Everything under `public/` — the exported backbone, the embeddings, the trained
+heads, the dataset images and the videos — is gitignored, because it is ~414 MB
+and one file alone is over GitHub's 100 MB per-file limit. A fresh clone will
+therefore start with an empty Data Library and no model.
+
+If you were sent a `fine-tuning-public.zip`, you can skip both `export_backbone.py`
+and `build_all.py`:
+
+```bash
+git clone https://github.com/Sranjan3005/AI-LMS-bijay.git
+cd AI-LMS-bijay/fine-tuning
+npm install
+
+# unzip the archive here, letting it overwrite public/
+unzip -o ../../fine-tuning-public.zip
+
+npm run dev                           # -> http://localhost:5180
+```
+
+Python is not needed on that path. Without the zip, build the assets yourself
+with the commands above.
+
 ---
 
 ## The model
