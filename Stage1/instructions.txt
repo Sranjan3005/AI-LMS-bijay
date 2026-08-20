@@ -1,0 +1,830 @@
+for the time being we have to complete the CV module under machine learning modules and the agentic flow one. There are some imrovements and some broken things to be fixed.
+1. In the computer vision part there are 3 scenarios so going one by one 
+  i. In the digit detection model uses 3 datasets. clean digits, messy digits, and noisy input but all of them shows same 6 images as preview and the generic inference "The model learned from 60,000 handwritten digits — every one written by a different hand. Here are a few styles it studied. Yours just joins the collection."
+solution it should be having different datasets and would show the actual datas preview so for example if the clean digit is clicked it would feed the model with actual dataset which have numerous images of clean handwritten datas and it should show a preview of 5-10 images from rhat dataste. and simillar for noisy and the messy digits.
+
+2. For the Hnadwritting detection scenario the same case in the preview it shows the generic image and text for 3 of the cases it should be different and based on the real datas we are feeding the model.
+3. At the trained model page there is mothing like teaching we just show them to write something on the canvas but they could learn there also. for example if they clicked on the cleane dataset and model is trained on that, then it we will teach them that the model predicts correcty only when a clean handwritting of digits or words is drawn
+  otherwise it fails on meesy datas. and in the other hand if it trained on messy data it predicts correctly only on messy data but fails on clean data and so on.  
+4. what else you could think of which would make the learning effective at that stage.
+5. The whole computer vision module would be audio guided at each step and it shouldn't feel like a thery heavy platform.
+6. In the theory portion we have to change the content to explain what is cv and it's application in a better way with much visualization of the pre-processing steps. result prediction steps etc by some animations and explanations using catchy examples related to a classroom.
+ Now the agentic flow section
+1. For the prebuilt scenarios there are some problems in some of them.
+  i. In the wildlife rescue scenario it incorrectly predicts most of the common animals like giving lions as cows etc. so we have to change the models.
+    we could show a mobile screen of ranger in the right hand side which shows the notification with endangered animal name and location.
+  ii. In the auto reviewer one there is a section where they have to put the internal data of the resturant ot organization of which reviews are analyzed, but it is not feasible for a student to collect those and feed.
+      we could do that we can give option to add 2-3 example internal datas when running the pipeline.
+      again we can show a screen with many reviews and marked as positive or negative, need escaation or not in the right hand side.
+  iii. ADD voice to the chiti mascot.
+And the last one is the node cards should change their size according to the content inside them, currently it shows only 2 lines and a student have to scroll that also with a very small node which decreases overall User exprienece.
+2. The document reader node is not functioning, then again we have to add some new nodes such as speech to audio conversion, etc.
+After that in the build agentic flow section in the type your idea section first the the idea is evaluated using an AI and it says if it is possible to make using our playground and with our available nodes or this require some external things or have some limitations due to which it can not be done.
+Then each node's card will have a i button, which on hovering shows the usage of that node.
+
+
+🔑 Root-cause finding (important)
+In the CV module, the dataset choice currently changes nothing. In DataCanvas.jsx:
+
+"Training" for COMPUTER_VISION is faked — handleNextToTrain just runs a 3-second animation timeout (DataCanvas.jsx:246-253).
+Prediction always calls one fixed, pre-trained pipeline — runDigitPipeline (a single MNIST model), runOcrPipeline (Tesseract), or runEdgePipeline (Sobel) — regardless of whether you picked clean/messy/noisy (DataCanvas.jsx:19-23, line 87).
+The "preview" images aren't real data — they're synthetic glyphs drawn with fonts (buildSampleSpecs), the same 6 digits in 6 fonts every time, with a hardcoded generic caption (DataCanvas.jsx:1028-1074).
+So items 1, 2, and 3 are really one thing: make the dataset choice real — real per-dataset preview images, and a model whose behavior actually depends on which dataset trained it. That's the crux, and it needs a decision (below) because there are two very different ways to do it.
+
+The Plan
+Part A — Computer Vision module
+A1. Real datasets + real previews (instr. 1 & 2). Bundle real image sets per variant under public/datasets/ (e.g. digits/clean, digits/messy, digits/noisy; and handwriting styles), extend datasets.js mapping, and replace CVSampleGallery's synthetic glyphs with 5–10 actual images sampled from the selected variant + a per-variant caption. (Removes the "same 6 images / generic text" problem.)
+
+A2. Make the model behave per-dataset (instr. 3 — the pedagogical core). The trained-model page should demonstrate: clean-trained → nails clean, fails messy; messy-trained → the reverse; noisy-trained → tolerant of noise. Two implementation options (this is Decision 1):
+
+Option A (simulate, ~2 days): keep one real model, but apply the selected dataset as a "distribution filter" — degrade/adjust confidence and outcome when the drawn input doesn't match the training distribution (e.g., messy input on a clean-trained model returns low confidence / wrong answer with an explanation). Cheap, reliable, teaches the concept convincingly.
+Option B (real per-variant training, ~1–1.5 wks): genuinely train 3 lightweight in-browser models on the 3 datasets (small MLP or KNN-over-embeddings; transferLearning.js already does MobileNet+KNN). Most authentic, heavier, more device-perf risk.
+A3. Teaching layer on the predict page (instr. 3 & 4). Add a guided "now test it" panel: tell the student what this model should be good/bad at, prompt them to try a mismatched input, and react to the result. Plus new learning boosters (instr. 4): a confidence meter, a "train-on-X / test-on-Y" matrix mini-experiment, "add your own sample to the dataset," and a confusion example.
+
+A4. Audio-guided flow (instr. 5). Wire Chiti narration to each animationStep (selection → data_review → training → predict) using the existing ChitiProvider.say(), with captions so it never feels theory-heavy. Depends on Decision 3 (voice).
+
+A5. Theory rewrite + animations (instr. 6). Rework ComputerVisionLesson.jsx: explain what CV is and its applications with animated preprocessing → prediction visualizations and classroom-relatable examples (attendance camera, cricket ball-tracking, etc.). (I'll read this file fully at implementation time.)
+
+Part B — Agentic Flow
+B1. Wildlife Rescue mispredicts (instr. 1.i). Root cause: object detection uses COCO-SSD, which only knows 80 everyday classes — no lion/tiger, so it snaps them to "cow/dog." Fix = swap in a wildlife-capable classifier (a MobileNet/iNaturalist-style model or a curated label set) for that scenario. Plus add the ranger's-phone UI on the right showing a push notification with the endangered animal + location.
+
+B2. Auto-Reviewer internal data (instr. 1.ii). Students can't realistically supply a restaurant's internal data. Add 2–3 ready-made example "internal data" datasets selectable at run time, and a right-side reviews board showing each review tagged positive/negative + "needs escalation."
+
+B3. Node cards auto-size (instr. 1, last point). Currently fixed-height, 2 lines + inner scroll on a tiny node → bad UX. Make node cards grow to fit content (fix the CSS in AgenticFlow.css + the node components under nodes/).
+
+B4. Fix Document Reader + new nodes (instr. 2). The documentReader node is wired to plain text-input in the backend (compiler.py:446) — it never reads a file. Fix: route it through real extraction (like visionScanner's PDF/DOCX path). Then add new nodes (e.g. text-to-speech / audio output, and others we scope together).
+
+B5. "Type your idea" feasibility check (instr. 2). Before generating a flow, add an AI pre-check that judges whether the idea is buildable with our node set — replies possible / needs external tools / limited — then only generates if feasible. Extends generate_flow in views.py:71.
+
+B6. Node "ⓘ" info tooltips (instr. 2). Add an info button on each node card that shows the node's purpose/usage on hover.
+
+Part C — Cross-cutting: Chiti voice
+Instr. A4, 1.iii both need the mascot to actually speak. voice.js already uses Web Speech and prefers an Indian en-IN voice — the open question is whether that's reliable enough or we pre-generate Azure neural audio. This is Decision 3, and it gates the audio work in both modules.
+
+Decisions I need from you
+CV model behavior — Option A (simulate distribution mismatch, fast) or Option B (real per-variant in-browser training, authentic but heavier)?
+Real digit/handwriting datasets — do you have image sets to bundle, or should I source small open sets (MNIST-derived clean/messy/noisy, handwriting samples) and add them to public/datasets/?
+Voice source — the still-pending choice: existing browser en-IN voice now, or pre-generated Azure neural Indian voice for consistency (needs an Azure Speech resource)?
+Sequencing — I'd suggest: CV first (A1→A2→A3→A4→A5), then Agentic (B3/B6 quick wins → B1/B2 → B4/B5), since CV is the bigger rework. Agree, or prioritize agentic quick wins first?
+Want me to save this as a tracked PLAN.md in the repo, turn it into a visual plan artifact, or start on the first agreed item? I'd also recommend doing this on a feature branch (you're currently on main).
+
+first update the readme.md on the root folder with current up-to-date.
+for the cv model behaviour option a, and for real datasets add small oen sets.
+azure neural voice.
+and the sequencing as agentic and then cv.
+Start work on the plan in a feature branch.
+Clear decisions — let me record them and get set up. First, let me check git state and read the current README.
+
+Bash Check git branch and status
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic" && echo "=== branch ===" && git branch --show-current && echo "=== status ===" && git status --short && echo "=== main vs origin ===" && git log --oneline origin/main..main 2>/dev/null | head
+
+OUT
+=== branch ===
+main
+=== status ===
+ D 417-AI-X.pdf
+ D DEPLOYMENT_AZURE.md
+?? Stage1/frontend/android/
+?? Stage1/frontend/public/games/chiti/assets/index-CcPtyDuZ.js
+?? Stage1/frontend/public/games/chiti/assets/index-CttX9Lgz.js
+?? Stage1/instructions.txt
+=== main vs origin ===
+Read README.md
+README is badly outdated (still says Gemini/Docker-only, ports 8000/5173, no CV/Agentic/story/Azure). Note: main is synced with origin, and there are pre-existing uncommitted deletions (417-AI-X.pdf, DEPLOYMENT_AZURE.md) I'll leave untouched. Let me create the feature branch, then rewrite the README.
+
+API Error: Connection closed mid-response. The response above may be incomplete.
+
+resume
+Creating the feature branch and updating the README.
+
+Bash Create and switch to feature branch
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic" && git checkout -b feat/agentic-cv-overhaul && echo "=== now on ===" && git branch --show-current
+
+OUT
+Switched to a new branch 'feat/agentic-cv-overhaul'
+=== now on ===
+feat/agentic-cv-overhaul
+On feat/agentic-cv-overhaul. Now rewriting the README to reflect the current platform.
+
+Write README.md
+192 lines
+# 🧠 Sutra — Interactive AI Learning Platform (Stage 1)
+
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
+![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green)
+![Azure](https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=for-the-badge)
+
+**Sutra** is a story-driven, sandbox-based platform that teaches school students (Class 6–12) the fundamentals of Artificial Intelligence — from "what is data?" all the way to building no-code, multi-node AI pipelines. Students are guided by **Chiti**, an animated mascot, through a narrative "raising your own AI" journey rather than a text-heavy course.
+
+> **Looking to deploy or ship an update?** See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the live Azure setup and the day-to-day update runbook.
+
+---
+
+## ✨ What's inside
+
+A five-part learning flow, each framed as a chapter in an ongoing story:
+
+* **🌱 AI Foundations** — what AI is, the emergence of intelligence, and the maths intuition behind it.
+* **📊 Working with Data** — datasets, graphs, collecting/cleaning data, bias, and outliers, through interactive mini-games.
+* **🔮 Prediction Engine (ML Labs)** — train and query real models for **Regression, Classification, and Neural Networks** on swappable data variants, with live plots and AI-generated explanations.
+* **👁️ Computer Vision** — real vision models running **in the browser** (object detection via COCO-SSD, edge detection, digit/handwriting reading) plus dataset-driven training scenarios.
+* **🤖 Agentic Flow Studio** — a drag-and-drop canvas where students wire **nodes** (inputs, LLM processors, routers, outputs) into an AI pipeline that compiles to a **LangGraph** and executes live.
+* **⚖️ AI Ethics Arena** — six gamified levels on bias, privacy, deepfakes, hallucination, and more.
+
+**Platform layers:**
+* **Chiti mascot** — an animated 3D/2D character with **voice narration** that escorts students step by step.
+* **Story mode** — case files, mission cards, and "achievement" reveals as modules complete.
+* **CBSE curriculum** mapping and a focused mobile/**Android** (Capacitor) build.
+* **Parent reports** — daily progress summaries (WhatsApp/opt-in).
+* **Dual portals** — Student, School-Admin, and Company-Admin.
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19 + Vite, React Flow (`@xyflow/react`), Framer Motion, Plotly/Recharts, Three.js (`@react-three/fiber`) |
+| **In-browser ML** | TensorFlow.js — COCO-SSD, MobileNet, KNN classifier, Tesseract.js (OCR) |
+| **Backend** | Django + Django REST Framework + Django Channels (WebSockets) |
+| **Async** | Celery workers |
+| **Agentic engine** | LangGraph, compiled from React Flow JSON, over Azure OpenAI |
+| **LLM / Vision** | Azure OpenAI (`gpt-4o-mini` deployment) |
+| **Code sandbox** | Docker (local) / **Azure Container Apps Dynamic Sessions** (cloud) |
+| **Database** | PostgreSQL |
+| **Cache / broker / WS layer** | Redis |
+| **Hosting** | Azure Static Web Apps (frontend) + Azure Container Apps (backend web + worker) |
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+Browser / Android WebView
+        │
+        ▼
+Frontend (React/Vite SPA)  ──►  Backend web (Django/ASGI + Channels)
+   • client-side ML (TF.js)        │        │            │
+   • React Flow canvas         SQL │  broker│/WS     task │queue
+                                   ▼        ▼            ▼
+                              PostgreSQL   Redis   Celery worker
+                                                        │
+                              Azure OpenAI (LLM/vision) │ code sandbox
+                                                        ▼
+                                             Dynamic Sessions / Docker
+```
+
+* **Frontend** — a pure SPA. Computer-vision and some ML run **entirely client-side** (no backend round-trip). The Agentic canvas is a React Flow graph serialized to JSON.
+* **Backend web** — Daphne/ASGI serving DRF endpoints **and** WebSockets (live agentic execution streaming).
+* **Backend worker** — Celery runs background model training and the async LangGraph pipelines.
+* **Agentic execution** — the saved React Flow JSON is compiled into a LangGraph `StateGraph` (`agentic_flow/compiler.py`), run on the worker, and results stream back node-by-node over a WebSocket.
+
+---
+
+## 🛠️ Prerequisites
+
+* **Python 3.10+**
+* **Node.js 18+** (with npm)
+* **Docker Desktop** — required for the local code-execution sandbox (student ML/CV code runs in isolated containers)
+* **Git**
+
+---
+
+## 🚀 Local Setup
+
+> The backend loads a single `.env` at the **repo root** (next to this README).
+
+### 0. Environment variables (`.env` at repo root)
+
+```env
+# Django
+DJANGO_SECRET_KEY="your-secret-key"
+JWT_SIGNING_KEY="another-long-random-string"
+DEBUG="True"
+
+# Database (PostgreSQL) & Redis
+DATABASE_URL="postgresql://<user>:<password>@<host>/<db>?sslmode=require"
+REDIS_URL="redis://127.0.0.1:6379/1"
+
+# Azure OpenAI (agentic flow: LLM / vision / object-detection nodes)
+AZURE_OPENAI_ENDPOINT="https://<your-openai>.openai.azure.com/"
+AZURE_OPENAI_API_KEY="your-azure-openai-key"
+AZURE_OPENAI_DEPLOYMENT="gpt-4o-mini"
+AZURE_OPENAI_API_VERSION="2024-08-01-preview"
+
+# Azure Dynamic Sessions (CV / ML training sandbox) — optional locally if using Docker
+AZURE_SESSION_POOL_ENDPOINT="https://<region>.dynamicsessions.io/.../sessionPools/<pool>"
+```
+
+### 1. Backend (Django) — runs on port **8001**
+
+```bash
+cd Stage1/backend
+
+# Virtual environment
+python -m venv venv
+.\venv\Scripts\activate            # Windows
+# source venv/bin/activate         # macOS/Linux
+
+pip install -r requirements.txt
+
+python manage.py migrate           # apply schema
+python manage.py seed_scenarios    # seed the scenario/variant catalog (required for the UI)
+python manage.py runserver 8001
+```
+
+> The frontend expects the API at `http://localhost:8001/api/v1` by default (see `src/api.js`).
+
+### 2. Celery worker (new terminal) — background training + agentic pipelines
+
+```bash
+cd Stage1/backend
+.\venv\Scripts\activate
+celery -A config worker -l info --pool=solo    # --pool=solo is needed on Windows
+```
+
+Redis must be running (e.g. `docker run -d -p 6379:6379 redis`).
+
+### 3. Frontend (React/Vite) — runs on port **5174**
+
+```bash
+cd Stage1/frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:5174**.
+
+> **Guest login:** the app auto-logs in as a shared demo student (`guest@example.com` / `guestpassword`), so you can explore without creating an account. Use `python manage.py createsuperuser` for admin access.
+
+---
+
+## 📱 Android build
+
+Sutra is wrapped as a native Android app with **Capacitor** (`Stage1/frontend/android/`). It runs the production web build against the deployed Azure backend. See **[ANDROID_SETUP.md](ANDROID_SETUP.md)** for the full build/run guide (needs Android Studio + JDK 21).
+
+```bash
+cd Stage1/frontend
+npm run cap:sync    # vite build + sync into the native project
+npm run cap:open    # open in Android Studio
+```
+
+---
+
+## 🗂️ Repository layout
+
+```
+Stage1/
+  backend/                 Django project (config/, accounts/, assignments/,
+                           agentic_flow/, classification/, regression/,
+                           neural_network/, computer_vision/, scenarios/, ...)
+  frontend/                React + Vite SPA
+    src/pages/             module pages (AIFoundations, AgenticSandbox, AIEthicsArena, ...)
+    src/components/        chiti/ (mascot), story/, workspace/, sutra/ (shell)
+    src/lib/               client-side ML (cv/, ml/) + datasets
+    android/               Capacitor native project
+DEPLOYMENT.md              live Azure setup + update runbook
+DEPLOYMENT_AZURE.md        first-time Azure build-out (VM + Container Apps tracks)
+ANDROID_SETUP.md           Android build guide
+```
+
+---
+
+## 🧪 Try it
+
+1. Open **http://localhost:5174** — you land on the Student dashboard (auto guest login).
+2. **Working with Data** → play the outlier/bias/cleaning mini-games.
+3. **Prediction Engine** → pick Regression/Classification/Neural → choose a scenario → select a data variant → review the plot → **Train** → ask the model to predict.
+4. **Computer Vision** → detect objects with your webcam, trace edges, or have a neural net read a digit you draw.
+5. **Agentic Flow Studio** → drag nodes onto the canvas, connect them, **Save & Run**, and watch each node light up as the pipeline executes live.
+Committing just the README (leaving the pre-existing deletions and untracked files alone), then recording the plan decisions to memory.
+
+Bash Commit README on feature branch
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic" && git add README.md && git commit -m "docs: rewrite root README for current platform (Sutra, Azure, agentic/CV/story)
+
+Replace the outdated Gemini/Docker-only description with the current 5-module
+story-driven platform: Chiti mascot, client-side ML/CV, LangGraph agentic flow,
+Azure OpenAI + Container Apps + Dynamic Sessions, correct dev ports (8001/5174),
+root .env layout, guest login, and Android build pointers.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>" && git log --oneline -1
+
+OUT
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+[feat/agentic-cv-overhaul a65bbdb] docs: rewrite root README for current platform (Sutra, Azure, agentic/CV/story)
+ 1 file changed, 140 insertions(+), 85 deletions(-)
+a65bbdb docs: rewrite root README for current platform (Sutra, Azure, agentic/CV/story)
+Write C:\Users\Bijaya kumar Behera\.claude\projects\c--Users-Bijaya-kumar-Behera-Desktop-AI-model-dynamic\memory\cv-agentic-overhaul-plan.md
+22 lines
+---
+name: cv-agentic-overhaul-plan
+description: The CV + Agentic Flow module overhaul — scope from instructions.txt, the decisions made, and the agreed sequencing
+metadata:
+  type: project
+---
+
+Work driven by `Stage1/instructions.txt` (added 2026-07-28) to finish the **Computer Vision** and **Agentic Flow** modules. Branch: **`feat/agentic-cv-overhaul`** (off main). Sequencing agreed: **Agentic first, then CV**. First deliverable done: root README rewrite.
+
+**Root-cause finding (CV):** the dataset choice currently changes nothing. In `components/workspace/DataCanvas.jsx`, CV "training" is faked (a timeout, `handleNextToTrain`), prediction always calls one fixed pipeline (`runDigitPipeline` MNIST / `runOcrPipeline` Tesseract / `runEdgePipeline` Sobel), and the preview gallery (`CVSampleGallery`/`buildSampleSpecs`) draws synthetic font glyphs (same 6 digits every time) with a hardcoded caption. So instr. 1–3 are one problem: make the dataset selection real. The 3 CV scenarios = The Digit Detective, The Handwriting Decoder, The Edge Explorer.
+
+**Decisions made by user:**
+- CV model behaviour = **Option A (simulate)**: keep one real model but treat the selected dataset as a distribution filter — degrade confidence/outcome when the drawn input doesn't match the training distribution (clean-trained nails clean, fails messy, etc.). NOT real per-variant training.
+- Datasets = **add small open sets** (source MNIST-derived clean/messy/noisy + handwriting samples into `public/datasets/`, extend `lib/datasets.js`).
+- Voice = **Azure neural voice** (pre-generated en-IN neural TTS, e.g. Neerja/Prabhat) — not the browser Web Speech path. Feeds CV audio-guidance (instr. 5) and Chiti voice (agentic 1.iii). See [[chiti-character-system]] (voice.js currently Web Speech).
+
+**Agentic scope (do first):** B1 wildlife-rescue mispredicts (COCO-SSD only knows 80 classes → lions read as cows; swap model + add ranger's-phone notification UI); B2 auto-reviewer internal-data (ship 2-3 example datasets selectable at run, + reviews board UI); B3 node cards auto-size to content (fixed height + inner scroll now — `AgenticSandbox/AgenticFlow.css` + `nodes/`); B4 documentReader node broken (compiler.py:446 wires it to plain text-input, never reads the file — route through visionScanner-style extraction) + new nodes (text-to-speech/audio); B5 "type your idea" AI feasibility pre-check before generate_flow (views.py:71); B6 per-node ⓘ info tooltip.
+
+**CV scope (do second):** A1 real per-variant previews (5-10 real images); A2 Option-A distribution-mismatch behaviour on predict; A3 teaching layer on predict page + boosters (confidence meter, train-on-X/test-on-Y matrix, add-your-own-sample); A4 Chiti audio narration per animationStep; A5 theory rewrite in `AIFoundations/ComputerVisionLesson.jsx` with preprocessing→prediction animations + classroom examples.
+
+Builds on [[agentic-backend-session-plan]] and [[platform-overhaul-roadmap]].
+README committed and the plan/decisions saved to memory. Let me add the memory index pointer, then start the first agentic item — B3: node cards that auto-size to content (a clean, high-impact UX win). Let me read the node components and their CSS.
+
+Edit C:\Users\Bijaya kumar Behera\.claude\projects\c--Users-Bijaya-kumar-Behera-Desktop-AI-model-dynamic\memory\MEMORY.md
+Added 1 line
+Read SummarizerNode.jsx
+Read CustomizerNode.jsx
+Let me see the result footer (likely the "2 lines + scroll" culprit) and the node CSS.
+
+Read NodeResultFooter.jsx
+Read AgenticFlow.css
+The culprits are clear: the custom-node-input textarea is locked to rows={2} + resize:none, and NodeResultFooter caps at 96px and truncates at 260 chars. Let me see all the input-bearing nodes so I fix them consistently.
+
+Read DeciderNode.jsx
+Read TextInputNode.jsx
+Read WebSearchNode.jsx
+Read MessengerNode.jsx
+Clear picture. Three nodes use fixed-row textareas (Customizer rows=2, Decider rows=2, TextInput rows=3), and NodeResultFooter is capped at 96px + truncates at 260 chars. I'll add a shared auto-growing textarea, make the result footer grow, and relax the CSS. Creating the component:
+
+Write AutoGrowTextarea.jsx
+40 lines
+import { useRef, useLayoutEffect } from 'react';
+
+/**
+ * AutoGrowTextarea — a textarea that grows to fit its content so a node card
+ * sizes itself instead of trapping the text in a fixed 2-line box with a tiny
+ * inner scrollbar. Grows up to `maxHeight`, then scrolls.
+ *
+ * `nodrag nowheel` keep typing/scrolling from dragging the node or zooming the
+ * React Flow canvas.
+ */
+export default function AutoGrowTextarea({
+  value,
+  onChange,
+  className = '',
+  minHeight = 44,
+  maxHeight = 260,
+  style,
+  ...rest
+}) {
+  const ref = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';                                   // reset so shrink works too
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+  }, [value, maxHeight]);
+
+  return (
+    <textarea
+      ref={ref}
+      className={`${className} nodrag nowheel`.trim()}
+      value={value}
+      onChange={onChange}
+      style={{ minHeight, maxHeight, overflowY: 'auto', resize: 'none', ...style }}
+      {...rest}
+    />
+  );
+}
+Now wire it into the three input nodes and make the result footer grow with content:
+
+Edit CustomizerNode.jsx
+Added 1 line
+Edit CustomizerNode.jsx
+Removed 1 line
+Edit DeciderNode.jsx
+Added 1 line
+Edit DeciderNode.jsx
+Removed 1 line
+Edit TextInputNode.jsx
+Added 1 line
+Edit TextInputNode.jsx
+Modified
+Edit NodeResultFooter.jsx
+Modified
+Now relax the node CSS — widen the card a touch and let inputs breathe:
+
+Edit AgenticFlow.css
+Added 3 lines
+B3 done. Let me lint the changed files to make sure nothing's broken.
+
+Bash Lint changed node files
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic/Stage1/frontend" && npx eslint src/pages/AgenticSandbox/nodes/AutoGrowTextarea.jsx src/pages/AgenticSandbox/nodes/CustomizerNode.jsx src/pages/AgenticSandbox/nodes/DeciderNode.jsx src/pages/AgenticSandbox/nodes/TextInputNode.jsx src/pages/AgenticSandbox/nodes/NodeResultFooter.jsx 2>&1 | head -40 || echo "eslint finished with issues above"
+
+OUT
+(Bash completed with no output)
+No lint errors. Committing B3:
+
+Bash Commit node auto-size feature
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic" && git add Stage1/frontend/src/pages/AgenticSandbox/nodes/AutoGrowTextarea.jsx Stage1/frontend/src/pages/AgenticSandbox/nodes/CustomizerNode.jsx Stage1/frontend/src/pages/AgenticSandbox/nodes/DeciderNode.jsx Stage1/frontend/src/pages/AgenticSandbox/nodes/TextInputNode.jsx Stage1/frontend/src/pages/AgenticSandbox/nodes/NodeResultFooter.jsx Stage1/frontend/src/pages/AgenticSandbox/AgenticFlow.css && git commit -m "feat(agentic): node cards auto-size to their content
+
+Nodes were locked to a 2-line textarea + a 96px result box with an inner
+scrollbar, so text was cramped on a tiny card. Add a shared AutoGrowTextarea
+(grows to fit, then scrolls) used by Customizer/Decider/TextInput, let the
+result footer grow to 260px and show more output, and widen the card. Height is
+now content-driven.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>" && git log --oneline -1
+
+OUT
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/TextInputNode.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/AutoGrowTextarea.jsx', LF will be replaced by CRLF the next time Git touches it
+[feat/agentic-cv-overhaul 2298e5c] feat(agentic): node cards auto-size to their content
+ 6 files changed, 59 insertions(+), 16 deletions(-)
+ create mode 100644 Stage1/frontend/src/pages/AgenticSandbox/nodes/AutoGrowTextarea.jsx
+2298e5c feat(agentic): node cards auto-size to their content
+B3 committed. Now B6: per-node ⓘ info tooltip. Let me check the Sidebar first — it may already have node descriptions I can centralize and reuse.
+
+Read Sidebar.jsx
+The Sidebar has node types/labels but no usage text. I'll centralize descriptions and add a reusable ⓘ tooltip to each node header. Creating the catalog + component:
+
+Write nodeInfo.js
+28 lines
+// nodeInfo.js — one student-friendly "what does this node do?" line per node
+// type. Shown by the ⓘ button on each node card (and as sidebar tooltips).
+
+export const NODE_INFO = {
+  // Inputs (senses)
+  textInput:       'Starting point. Type the text you want the pipeline to work on (max 100 words).',
+  documentReader:  'Upload a PDF or Word file and it pulls out the text for the next nodes to use.',
+  visionScanner:   'Upload an image, PDF or document. Images are described by AI; files have their text extracted.',
+
+  // Processing (brains)
+  customizer:      'A general AI brain. Write an instruction (a prompt) and it transforms whatever text comes in.',
+  objectDetection: 'Finds and labels the objects/animals in an uploaded image. Detection runs live in your browser.',
+  summarizer:      'Shortens the incoming text into 2–3 clear sentences a student can read at a glance.',
+  sentimentRadar:  'Reads the mood of the text and reports Positive, Negative or Neutral with a confidence score.',
+  webSearch:       'Answers a question from the AI’s own knowledge (kept safe — no live internet in the sandbox).',
+
+  // Routing (logic)
+  decider:         'A gate. It checks a TRUE/FALSE condition on the input and sends the flow down only one branch.',
+  merger:          'Joins several incoming branches back into one combined stream of text.',
+
+  // Outputs (actions)
+  display:         'Shows the final result on screen — the end of the pipeline.',
+  chartGenerator:  'Turns the incoming data into a bar, line or pie chart.',
+  messenger:       'An action node that “sends” the result as a message/alert (e.g. notify the rangers).',
+};
+
+export const nodeInfoFor = (type) => NODE_INFO[type] || '';
+Write NodeInfo.jsx
+40 lines
+import { useState } from 'react';
+import { Info } from 'lucide-react';
+import { nodeInfoFor } from './nodeInfo';
+
+/**
+ * NodeInfo — the ⓘ button that sits at the right of a node's header and reveals
+ * what the node does on hover. `nodrag` so hovering/clicking never drags the
+ * node around the canvas.
+ */
+export default function NodeInfo({ type }) {
+  const [open, setOpen] = useState(false);
+  const text = nodeInfoFor(type);
+  if (!text) return null;
+
+  return (
+    <span
+      className="nodrag"
+      style={{ position: 'relative', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center' }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+    >
+      <Info size={14} style={{ color: 'var(--text-secondary)', cursor: 'help', opacity: 0.8 }} />
+      {open && (
+        <div
+          style={{
+            position: 'absolute', top: '150%', right: 0, zIndex: 50, width: 220,
+            background: 'rgba(10,12,20,.98)', border: '1px solid var(--glass-border)',
+            borderRadius: 8, padding: '10px 12px', fontSize: '0.72rem', lineHeight: 1.5,
+            color: 'var(--text-secondary)', fontWeight: 400, whiteSpace: 'normal',
+            boxShadow: '0 8px 24px rgba(0,0,0,.55)', textAlign: 'left',
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </span>
+  );
+}
+Now I'll add the ⓘ to each node header. Let me read the remaining node files to edit their headers precisely.
+
+Read DocumentReaderNode.jsx
+Read VisionScannerNode.jsx
+Read ObjectDetectionNode.jsx
+Read SentimentRadarNode.jsx
+Read MergerNode.jsx
+Read DisplayNode.jsx
+Read ChartGeneratorNode.jsx
+All node headers share the same pattern. I'll add the NodeInfo import and the ⓘ to each header. First the imports:
+
+Edit CustomizerNode.jsx
+Added 1 line
+Edit SummarizerNode.jsx
+Added 1 line
+Edit DeciderNode.jsx
+Added 1 line
+Edit TextInputNode.jsx
+Added 1 line
+Edit WebSearchNode.jsx
+Added 1 line
+Edit MessengerNode.jsx
+Added 1 line
+Edit DocumentReaderNode.jsx
+Added 1 line
+Edit VisionScannerNode.jsx
+Added 1 line
+Edit ObjectDetectionNode.jsx
+Added 1 line
+Edit SentimentRadarNode.jsx
+Added 1 line
+Edit MergerNode.jsx
+Added 1 line
+Edit DisplayNode.jsx
+Added 1 line
+Edit ChartGeneratorNode.jsx
+Added 1 line
+Now the ⓘ in each header:
+
+Edit CustomizerNode.jsx
+Added 1 line
+Edit SummarizerNode.jsx
+Added 1 line
+Edit DeciderNode.jsx
+Added 1 line
+Edit TextInputNode.jsx
+Added 1 line
+Edit WebSearchNode.jsx
+Added 1 line
+Edit MessengerNode.jsx
+Added 1 line
+Edit DocumentReaderNode.jsx
+Added 1 line
+Edit VisionScannerNode.jsx
+Added 1 line
+Edit ObjectDetectionNode.jsx
+Added 1 line
+Edit SentimentRadarNode.jsx
+Added 1 line
+Edit MergerNode.jsx
+Added 1 line
+Edit DisplayNode.jsx
+Added 1 line
+Edit ChartGeneratorNode.jsx
+Added 1 line
+The ⓘ is on every node card. Let me also add native tooltips to the sidebar's draggable items (reuses the same catalog, aids discovery), then lint everything.
+
+Edit Sidebar.jsx
+Added 2 lines
+Bash Lint all node files and sidebar
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic/Stage1/frontend" && npx eslint src/pages/AgenticSandbox/nodes/ src/pages/AgenticSandbox/Sidebar.jsx 2>&1 | head -40 && echo "=== lint done ==="
+
+OUT
+C:\Users\Bijaya kumar Behera\Desktop\AI_model_dynamic\Stage1\frontend\src\pages\AgenticSandbox\nodes\ChartGeneratorNode.jsx
+  14:14  error  'e' is defined but never used  no-unused-vars
+
+C:\Users\Bijaya kumar Behera\Desktop\AI_model_dynamic\Stage1\frontend\src\pages\AgenticSandbox\nodes\DocumentReaderNode.jsx
+  5:46  error  'data' is defined but never used  no-unused-vars
+
+✖ 2 problems (2 errors, 0 warnings)
+
+=== lint done ===
+Two pre-existing lint errors (not from my edits): ChartGeneratorNode has an unused catch (e), and DocumentReaderNode doesn't use data (it's the broken node — B4 fixes that next). Let me tidy the trivial ChartGenerator one now; DocumentReader gets resolved by B4.
+
+Edit ChartGeneratorNode.jsx
+Modified
+Committing B6 and confirming lint is clean on the files I touched:
+
+Bash Lint check and commit node info tooltips
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic" && npx --prefix Stage1/frontend eslint --resolve-plugins-relative-to Stage1/frontend Stage1/frontend/src/pages/AgenticSandbox/nodes/ 2>&1 | tail -5; echo "--- commit ---"; git add Stage1/frontend/src/pages/AgenticSandbox/nodes/ Stage1/frontend/src/pages/AgenticSandbox/Sidebar.jsx && git commit -m "feat(agentic): per-node info tooltips (ⓘ) + sidebar hover hints
+
+Add a shared node-usage catalog (nodeInfo.js) and a NodeInfo ⓘ button in every
+node card header that reveals what the node does on hover, so students aren't
+guessing. Sidebar draggable items get the same text as a native tooltip. Also
+drops an unused catch binding in ChartGeneratorNode.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>" && git log --oneline -4
+
+OUT
+Invalid option '--resolve-plugins-relative-to' - perhaps you meant '--ignore-pattern'?
+--- commit ---
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/ChartGeneratorNode.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/DisplayNode.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/DocumentReaderNode.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/TextInputNode.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/VisionScannerNode.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/NodeInfo.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Stage1/frontend/src/pages/AgenticSandbox/nodes/nodeInfo.js', LF will be replaced by CRLF the next time Git touches it
+[feat/agentic-cv-overhaul 405effe] feat(agentic): per-node info tooltips (ⓘ) + sidebar hover hints
+ 16 files changed, 96 insertions(+), 2 deletions(-)
+ create mode 100644 Stage1/frontend/src/pages/AgenticSandbox/nodes/NodeInfo.jsx
+ create mode 100644 Stage1/frontend/src/pages/AgenticSandbox/nodes/nodeInfo.js
+405effe feat(agentic): per-node info tooltips (ⓘ) + sidebar hover hints
+2298e5c feat(agentic): node cards auto-size to their content
+a65bbdb docs: rewrite root README for current platform (Sutra, Azure, agentic/CV/story)
+1f619b5 Merge origin/main (ai lms upload) with feature progress
+B6 committed. Let me quickly re-verify lint from the right directory (the previous flag was wrong):
+
+Bash Verify remaining lint state on nodes
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic/Stage1/frontend" && npx eslint src/pages/AgenticSandbox/nodes/ 2>&1 | tail -8; echo "=== done ==="
+
+OUT
+C:\Users\Bijaya kumar Behera\Desktop\AI_model_dynamic\Stage1\frontend\src\pages\AgenticSandbox\nodes\DocumentReaderNode.jsx
+  5:46  error  'data' is defined but never used  no-unused-vars
+
+✖ 1 problem (1 error, 0 warnings)
+
+=== done ===
+Good checkpoint. The only remaining lint issue is DocumentReaderNode's unused data — which is exactly the broken node that B4 fixes next.
+
+Progress so far (branch feat/agentic-cv-overhaul)
+Commit	What
+a65bbdb	📄 Root README rewritten to current platform
+2298e5c	✅ B3 — node cards auto-size to content (shared AutoGrowTextarea, roomier result footer, wider card)
+405effe	✅ B6 — per-node ⓘ info tooltips + sidebar hover hints (nodeInfo.js catalog)
+Plan decisions are saved to memory, so this survives across sessions.
+
+Next up — and two decisions that unblock the bigger items
+The remaining agentic items split into "clearly scoped" (I can just do them) and "needs your call":
+
+No decision needed — I'll proceed with these next:
+
+B4a — fix the Document Reader node (make it actually upload + extract PDF/DOCX text; it's currently wired to plain text-input in compiler.py).
+B5 — the "type your idea" feasibility check (AI judges buildable/needs-external/limited before generating).
+Need your input:
+
+AskUserQuestion
+OUT
+The user answered: "Wildlife Rescue mis-IDs animals because object detection uses COCO-SSD (only 80 everyday classes — no lions/tigers, so they snap to 'cow'/'dog'). How should we identify the actual species?"="Azure OpenAI vision", "For B4's 'new nodes' — the instructions name speech-to-audio (text-to-speech). What should I add now?"="actually i meant that a speach to text node which can take audio as input and converts to text and proceed". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.
+Clear — Azure OpenAI vision for wildlife, and the new node is Speech-to-Text (audio in → transcript out), not TTS. Let me record that correction and start B4a (fix Document Reader). First the backend: give documentReader a real extraction node instead of routing it to plain text-input.
+
+Edit compiler.py
+Added 46 lines
+Those diagnostics are the linter not seeing the venv (django/langgraph resolve fine at runtime) plus pre-existing unused hints — not from my change. Now route documentReader to the new factory in compile():
+
+Edit compiler.py
+Added 2 lines
+Now make the frontend Document Reader node actually upload and store the file (mirroring Vision Scanner). This also resolves the unused-data lint error:
+
+Write DocumentReaderNode.jsx
+61 lines
+import { Handle, Position, useReactFlow } from '@xyflow/react';
+import { FileText, Upload } from 'lucide-react';
+import { useRef } from 'react';
+import NodeInfo from './NodeInfo';
+
+/**
+ * DocumentReaderNode — upload a PDF / Word / CSV / text file; the backend
+ * extracts its text (see make_node_document_reader in compiler.py) and passes it
+ * on. Stores the file on the node as a base64 data URL, like the Vision Scanner.
+ */
+export default function DocumentReaderNode({ id, data }) {
+  const { updateNodeData } = useReactFlow();
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      updateNodeData(id, {
+        fileName: file.name,
+        fileType: file.type,
+        fileBase64: event.target.result,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="custom-node" style={{ borderTop: '4px solid var(--accent-cyan)' }}>
+      <div className="custom-node-header" style={{ color: 'var(--accent-cyan)' }}>
+        <FileText size={16} /> <span>Document Reader</span>
+        <NodeInfo type="documentReader" />
+      </div>
+      <div className="custom-node-box" style={{ cursor: 'pointer', padding: '15px' }} onClick={() => fileInputRef.current?.click()}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept=".pdf,.doc,.docx,.csv,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv"
+          onChange={handleFileChange}
+        />
+        {data.fileName ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <FileText size={24} color="var(--accent-cyan)" />
+            <span style={{ fontSize: '0.8rem', wordBreak: 'break-all', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              {data.fileName}
+            </span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+            <Upload size={20} />
+            <span style={{ fontSize: '0.8rem' }}>Upload PDF, Word, CSV or text</span>
+          </div>
+        )}
+      </div>
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+}
+Let me verify both sides compile — lint the frontend node and syntax-check the backend compiler with the venv.
+
+Bash Lint frontend node and syntax-check compiler
+IN
+cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic/Stage1/frontend" && npx eslint src/pages/AgenticSandbox/nodes/DocumentReaderNode.jsx 2>&1 | tail -5 && echo "=== eslint ok ===" && cd "c:/Users/Bijaya kumar Behera/Desktop/AI_model_dynamic/Stage1/backend" && ./venv/Scripts/python.exe -c "import ast; ast.parse(open('agentic_flow/compiler.py',encoding='utf-8').read()); print('compiler.py: syntax OK')"
+
+OUT
+claude-sonnet-5[1m] is temporarily unavailable, so auto mode cannot determine the safety of Bash right now. Wait briefly and then try this action again. If it keeps failing, continue with other tasks that don't require this action and come back to it later. Note: reading files, searching code, and other read-only operations do not require the classifier and can still be used.
+You've hit your weekly limit · resets Jul 30, 8:30pm (Asia/Calcutta)
+
+
+
+
+
+Goal Description
+Resume and complete the remaining tasks for the Computer Vision (CV) and Agentic Flow modules overhaul, picking up from where the previous agent (Claude) left off mid-way.
+
+User Review Required
+Please review the plan below and let me know if there are any additional adjustments or requirements you'd like to add before I start executing the remaining tasks.
+For B4b (Speech-to-Text node), I'll need to know which backend service we should use to transcribe the audio. Since Azure is being used across the platform, should we use Azure Speech-to-Text (Whisper) or standard OpenAI Whisper API?
+Open Questions
+WARNING
+
+Please confirm if Azure Speech-to-Text should be the default for the new Speech-to-Text node (B4b). Also, do you have any specific audio recording package preferred for the frontend, or should I use the native Web Audio API / MediaRecorder?
+
+Proposed Changes
+I will continue working on the feat/agentic-cv-overhaul branch where the previous tasks were left off. Here is the sequence of tasks:
+
+Agentic Flow (Phase 1)
+B4a: Complete the Document Reader Node Fix
+
+Check the syntax and linting of the currently modified files: Stage1/backend/agentic_flow/compiler.py and Stage1/frontend/src/pages/AgenticSandbox/nodes/DocumentReaderNode.jsx.
+Ensure it successfully uploads and extracts text.
+Commit these changes.
+B4b: Add Speech-to-Text Node
+
+Frontend: Create SpeechToTextNode.jsx which allows users to record audio or upload an audio file.
+Backend: Update compiler.py and views to process the audio (using an appropriate transcription service) and output the transcribed text to the next node.
+B5: "Type Your Idea" Feasibility Check
+
+Update generate_flow in Stage1/backend/agentic_flow/views.py (around line 71).
+Add an AI pre-check step that assesses if an idea is buildable with the available nodes before attempting generation.
+B1: Wildlife Rescue Mispredicts
+
+Update the Wildlife Rescue scenario to use the Azure OpenAI vision classifier instead of the limited COCO-SSD.
+Add a new "ranger's-phone" notification UI on the right side of the screen displaying the endangered animal and location.
+B2: Auto-Reviewer Internal Data
+
+Provide 2-3 ready-made example "internal data" datasets that students can select at runtime.
+Build a right-side reviews board UI showing reviews tagged as positive/negative and whether they need escalation.
+Computer Vision (Phase 2)
+A1: Real Datasets + Real Previews
+
+Add small open datasets (clean digits, messy digits, noisy digits, handwriting samples) to public/datasets/.
+Extend lib/datasets.js to map these datasets.
+Update CVSampleGallery to display 5-10 actual images from the selected variant with dynamic captions instead of synthetic font glyphs.
+A2: Model Behavior Simulation (Option A)
+
+Modify the prediction behavior to apply the selected dataset as a "distribution filter".
+E.g., if trained on "clean" data, it predicts "clean" inputs correctly but drops confidence/fails on "messy" inputs, explicitly explaining the mismatch.
+A3: Teaching Layer on Predict Page
+
+Add a guided "now test it" panel to test matching/mismatched inputs.
+Introduce learning boosters: a confidence meter, a "train-on-X / test-on-Y" matrix mini-experiment, and an option to "add your own sample".
+A4: Audio-Guided Flow
+
+Integrate Azure neural voice (en-IN) to narrate the CV module's steps (selection, review, training, predict).
+Wire it into the ChitiProvider.
+A5: Theory Rewrite + Animations
+
+Rework Stage1/frontend/src/pages/AIFoundations/ComputerVisionLesson.jsx.
+Explain what CV is and its applications with animated preprocessing and prediction visualizations using classroom-relatable examples.
+Verification Plan
+Automated Tests
+Validate linting and run syntax checks on all modified frontend and backend scripts.
+Manual Verification
+Test the new Speech-to-Text node locally.
+Run through the Wildlife Rescue and Auto-Reviewer Agentic Flow scenarios to ensure new UIs render correctly and models predict accurately.
+In the CV module, test training on different datasets (clean vs messy) to verify the distribution mismatch simulation works as intended.

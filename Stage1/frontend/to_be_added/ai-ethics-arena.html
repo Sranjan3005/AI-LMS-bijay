@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Ethics Arena — AI Laboratory</title>
+<meta name="description" content="Bias, fairness, accountability, privacy, and digital citizenship. Case-based debates and dilemma scenarios for the AI classroom." />
+<link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <span class="nav-brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span>
+      AI Laboratory
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="modules.html" class="nav-link">Modules</a>
+      <a href="prediction-engine.html" class="nav-link">Prediction Engine</a>
+      <a href="agentic-studio.html" class="nav-link">Agentic Studio</a>
+      <a href="ai-ethics-arena.html" class="nav-link is-active">Ethics Arena</a>
+      <a href="try-it.html" class="nav-link">Try it</a>
+    </div>
+    <div class="nav-actions">
+      <span class="layer-badge">L2</span>
+      <a href="try-it.html" class="btn btn-primary btn-sm">Try a demo</a>
+    </div>
+    <button class="nav-mobile-toggle" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="padding:120px 0 80px;">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-orb hero-orb--purple"></div>
+  <div class="hero-orb hero-orb--blue"></div>
+
+  <div class="hero-inner">
+    <a href="modules.html" class="hero-eyebrow animate-fade-in-down" style="background:rgba(255,69,58,0.08); border-color:rgba(255,69,58,0.25); color:#FF6961;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Module 04 · Class 6–8 · Discussion-based</span>
+    </a>
+    <h1 class="hero-title animate-fade-in-up" style="font-size:clamp(2.5rem,5.5vw,4.5rem);">
+      Teach the ethics of AI<br>
+      <span class="hero-title-accent">through real dilemmas.</span>
+    </h1>
+    <p class="hero-subtitle animate-fade-in-up" style="animation-delay:120ms">
+      Twelve case-based debates spanning bias, fairness, accountability, privacy,
+      and digital citizenship. No right answers — just structured argument frameworks
+      designed to make students think.
+    </p>
+    <div class="hero-cta animate-fade-in-up" style="animation-delay:200ms">
+      <a href="#dilemmas" class="btn btn-primary btn-lg">
+        Browse dilemmas
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a href="#framework" class="btn btn-secondary btn-lg">How it works</a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS STRIP -->
+<section class="section-tight">
+  <div class="container">
+    <div class="grid grid-4 reveal" style="gap:16px;">
+      <div class="card" style="padding:24px; text-align:center;">
+        <div style="font-size:2rem; font-weight:700; background:linear-gradient(135deg,#FF453A,#FF9F0A); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-family:var(--font-display);">12</div>
+        <div style="font-size:0.75rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.08em; font-weight:500; margin-top:4px;">Dilemma scenarios</div>
+      </div>
+      <div class="card" style="padding:24px; text-align:center;">
+        <div style="font-size:2rem; font-weight:700; background:linear-gradient(135deg,#FF453A,#FF9F0A); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-family:var(--font-display);">5</div>
+        <div style="font-size:0.75rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.08em; font-weight:500; margin-top:4px;">Ethics domains</div>
+      </div>
+      <div class="card" style="padding:24px; text-align:center;">
+        <div style="font-size:2rem; font-weight:700; background:linear-gradient(135deg,#FF453A,#FF9F0A); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-family:var(--font-display);">3</div>
+        <div style="font-size:0.75rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.08em; font-weight:500; margin-top:4px;">Stakeholder roles</div>
+      </div>
+      <div class="card" style="padding:24px; text-align:center;">
+        <div style="font-size:2rem; font-weight:700; background:linear-gradient(135deg,#FF453A,#FF9F0A); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-family:var(--font-display);">∞</div>
+        <div style="font-size:0.75rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.08em; font-weight:500; margin-top:4px;">Defensible positions</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FRAMEWORK -->
+<section class="section" id="framework" style="padding-top:48px;">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-eyebrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>The framework</span>
+      </span>
+      <h2 class="section-title">Every dilemma runs on the<br>same four-step structure.</h2>
+      <p class="section-subtitle">A consistent rhythm that students internalize after two cases — then apply to dilemmas they encounter in the wild.</p>
+    </div>
+
+    <div class="grid grid-4 reveal">
+      <div class="card" style="text-align:left;">
+        <div style="font-family:var(--font-mono); font-size:0.75rem; color:#FF6961; margin-bottom:14px; letter-spacing:0.08em;">STEP 01</div>
+        <div class="card-icon" style="background:linear-gradient(135deg,#FF453A,#FF9F0A); box-shadow:0 8px 20px rgba(255,69,58,0.35); width:40px; height:40px; margin-bottom:18px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">Read the case</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A 200-word scenario drawn from real headlines: biased hiring tools, facial recognition in schools, deepfakes, content moderation.</p>
+      </div>
+      <div class="card" style="text-align:left;">
+        <div style="font-family:var(--font-mono); font-size:0.75rem; color:#FF6961; margin-bottom:14px; letter-spacing:0.08em;">STEP 02</div>
+        <div class="card-icon" style="background:linear-gradient(135deg,#FF453A,#FF9F0A); box-shadow:0 8px 20px rgba(255,69,58,0.35); width:40px; height:40px; margin-bottom:18px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">Take a role</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">Argue from one of three stakeholder positions: the engineer, the affected user, or the regulator. Rotate each round.</p>
+      </div>
+      <div class="card" style="text-align:left;">
+        <div style="font-family:var(--font-mono); font-size:0.75rem; color:#FF6961; margin-bottom:14px; letter-spacing:0.08em;">STEP 03</div>
+        <div class="card-icon" style="background:linear-gradient(135deg,#FF453A,#FF9F0A); box-shadow:0 8px 20px rgba(255,69,58,0.35); width:40px; height:40px; margin-bottom:18px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">Build the case</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">Use the structured worksheet: claim, evidence, harms, benefits, trade-offs. Cite principles from the UNESCO AI Ethics framework.</p>
+      </div>
+      <div class="card" style="text-align:left;">
+        <div style="font-family:var(--font-mono); font-size:0.75rem; color:#FF6961; margin-bottom:14px; letter-spacing:0.08em;">STEP 04</div>
+        <div class="card-icon" style="background:linear-gradient(135deg,#FF453A,#FF9F0A); box-shadow:0 8px 20px rgba(255,69,58,0.35); width:40px; height:40px; margin-bottom:18px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">Defend & reflect</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">Classroom debate. Then a private reflection prompt: would you change your mind if you were the affected party instead?</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DILEMMAS GRID -->
+<section class="section" style="padding-top:0;" id="dilemmas">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-eyebrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>12 dilemmas</span>
+      </span>
+      <h2 class="section-title">Real cases. Real stakes.<br>No easy answers.</h2>
+      <p class="section-subtitle">Each dilemma is mapped to one of five ethics domains and comes with discussion prompts, stakeholder briefs, and a facilitator guide.</p>
+    </div>
+
+    <div class="grid grid-3 reveal">
+      <!-- Bias -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(255,69,58,0.08); border-color:rgba(255,69,58,0.25); color:#FF6961;">Bias</span>
+          <span style="font-size:1.75rem;">⚖️</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Resume Filter</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A Fortune 500 deploys an AI hiring tool that quietly downgrades women's resumes. Who's responsible — the engineers, the company, or the algorithm?</p>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(255,69,58,0.08); border-color:rgba(255,69,58,0.25); color:#FF6961;">Bias</span>
+          <span style="font-size:1.75rem;">🏥</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Health Score</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A healthcare AI trained on urban populations misdiagnoses rural patients. Should it be deployed while the dataset is being fixed?</p>
+      </div>
+
+      <!-- Fairness -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(255,159,10,0.08); border-color:rgba(255,159,10,0.25); color:#FF9F0A;">Fairness</span>
+          <span style="font-size:1.75rem;">🎓</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The College Admissions Bot</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">An AI scores applicants on "potential." It favors one high school over another. Is the AI being fair if the high school correlation is real?</p>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(255,159,10,0.08); border-color:rgba(255,159,10,0.25); color:#FF9F0A;">Fairness</span>
+          <span style="font-size:1.75rem;">🚖</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Surge Price</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A ride-hailing AI charges low-income neighborhoods 30% more because demand patterns allow it. Legal? Fair? Both? Neither?</p>
+      </div>
+
+      <!-- Privacy -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(94,92,230,0.08); border-color:rgba(94,92,230,0.25); color:#8B87F2;">Privacy</span>
+          <span style="font-size:1.75rem;">📷</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The School Camera</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A school installs facial recognition "for safety." It works. It also logs every student's location every 30 seconds. Trade the privacy for the safety?</p>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(94,92,230,0.08); border-color:rgba(94,92,230,0.25); color:#8B87F2;">Privacy</span>
+          <span style="font-size:1.75rem;">💬</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Chat Monitor</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A chat app scans all DMs for self-harm keywords — and saves the matches for advertising. Where's the line between care and surveillance?</p>
+      </div>
+
+      <!-- Accountability -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(72,207,173,0.08); border-color:rgba(72,207,173,0.25); color:#48CFAD;">Accountability</span>
+          <span style="font-size:1.75rem;">🚗</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Self-Driving Crash</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">An autonomous car swerves to avoid a child and hits a cyclist. Who is charged — the owner, the manufacturer, or the AI?</p>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(72,207,173,0.08); border-color:rgba(72,207,173,0.25); color:#48CFAD;">Accountability</span>
+          <span style="font-size:1.75rem;">📝</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Ghostwritten Essay</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A student submits an AI-written essay and gets an A. The teacher can't tell. Is it plagiarism if the AI isn't a person?</p>
+      </div>
+
+      <!-- Digital citizenship -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(191,90,242,0.08); border-color:rgba(191,90,242,0.25); color:#BF5AF2;">Citizenship</span>
+          <span style="font-size:1.75rem;">🎭</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Deepfake Principal</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A student posts a convincing deepfake of the principal announcing a snow day. Funny? Or fraud? Where's the line?</p>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(191,90,242,0.08); border-color:rgba(191,90,242,0.25); color:#BF5AF2;">Citizenship</span>
+          <span style="font-size:1.75rem;">🗳️</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">The Bot Swarm</h3>
+        <p class="card-desc" style="font-size:0.8125rem;">A political campaign deploys 10,000 AI accounts to amplify talking points. Should the platform ban them? Should the law?</p>
+      </div>
+
+      <!-- Bonus -->
+      <div class="card" style="background:linear-gradient(135deg, rgba(255,69,58,0.08), rgba(255,159,10,0.05)); border-color:rgba(255,69,58,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="pill" style="background:rgba(255,69,58,0.15); border-color:rgba(255,69,58,0.35); color:#FF6961;">+2 more</span>
+          <span style="font-size:1.75rem;">🔍</span>
+        </div>
+        <h3 class="card-title" style="font-size:1.0625rem;">Browse the full set</h3>
+        <p class="card-desc" style="font-size:0.8125rem; margin-bottom:16px;">10 more dilemmas across all five domains, each with stakeholder briefs and a facilitator guide.</p>
+        <a href="modules.html" class="btn btn-primary btn-sm" style="width:100%;">Open the Arena</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE ROW — Why ethics -->
+<section class="section" style="padding-top:0;">
+  <div class="container">
+    <div class="feature-row reveal">
+      <div class="feature-content">
+        <span class="feature-eyebrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Why ethics, why now</span>
+        </span>
+        <h2 class="feature-title">The next generation will deploy AI.<br>They need to argue about it first.</h2>
+        <p class="feature-desc">
+          Today's middle-schoolers will graduate into a workforce where AI makes hiring,
+          lending, healthcare, and policing decisions. The Ethics Arena gives them practice
+          reasoning about those decisions before they're the ones making them.
+        </p>
+        <ul class="feature-list">
+          <li class="feature-list-item">
+            <span class="feature-list-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Every case is drawn from a real headline — no thought experiments.</span>
+          </li>
+          <li class="feature-list-item">
+            <span class="feature-list-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Stakeholder rotation forces students to argue positions they don't hold.</span>
+          </li>
+          <li class="feature-list-item">
+            <span class="feature-list-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Aligned to UNESCO AI Ethics recommendations + CSTA K-12 standards.</span>
+          </li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="mock-window">
+          <div class="mock-window-bar">
+            <span class="mock-dot mock-dot--red"></span>
+            <span class="mock-dot mock-dot--yellow"></span>
+            <span class="mock-dot mock-dot--green"></span>
+            <span class="mock-url">ethics-arena / the-resume-filter</span>
+          </div>
+          <div class="mock-window-body">
+            <div style="display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;">
+              <span class="pill" style="background:rgba(255,69,58,0.08); border-color:rgba(255,69,58,0.25); color:#FF6961;">Bias</span>
+              <span class="pill">Round 02 · 6 min</span>
+            </div>
+            <h3 style="font-size:1.0625rem; font-weight:600; margin-bottom:12px; color:var(--text-primary);">Your role: The Engineer</h3>
+            <div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:14px; margin-bottom:14px; font-size:0.8125rem; color:var(--text-secondary); line-height:1.55;">
+              You built the hiring filter. You discovered the bias last quarter. You flagged it. Leadership shipped it anyway. What do you do?
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div style="background:rgba(48,209,88,0.06); border:0.5px solid rgba(48,209,88,0.25); border-radius:8px; padding:10px; font-size:0.75rem; color:#30D158; font-weight:500;">Whistleblow</div>
+              <div style="background:rgba(255,159,10,0.06); border:0.5px solid rgba(255,159,10,0.25); border-radius:8px; padding:10px; font-size:0.75rem; color:#FF9F0A; font-weight:500;">Resign quietly</div>
+              <div style="background:rgba(255,69,58,0.06); border:0.5px solid rgba(255,69,58,0.25); border-radius:8px; padding:10px; font-size:0.75rem; color:#FF6961; font-weight:500;">Fix in next sprint</div>
+              <div style="background:rgba(94,92,230,0.06); border:0.5px solid rgba(94,92,230,0.25); border-radius:8px; padding:10px; font-size:0.75rem; color:#8B87F2; font-weight:500;">Leak to press</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section" style="padding-top:0;">
+  <div class="container">
+    <div class="cta-strip reveal">
+      <h2>Bring the debate to your classroom.</h2>
+      <p>Twelve dilemmas. Three stakeholder roles. One structured framework. Open the Arena and pick a case.</p>
+      <a href="modules.html" class="btn btn-primary btn-lg">Open AI Ethics Arena</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <span class="footer-brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span>
+          AI Laboratory
+        </div>
+        <p class="footer-tagline">A hands-on AI learning platform for grades 6–12. Built for classrooms, designed for curiosity.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="modules.html">Modules</a></li>
+          <li><a href="prediction-engine.html">Prediction Engine</a></li>
+          <li><a href="agentic-studio.html">Agentic Studio</a></li>
+          <li><a href="ai-ethics-arena.html">Ethics Arena</a></li><li><a href="try-it.html">Try it</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="modules.html">Curriculum</a></li>
+          <li><a href="#">Lesson plans</a></li>
+          <li><a href="#">Tutorials</a></li>
+          <li><a href="#">Community</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span data-year>2026</span> AI Laboratory. Built for educators, by educators.</span>
+      <div class="footer-social">
+        <a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg></a>
+        <a href="#" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.17c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3.02 3.02 0 00-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 00.5 6.2C0 8.08 0 12 0 12s0 3.92.5 5.8a3.02 3.02 0 002.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 002.12-2.14C24 15.92 24 12 24 12s0-3.92-.5-5.8zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

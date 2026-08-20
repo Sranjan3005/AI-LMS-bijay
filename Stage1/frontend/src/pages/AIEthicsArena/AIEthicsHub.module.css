@@ -1,0 +1,345 @@
+/* AIEthicsHub.module.css — Mission Control Hub */
+
+.hubPage {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: linear-gradient(160deg, #0B0D17 0%, #0f1128 40%, #0d1225 100%);
+  color: #f4f1ea;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Scan-line overlay ── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 51, 102, 0.012) 2px,
+    rgba(255, 51, 102, 0.012) 4px
+  );
+}
+
+/* ── Top Navigation ── */
+.topNav {
+  flex-shrink: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 36px;
+  background: rgba(11, 13, 23, 0.82);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 51, 102, 0.1);
+}
+
+.scrollableContent {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 9px 16px;
+  border-radius: 10px;
+  color: #f4f1ea;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-3px);
+}
+
+.navBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-green, #00FF88);
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  padding: 7px 14px;
+  border-radius: 8px;
+}
+
+/* ── Hero ── */
+.hero {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 56px 36px 32px;
+}
+
+.heroIcon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+.heroTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #FF3366 60%, #FF6B00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSubtitle {
+  font-size: 1.08rem;
+  color: #8B949E;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+
+/* ── Progress Bar ── */
+.progressSection {
+  max-width: 500px;
+  margin: 28px auto 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--accent-red, #FF3366), var(--accent-cyan, #00F0FF));
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.progressText {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #8B949E;
+  white-space: nowrap;
+}
+
+/* ── Levels Grid ── */
+.levelsGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  max-width: 1360px;
+  margin: 48px auto 60px;
+  padding: 0 36px;
+}
+
+/* ── Level Card ── */
+.levelCard {
+  background: rgba(20, 22, 38, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.levelCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 20px 20px 0 0;
+}
+
+.levelCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+.levelCardLocked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.levelCardLocked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.levelCardCompleted {
+  border-color: rgba(0, 255, 136, 0.25);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.cardIcon {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.difficultyBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'Outfit', sans-serif;
+}
+
+.difficultyEasy {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--accent-green, #00FF88);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.difficultyMedium {
+  background: rgba(255, 204, 0, 0.1);
+  color: #FFCC00;
+  border: 1px solid rgba(255, 204, 0, 0.2);
+}
+
+.difficultyHard {
+  background: rgba(255, 51, 102, 0.1);
+  color: var(--accent-red, #FF3366);
+  border: 1px solid rgba(255, 51, 102, 0.2);
+}
+
+.cardLevelNum {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+
+.cardTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #f4f1ea;
+}
+
+.cardDescription {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #8B949E;
+  margin-bottom: 18px;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.startBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.startBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.completedBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  color: var(--accent-green, #00FF88);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.lockedBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #8B949E;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.conceptTag {
+  font-size: 0.75rem;
+  color: #8B949E;
+  font-style: italic;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .hero {
+    padding: 36px 18px 24px;
+  }
+
+  .heroTitle {
+    font-size: 2rem;
+  }
+
+  .levelsGrid {
+    grid-template-columns: 1fr;
+    padding: 0 18px;
+  }
+
+  .topNav {
+    padding: 12px 18px;
+  }
+}

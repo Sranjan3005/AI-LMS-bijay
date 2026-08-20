@@ -1,0 +1,89 @@
+/* chiti.css — the character stage (full-screen beats) and corner companion. */
+
+/* ── full-screen stage ── */
+.ch-stage {
+  position: fixed; inset: 0; z-index: 9995;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(90% 90% at 50% 45%, rgba(30,26,72,.86), rgba(5,6,15,.96));
+  backdrop-filter: blur(8px);
+  padding: 24px;
+}
+.ch-stage-inner {
+  display: flex; flex-direction: column; align-items: center;
+  width: min(760px, 100%);
+}
+.ch-stage-figure { width: min(380px, 74vw); height: min(420px, 46vh); }
+
+/* speech bubble */
+.ch-bubble {
+  position: relative; margin-top: 6px;
+  max-width: 620px; width: 100%;
+  background: rgba(18,21,38,.95);
+  border: 1px solid rgba(120,160,255,.34);
+  border-radius: 20px; padding: 22px 26px;
+  box-shadow: 0 22px 60px rgba(0,0,0,.55);
+  text-align: center;
+}
+.ch-bubble::before {
+  content: ''; position: absolute; top: -9px; left: 50%; transform: translateX(-50%) rotate(45deg);
+  width: 16px; height: 16px; background: rgba(18,21,38,.95);
+  border-left: 1px solid rgba(120,160,255,.34); border-top: 1px solid rgba(120,160,255,.34);
+}
+.ch-name {
+  font-size: .7rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: #64D2FF; margin-bottom: 8px;
+}
+.ch-line { font-size: clamp(1.02rem, 2.1vw, 1.28rem); line-height: 1.6; color: #eef1fb; margin: 0; }
+.ch-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+
+.ch-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px; border-radius: 13px; border: 0; cursor: pointer;
+  font-family: inherit; font-weight: 650; font-size: 1rem; color: #fff;
+  background: linear-gradient(120deg, #5e5ce6, #bf5af2);
+  box-shadow: 0 10px 26px rgba(94,92,230,.42);
+  transition: transform .15s ease;
+}
+.ch-btn:hover { transform: translateY(-2px); }
+.ch-btn.ghost { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16); box-shadow: none; }
+.ch-btn.ghost:hover { background: rgba(255,255,255,.11); }
+
+/* skip / mute controls */
+.ch-tools { position: fixed; top: 18px; right: 18px; display: flex; gap: 8px; z-index: 9996; }
+.ch-tool {
+  width: 40px; height: 40px; border-radius: 11px; cursor: pointer;
+  display: grid; place-items: center; font-size: 1rem;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); color: #dfe3f2;
+}
+.ch-tool:hover { background: rgba(255,255,255,.13); }
+
+/* ── corner companion ── */
+.ch-companion {
+  position: fixed; right: 18px; bottom: 18px; z-index: 9990;
+  display: flex; align-items: flex-end; gap: 10px; pointer-events: none;
+}
+.ch-companion-figure {
+  width: 120px; height: 140px; flex-shrink: 0; pointer-events: auto; cursor: pointer;
+}
+.ch-companion .ch-mini-bubble {
+  pointer-events: auto;
+  max-width: 280px; background: rgba(18,21,38,.96);
+  border: 1px solid rgba(120,160,255,.32); border-radius: 16px;
+  padding: 13px 16px; color: #e9edfa; font-size: .93rem; line-height: 1.5;
+  box-shadow: 0 14px 40px rgba(0,0,0,.5);
+  margin-bottom: 18px;
+}
+@media (max-width: 560px) {
+  .ch-companion-figure { width: 88px; height: 104px; }
+  .ch-companion .ch-mini-bubble { max-width: 62vw; font-size: .88rem; }
+}
+/* clear the mobile bottom tab bar so the corner companion isn't hidden behind it */
+@media (max-width: 900px) {
+  .ch-companion { bottom: 80px; }
+}
+
+/* respect reduced motion — the SVG rig already gets picked, but calm the rest */
+@media (prefers-reduced-motion: reduce) {
+  .ch-stage { backdrop-filter: none; }
+}

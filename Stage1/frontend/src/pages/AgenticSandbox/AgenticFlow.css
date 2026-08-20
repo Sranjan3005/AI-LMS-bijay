@@ -1,0 +1,140 @@
+/* AgenticFlow.css - sleek n8n-like UI matching existing space theme */
+
+.agentic-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-deep-space);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+}
+
+.agentic-sidebar {
+  width: 280px;
+  background: rgba(15, 17, 26, 0.95);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.agentic-sidebar-header {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-primary);
+}
+
+.agentic-sidebar-category {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.agentic-draggable-node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  cursor: grab;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.agentic-draggable-node:hover {
+  background: var(--bg-panel-hover);
+  transform: translateX(4px);
+}
+
+/* Specific Node Colors */
+.node-input { border-left: 4px solid var(--accent-cyan); color: var(--accent-cyan); }
+.node-process { border-left: 4px solid var(--accent-purple); color: var(--accent-purple); }
+.node-route { border-left: 4px solid #F59E0B; color: #F59E0B; } /* Amber */
+.node-output { border-left: 4px solid var(--accent-green); color: var(--accent-green); }
+
+.agentic-canvas-wrapper {
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+/* Custom Node Styles for Canvas */
+.custom-node {
+  background: rgba(20, 22, 33, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 15px;
+  min-width: 220px;
+  max-width: 380px;
+  /* Height is driven by content: auto-growing inputs + the result footer let a
+     node size itself instead of trapping text in a fixed, tiny scroll box. */
+  height: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+}
+
+.custom-node-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.custom-node-input {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 8px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  resize: none;
+  margin-top: 5px;
+}
+
+.custom-node-input:focus {
+  outline: none;
+  border-color: var(--text-secondary);
+}
+
+.custom-node-box {
+  background: rgba(0,0,0,0.2);
+  border: 1px dashed var(--glass-border);
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* Handles styling to look sleek */
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid rgba(20, 22, 33, 1) !important;
+}

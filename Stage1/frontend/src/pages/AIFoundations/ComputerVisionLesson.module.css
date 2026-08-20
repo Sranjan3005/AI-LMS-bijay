@@ -1,0 +1,655 @@
+.container {
+  min-height: 100vh;
+  background-color: #0a0f1e;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Outfit', sans-serif;
+}
+
+.topNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 15, 30, 0.8);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #c4c0d4;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.backBtn:hover {
+  color: #00F0FF;
+}
+
+.pageTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #FF9933;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.stepIndicator {
+  display: flex;
+  gap: 12px;
+}
+
+.stepDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.stepDotDone {
+  background: rgba(0, 240, 255, 0.4);
+}
+
+.stepDotActive {
+  background: #00F0FF;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+  transform: scale(1.2);
+}
+
+.lessonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+.theoryPanel {
+  padding: 60px 80px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.interactivePanel {
+  padding: 60px 80px;
+  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.03) 0%, transparent 70%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+}
+
+.eyebrow {
+  color: #00F0FF;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  line-height: 1.1;
+  margin-bottom: 25px;
+  background: linear-gradient(90deg, #fff, #c4c0d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.narrative {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #a09cb0;
+  margin-bottom: 40px;
+}
+
+.formulaBox {
+  background: rgba(0, 240, 255, 0.05);
+  border-left: 4px solid #00F0FF;
+  padding: 20px;
+  border-radius: 0 12px 12px 0;
+  margin-bottom: 40px;
+}
+
+.formulaLabel {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #00F0FF;
+  display: block;
+}
+
+.pixelGridContainer {
+  margin-top: 30px;
+}
+
+.pixelGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  max-width: 320px;
+  margin-bottom: 20px;
+}
+
+.pixel {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.gridCaption {
+  font-size: 0.9rem;
+  color: #8c899c;
+  min-height: 40px;
+}
+
+.pipelineCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 30px;
+}
+
+.pipelineTitle {
+  font-size: 1.5rem;
+  margin: 0 0 10px 0;
+}
+
+.pipelineSubtitle {
+  color: #8c899c;
+  margin: 0 0 30px 0;
+}
+
+.pipelineSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pipelineStep {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stepCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00F0FF;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stepTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  width: 120px;
+}
+
+.stepDesc {
+  color: #8c899c;
+  font-size: 0.9rem;
+}
+
+.keyIdeaBox {
+  background: rgba(255, 153, 51, 0.05);
+  border: 1px solid rgba(255, 153, 51, 0.2);
+  padding: 20px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.keyIdeaLabel {
+  color: #FF9933;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.keyIdeaText {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.navControls {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  display: flex;
+  gap: 15px;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.navButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+
+/* CNN Diagram */
+.cnnPipeline {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 50px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 20px;
+  border-radius: 16px;
+  overflow-x: auto;
+}
+
+.cnnBlock {
+  background: rgba(0, 240, 255, 0.05);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 15px 20px;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.cnnBlockLabel {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 5px;
+}
+
+.cnnBlockSub {
+  font-size: 0.8rem;
+  color: #00F0FF;
+}
+
+.cnnArrow {
+  color: #8c899c;
+  font-size: 1.5rem;
+}
+
+.featureMapSection {
+  margin-bottom: 30px;
+}
+
+.featureMapSection h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.kernelDisplay {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 30px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 200px;
+}
+
+.kernelGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 15px;
+}
+
+.kernelCell {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-radius: 6px;
+}
+
+.kernelLabel {
+  font-size: 0.85rem;
+  color: #8c899c;
+  text-align: center;
+}
+
+/* Convolution Visualization */
+.convolutionViz {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  width: 100%;
+}
+
+.convGridWrapper {
+  position: relative;
+  background: rgba(0,0,0,0.4);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.convGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+
+.convPixel {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+}
+
+.convLabel {
+  position: absolute;
+  bottom: -30px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #00F0FF;
+  font-size: 0.9rem;
+}
+
+.filterBtns {
+  display: flex;
+  gap: 10px;
+  background: rgba(255,255,255,0.05);
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.filterBtn {
+  background: transparent;
+  border: none;
+  color: #8c899c;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterBtnActive {
+  background: rgba(0, 240, 255, 0.15);
+  color: #00F0FF;
+}
+
+.playBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #00F0FF;
+  color: #000;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.playBtn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+.playBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* Applications Grid */
+.appsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.appCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  cursor: default;
+}
+
+.appIcon {
+  background: rgba(255, 153, 51, 0.1);
+  color: #FF9933;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.appName {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.appDesc {
+  font-size: 0.85rem;
+  color: #8c899c;
+}
+
+.flowBox {
+  background: rgba(0, 240, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 240, 255, 0.1);
+}
+.flowBox strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #00F0FF;
+}
+.flowBox p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #c4c0d4;
+}
+
+/* Visual Lab */
+.visualLabCard {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 40px;
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.labTitle {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.labDesc {
+  margin: 0;
+  color: #8c899c;
+  line-height: 1.5;
+}
+
+.filterToggleGroup {
+  display: flex;
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  padding: 4px;
+  overflow: hidden;
+}
+
+.filterToggle {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #8c899c;
+  padding: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.filterToggleActive {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-weight: 600;
+}
+
+.filterPreview {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.filterImage {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: all 0.5s ease;
+}
+
+.filterOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  transition: opacity 0.3s ease;
+}
+
+.filterCell {
+  width: 100%;
+  height: 100%;
+}
+
+.strengthSlider {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.rangeInput {
+  flex: 1;
+  accent-color: #00F0FF;
+}
+
+.strengthLabel {
+  font-size: 0.9rem;
+  color: #8c899c;
+  min-width: 120px;
+  text-align: right;
+}
+
+/* Open Lab Step */
+.labStep {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  position: relative;
+}
+
+.labHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+}
+
+.labIconLarge {
+  margin-bottom: 30px;
+}
+
+.scenarioCards {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 50px;
+  width: 100%;
+  justify-content: center;
+}
+
+.scenarioCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 30px;
+  flex: 1;
+  max-width: 280px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.scenarioEmoji {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.scenarioCard h3 {
+  margin: 0 0 10px 0;
+  color: #fff;
+}
+
+.scenarioCard p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #8c899c;
+  line-height: 1.5;
+}
+
+.ctaButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #00F0FF, #00FF88);
+  color: #000;
+  border: none;
+  padding: 16px 40px;
+  border-radius: 30px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 240, 255, 0.3);
+}

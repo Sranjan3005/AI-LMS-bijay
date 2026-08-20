@@ -1,0 +1,911 @@
+/* EthicsLevels.module.css — Shared styles for all AI Ethics Arena levels */
+
+/* ── Page Container ── */
+.levelPage {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #0B0D17 0%, #111428 40%, #0d1225 100%);
+  color: #f4f1ea;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── Scan-line overlay ── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 240, 255, 0.015) 2px,
+    rgba(0, 240, 255, 0.015) 4px
+  );
+}
+
+/* ── Top Navigation ── */
+.topNav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 36px;
+  background: rgba(11, 13, 23, 0.82);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 9px 16px;
+  border-radius: 10px;
+  color: #f4f1ea;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-3px);
+}
+
+.navTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #c4c0d4;
+}
+
+.navScore {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-cyan, #00F0FF);
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 10px;
+}
+
+/* ── Content Area ── */
+.content {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 36px 80px;
+}
+
+/* ── Level Header ── */
+.levelHeader {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.levelBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 6px 18px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+  background: rgba(255, 51, 102, 0.1);
+  color: var(--accent-red, #FF3366);
+  border: 1px solid rgba(255, 51, 102, 0.25);
+}
+
+.levelTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #c4c0d4 50%, var(--accent-cyan, #00F0FF) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.levelTitle em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--accent-red, #FF3366), var(--accent-cyan, #00F0FF));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.levelSubtitle {
+  font-size: 1.05rem;
+  color: #8B949E;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ── Game Card (generic card used inside levels) ── */
+.gameCard {
+  background: rgba(20, 22, 38, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.gameCard:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.gameCardClickable {
+  cursor: pointer;
+}
+
+.gameCardClickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Chat-like interface (Level 1) ── */
+.chatArea {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chatBubble {
+  max-width: 80%;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  animation: bubbleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chatBubbleUser {
+  align-self: flex-end;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(178, 0, 255, 0.1));
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  color: #f4f1ea;
+}
+
+.chatBubbleAI {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c4c0d4;
+}
+
+/* ── Input Bar ── */
+.inputBar {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.textInput {
+  flex: 1;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  color: #f4f1ea;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.textInput:focus {
+  border-color: var(--accent-cyan, #00F0FF);
+  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.08);
+}
+
+.textInput::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Buttons ── */
+.btnPrimary {
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--accent-cyan, #00F0FF), var(--accent-purple, #B200FF));
+  color: #fff;
+  transition: transform 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+
+.btnPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 240, 255, 0.25);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnDanger {
+  composes: btnPrimary;
+  background: linear-gradient(135deg, var(--accent-red, #FF3366), #FF6B00);
+}
+
+.btnDanger:hover {
+  box-shadow: 0 8px 24px rgba(255, 51, 102, 0.25);
+}
+
+.btnSuccess {
+  composes: btnPrimary;
+  background: linear-gradient(135deg, var(--accent-green, #00FF88), var(--accent-cyan, #00F0FF));
+  color: #0B0D17;
+}
+
+.btnSuccess:hover {
+  box-shadow: 0 8px 24px rgba(0, 255, 136, 0.25);
+}
+
+.btnOutline {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c4c0d4;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnOutline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #f4f1ea;
+}
+
+/* ── Suggestion Chips ── */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.chip {
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  background: rgba(0, 240, 255, 0.06);
+  color: var(--accent-cyan, #00F0FF);
+  font-size: 0.82rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: rgba(0, 240, 255, 0.14);
+  border-color: var(--accent-cyan, #00F0FF);
+  transform: translateY(-2px);
+}
+
+/* ── Emoji Display (Level 1) ── */
+.emojiDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+  animation: emojiBounce 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes emojiBounce {
+  0%   { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.emojiLarge {
+  font-size: 5rem;
+  line-height: 1;
+}
+
+.emojiLabel {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+/* ── Judge Buttons (Was the AI correct?) ── */
+.judgeRow {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* ── Score Counter ── */
+.scoreDisplay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.scoreNumber {
+  color: var(--accent-green, #00FF88);
+  font-size: 1.8rem;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scorePop {
+  animation: scorePop 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes scorePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.5); color: #FFCC00; }
+  100% { transform: scale(1); }
+}
+
+/* ── Result Feedback Card ── */
+.resultCard {
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+  animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.resultCorrect {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 240, 255, 0.06));
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.resultWrong {
+  background: linear-gradient(135deg, rgba(255, 51, 102, 0.1), rgba(255, 107, 0, 0.06));
+  border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.resultIcon {
+  font-size: 2.4rem;
+  margin-bottom: 8px;
+}
+
+.resultText {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.resultExplain {
+  font-size: 0.9rem;
+  color: #8B949E;
+  line-height: 1.5;
+}
+
+/* ── Profile Cards (Level 2) ── */
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.profileCard {
+  composes: gameCard;
+  cursor: pointer;
+  position: relative;
+}
+
+.profileCard::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 18px 18px 0 0;
+}
+
+.profileApproved::after {
+  background: linear-gradient(90deg, var(--accent-green, #00FF88), transparent);
+}
+
+.profileRejected::after {
+  background: linear-gradient(90deg, var(--accent-red, #FF3366), transparent);
+}
+
+.profileName {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.profileStat {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 0.88rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #c4c0d4;
+}
+
+.profileStatLabel {
+  color: #8B949E;
+}
+
+.profileDecision {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.decisionApproved {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--accent-green, #00FF88);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.decisionRejected {
+  background: rgba(255, 51, 102, 0.1);
+  color: var(--accent-red, #FF3366);
+  border: 1px solid rgba(255, 51, 102, 0.2);
+}
+
+/* ── Privacy Meter (Level 5) ── */
+.meterContainer {
+  width: 100%;
+  margin: 24px 0;
+}
+
+.meterLabel {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.meterTrack {
+  width: 100%;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 100px;
+  overflow: hidden;
+  position: relative;
+}
+
+.meterFill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1), background 0.4s;
+  position: relative;
+}
+
+.meterFill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+  border-radius: 100px;
+}
+
+/* ── Form Fields (Level 5) ── */
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.formLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #c4c0d4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.formInput {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f4f1ea;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.formInput:focus {
+  border-color: var(--accent-cyan, #00F0FF);
+}
+
+/* ── Voice Buttons (Level 6) ── */
+.voiceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.voiceCard {
+  composes: gameCard;
+  cursor: pointer;
+  text-align: center;
+  padding: 36px 24px;
+  transition: all 0.3s;
+}
+
+.voiceCard:hover {
+  border-color: var(--accent-cyan, #00F0FF);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
+}
+
+.voicePlaying {
+  border-color: var(--accent-green, #00FF88) !important;
+  box-shadow: 0 0 40px rgba(0, 255, 136, 0.15) !important;
+}
+
+.voiceIcon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.voiceLabel {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* ── Confetti ── */
+.confettiContainer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.confettiPiece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -20px;
+  animation: confettiFall 2.5s ease-in forwards;
+}
+
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ── Mission Complete Overlay ── */
+.missionComplete {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 13, 23, 0.92);
+  backdrop-filter: blur(20px);
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.missionIcon {
+  font-size: 5rem;
+  margin-bottom: 20px;
+  animation: emojiBounce 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.missionTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--accent-green, #00FF88), var(--accent-cyan, #00F0FF));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.missionSubtitle {
+  font-size: 1.05rem;
+  color: #8B949E;
+  max-width: 500px;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.missionScoreBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 32px;
+  border-radius: 14px;
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  margin-bottom: 28px;
+}
+
+.missionScoreLabel {
+  font-size: 0.9rem;
+  color: #8B949E;
+}
+
+.missionScoreValue {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-green, #00FF88);
+}
+
+/* ── Takeaway / Learning Outcome ── */
+.takeaway {
+  background: linear-gradient(135deg, rgba(178, 0, 255, 0.08), rgba(0, 240, 255, 0.06));
+  border: 1px solid rgba(178, 0, 255, 0.2);
+  border-radius: 20px;
+  padding: 32px 36px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.takeawayIcon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.takeawayTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--accent-purple, #B200FF), var(--accent-cyan, #00F0FF));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.takeawayText {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: #c4c0d4;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.takeawayText strong {
+  color: #f4f1ea;
+}
+
+/* ── Reveal Animation ── */
+.revealPanel {
+  animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Progress Dots ── */
+.progressDots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  transition: all 0.3s;
+}
+
+.dotActive {
+  background: var(--accent-cyan, #00F0FF);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+.dotCompleted {
+  background: var(--accent-green, #00FF88);
+}
+
+/* ── Question Card (Level 3) ── */
+.questionCard {
+  composes: gameCard;
+  margin-bottom: 20px;
+}
+
+.questionText {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #f4f1ea;
+}
+
+.answerText {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #c4c0d4;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border-left: 3px solid var(--accent-purple, #B200FF);
+  margin-bottom: 16px;
+}
+
+.answerActions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ── Image Comparison (Level 4) ── */
+.imageGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.imageCard {
+  composes: gameCard;
+  cursor: pointer;
+  text-align: center;
+  padding: 16px;
+  transition: all 0.3s;
+}
+
+.imageCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.imageCardSelected {
+  border-color: var(--accent-cyan, #00F0FF) !important;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.15) !important;
+}
+
+.imagePreview {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 12px;
+  object-fit: cover;
+  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.imagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.imageLabel {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* ── Clue Box (Level 4 reveal) ── */
+.clueBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(255, 204, 0, 0.06);
+  border: 1px solid rgba(255, 204, 0, 0.2);
+  border-radius: 12px;
+  margin-top: 16px;
+}
+
+.clueIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.clueText {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #c4c0d4;
+}
+
+.clueText strong {
+  color: #FFCC00;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .content {
+    padding: 28px 18px 60px;
+  }
+
+  .levelTitle {
+    font-size: 1.8rem;
+  }
+
+  .profileGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .imageGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .voiceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .topNav {
+    padding: 12px 18px;
+  }
+
+  .chipRow {
+    justify-content: center;
+  }
+}
