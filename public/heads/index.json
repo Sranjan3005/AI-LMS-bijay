@@ -1,0 +1,116 @@
+{
+  "backbone": "microsoft/resnet-50",
+  "embed_dim": 2048,
+  "specialists": [
+    {
+      "dataset_id": "butterflies",
+      "labels": [
+        "Acraea_terpsicore",
+        "Ariadne_merione",
+        "Catopsilia_pomona",
+        "Danaus_chrysippus",
+        "Delias_eucharis",
+        "Euploea_core",
+        "Graphium_agamemnon",
+        "Hypolimnas_bolina",
+        "Junonia_almana",
+        "Papilio_demoleus",
+        "Papilio_polytes",
+        "Tirumala_limniace"
+      ],
+      "rungs": [
+        1,
+        2,
+        5,
+        10,
+        25,
+        50,
+        86
+      ],
+      "best_accuracy": 0.7187,
+      "path": "/heads/butterflies/"
+    },
+    {
+      "dataset_id": "flowers",
+      "labels": [
+        "bougainvillea",
+        "daffodil",
+        "foxglove",
+        "frangipani",
+        "hibiscus",
+        "lotus",
+        "marigold",
+        "passion_flower",
+        "petunia",
+        "rose",
+        "sunflower",
+        "water_lily"
+      ],
+      "rungs": [
+        1,
+        2,
+        5,
+        10,
+        25,
+        44
+      ],
+      "best_accuracy": 0.9748,
+      "path": "/heads/flowers/"
+    },
+    {
+      "dataset_id": "mushrooms",
+      "labels": [
+        "Agaricus_campestris",
+        "Amanita_muscaria",
+        "Amanita_phalloides",
+        "Boletus_edulis",
+        "Cantharellus_cibarius",
+        "Coprinus_comatus",
+        "Ganoderma_lucidum",
+        "Pleurotus_ostreatus",
+        "Schizophyllum_commune",
+        "Trametes_versicolor"
+      ],
+      "rungs": [
+        1,
+        2,
+        5,
+        10,
+        25,
+        50,
+        86
+      ],
+      "best_accuracy": 0.8322,
+      "path": "/heads/mushrooms/"
+    },
+    {
+      "dataset_id": "pets",
+      "labels": [
+        "Bengal",
+        "Bombay",
+        "Maine_Coon",
+        "Persian",
+        "Siamese",
+        "Sphynx",
+        "beagle",
+        "chihuahua",
+        "german_shorthaired",
+        "pug",
+        "saint_bernard",
+        "samoyed"
+      ],
+      "rungs": [
+        1,
+        2,
+        5,
+        10,
+        25,
+        50,
+        100,
+        150
+      ],
+      "best_accuracy": 0.9867,
+      "path": "/heads/pets/"
+    }
+  ]
+}

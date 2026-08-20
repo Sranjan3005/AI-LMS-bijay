@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#171a2b"/>
+  <!-- three convolution stages: the picture shrinking, the description deepening -->
+  <rect x="4"  y="9"  width="9" height="14" rx="2" fill="#2f3557" stroke="#64d2ff" stroke-width="1.1"/>
+  <rect x="14" y="11" width="7" height="10" rx="2" fill="#2f3557" stroke="#64d2ff" stroke-width="1.1"/>
+  <rect x="22" y="13" width="5" height="6"  rx="1.5" fill="#2f3557" stroke="#64d2ff" stroke-width="1.1"/>
+  <!-- the head that gets replaced -->
+  <circle cx="24.5" cy="24.5" r="3.5" fill="#ff9f0a"/>
+</svg>

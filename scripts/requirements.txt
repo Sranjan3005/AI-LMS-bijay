@@ -1,0 +1,17 @@
+# Build-time only. None of this ships to the browser.
+#
+# EVERYDAY PIPELINE -- embed_datasets.py, train_heads.py, check_parity.py.
+# Runs the ONNX in public/models/resnet50/ through onnxruntime, which is a
+# ~15 MB wheel rather than a ~2 GB torch install.
+onnxruntime>=1.17
+pillow>=10.0
+numpy>=1.26
+scikit-learn>=1.4
+
+# ONE-TIME EXPORT -- scripts/export_backbone.py only.
+# Turns microsoft/resnet-50 into public/models/resnet50/model.onnx, the single
+# file both Python and the browser then load. Once it exists nobody else needs
+# these three.
+torch>=2.2
+transformers>=4.40
+onnx>=1.16

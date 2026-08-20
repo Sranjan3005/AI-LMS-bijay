@@ -1,0 +1,44 @@
+{
+  "export_version": 1,
+  "checkpoint": "microsoft/resnet-50",
+  "model_sha256": "06dd333a0f2af03b",
+  "architecture": "resnet-50",
+  "family": "cnn",
+  "param_count": 25557032,
+  "embed_dim": 2048,
+  "class_count": 1000,
+  "image_size": 224,
+  "image_mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "image_std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "fit": "contain",
+  "inputs": {
+    "pixel_values": [
+      "batch",
+      3,
+      224,
+      224
+    ]
+  },
+  "outputs": {
+    "logits": [
+      "batch",
+      1000
+    ],
+    "features": [
+      "batch",
+      2048
+    ]
+  },
+  "files": {
+    "float32": "model.onnx"
+  },
+  "note": "Python (embed_datasets.py, via onnxruntime) and the browser (src/lib/ml/backbone.js, via onnxruntime-web) load this same file. That is why the precomputed heads and live predictions cannot drift apart. If you switch one side to the int8 file, switch both."
+}
